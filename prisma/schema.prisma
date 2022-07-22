@@ -1,0 +1,139 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Example {
+    id String @id @default(cuid())
+}
+
+// Necessary for Next auth
+model Account {
+    id                String  @id @default(cuid())
+    userId            String
+    type              String
+    provider          String
+    providerAccountId String
+    refresh_token     String?
+    access_token      String?
+    expires_at        Int?
+    token_type        String?
+    scope             String?
+    id_token          String?
+    session_state     String?
+    user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([provider, providerAccountId])
+}
+
+model Session {
+    id           String   @id @default(cuid())
+    sessionToken String   @unique
+    userId       String
+    expires      DateTime
+    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+    id            String    @id @default(cuid())
+    name          String?
+    email         String?   @unique
+    emailVerified DateTime?
+    image         String?
+    accounts      Account[]
+    sessions      Session[]
+}
+
+model VerificationToken {
+    identifier String
+    token      String   @unique
+    expires    DateTime
+
+    @@unique([identifier, token])
+}
+
+model Student {
+    id          String @id @default(cuid())
+    name        String
+    lastName    String
+    university  String
+    faculty     String
+    course      String
+    hourBalance Int
+
+    payments            Payment[]
+    ClassSessionStudent ClassSessionStudent[]
+}
+
+model Payment {
+    id        String  @id @default(cuid())
+    studentId String
+    hourId    String  @unique
+    value     Decimal
+
+    student Student @relation(fields: [studentId], references: [id])
+    hour    Hour    @relation(fields: [hourId], references: [id])
+}
+
+model TeacherPayment {
+    id        String  @id @default(cuid())
+    teacherId String
+    value     Decimal
+    teacher   Teacher @relation(fields: [teacherId], references: [id])
+}
+
+model ClassSessionStudent {
+    studentId      String
+    classSessionId String
+
+    student      Student      @relation(fields: [studentId], references: [id])
+    classSession ClassSession @relation(fields: [classSessionId], references: [id])
+
+    @@unique([classSessionId, studentId])
+}
+
+model ClassSession {
+    id     String   @id @default(cuid())
+    date   DateTime
+    hourId String   @unique
+
+    hour                Hour                  @relation(fields: [hourId], references: [id])
+    Teacher             Teacher?              @relation(fields: [teacherId], references: [id])
+    teacherId           String?
+    ClassSessionStudent ClassSessionStudent[]
+}
+
+model Hour {
+    id    String  @id @default(cuid())
+    value Decimal
+
+    ClassSession ClassSession?
+    payment      Payment?
+}
+
+model Teacher {
+    id             String           @id @default(cuid())
+    name           String
+    lastName       String
+    balance        Decimal
+    classSessions  ClassSession[]
+    TeacherPayment TeacherPayment[]
+}
+
+model HourRate {
+    id   String  @id @default(cuid())
+    rate Decimal
+}
+
+model HourPackage {
+    id         String  @id @default(cuid())
+    packHours  Decimal
+    totalValue Decimal
+}
