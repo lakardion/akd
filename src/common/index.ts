@@ -9,3 +9,10 @@ export const studentFormZod = z.object({
 });
 
 export type StudentFormInput = z.infer<typeof studentFormZod>;
+
+export const teacherFormZod = z.object({
+  name: z.string().min(1, "Required"),
+  lastName: z.string().min(1, "Required"),
+});
+
+export type TeacherFormInput = z.infer<typeof teacherFormZod>;
