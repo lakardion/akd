@@ -127,19 +127,25 @@ model Teacher {
     id             String           @id @default(cuid())
     name           String
     lastName       String
-    balance        Decimal
+    balance        Decimal          @default(0)
     isActive       Boolean          @default(true)
     classSessions  ClassSession[]
     TeacherPayment TeacherPayment[]
 }
 
 model HourRate {
-    id   String  @id @default(cuid())
+    id   String       @id @default(cuid())
     rate Decimal
+    type HourRateType
 }
 
 model HourPackage {
     id         String  @id @default(cuid())
     packHours  Decimal
     totalValue Decimal
+}
+
+enum HourRateType {
+    TEACHER
+    STUDENT
 }
