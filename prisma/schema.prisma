@@ -98,21 +98,23 @@ model ClassSessionStudent {
     studentId      String
     classSessionId String
 
-    student      Student      @relation(fields: [studentId], references: [id])
-    classSession ClassSession @relation(fields: [classSessionId], references: [id])
+    student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+    classSession ClassSession @relation(fields: [classSessionId], references: [id], onDelete: Cascade)
 
     @@unique([classSessionId, studentId])
 }
 
 model ClassSession {
-    id     String   @id @default(cuid())
-    date   DateTime
-    hourId String   @unique
+    id                String   @id @default(cuid())
+    date              DateTime
+    hourId            String   @unique
+    teacherId         String?
+    teacherHourRateId String
 
     hour                Hour                  @relation(fields: [hourId], references: [id])
     Teacher             Teacher?              @relation(fields: [teacherId], references: [id])
-    teacherId           String?
     ClassSessionStudent ClassSessionStudent[]
+    teacherHourRate     HourRate              @relation(fields: [teacherHourRateId], references: [id])
 }
 
 model Hour {
@@ -124,25 +126,32 @@ model Hour {
 }
 
 model Teacher {
-    id             String           @id @default(cuid())
-    name           String
-    lastName       String
-    balance        Decimal          @default(0)
-    isActive       Boolean          @default(true)
+    id       String  @id @default(cuid())
+    name     String
+    lastName String
+    balance  Decimal @default(0)
+    isActive Boolean @default(true)
+
     classSessions  ClassSession[]
     TeacherPayment TeacherPayment[]
 }
 
 model HourRate {
-    id   String       @id @default(cuid())
-    rate Decimal
-    type HourRateType
+    id          String       @id @default(cuid())
+    rate        Decimal
+    type        HourRateType
+    description String
+    isActive    Boolean      @default(true)
+
+    classSessions ClassSession[]
 }
 
 model HourPackage {
-    id         String  @id @default(cuid())
-    packHours  Decimal
-    totalValue Decimal
+    id          String  @id @default(cuid())
+    packHours   Decimal
+    totalValue  Decimal
+    description String
+    isActive    Boolean @default(true)
 }
 
 enum HourRateType {
