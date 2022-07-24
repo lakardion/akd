@@ -84,7 +84,7 @@ const TeachersList: FC<{
 }> = ({ handleDelete, handleEdit }) => {
   const { data, isLoading: studentsLoading } = trpc.useQuery(["akd.teachers"]);
   if (studentsLoading) {
-    return <Spinner />;
+    return <Spinner size="sm" />;
   }
   if (!data?.teachers?.length) {
     return <p>No hay profesores para mostrar</p>;

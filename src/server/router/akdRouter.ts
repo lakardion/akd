@@ -1,9 +1,22 @@
-import { studentFormZod, teacherFormZod } from "common";
+import { HourRateType } from "@prisma/client";
+import {
+  addHourPackageZod,
+  addHourRateZod,
+  studentFormZod,
+  teacherFormZod,
+} from "common";
 import { z } from "zod";
 import { getPagination } from "../../utils/pagination";
 import { createRouter } from "./context";
 
 const DEFAULT_PAGE_SIZE = 15;
+
+const hourRateTypeZod = z.object({
+  type: z.enum([HourRateType.TEACHER, HourRateType.STUDENT]),
+});
+const includeInactiveFlagZod = z.object({
+  includeInactive: z.boolean().optional(),
+});
 
 export const akdRouter = createRouter()
   .query("getStudent", {
@@ -132,9 +145,15 @@ export const akdRouter = createRouter()
         page: z.number().optional(),
         size: z.number().optional(),
       })
+      .merge(includeInactiveFlagZod)
       .default({}),
-    async resolve({ ctx, input: { page = 1, size = DEFAULT_PAGE_SIZE } }) {
-      const totalCount = await ctx.prisma.teacher.count();
+    async resolve({
+      ctx,
+      input: { page = 1, size = DEFAULT_PAGE_SIZE, includeInactive = false },
+    }) {
+      const totalCount = await ctx.prisma.teacher.count({
+        where: includeInactive ? undefined : { isActive: true },
+      });
       const { count, next, previous } = getPagination({
         count: totalCount,
         page,
@@ -142,6 +161,7 @@ export const akdRouter = createRouter()
       });
       const teachers = await ctx.prisma.teacher.findMany({
         take: size,
+        where: includeInactive ? undefined : { isActive: true },
         orderBy: {
           lastName: "asc",
         },
@@ -212,5 +232,146 @@ export const akdRouter = createRouter()
         data: { name, lastName },
       });
       return created;
+    },
+  })
+  .query("getHourRate", {
+    input: z.object({ id: z.string() }),
+    async resolve({ ctx, input: { id } }) {
+      const hourRate = await ctx.prisma.hourRate.findUnique({ where: { id } });
+      if (!hourRate) {
+        return ctx.res?.status(404).json({ message: "Not found" });
+      }
+      return { ...hourRate, rate: hourRate.rate.toNumber() };
+    },
+  })
+  .query("hourRates", {
+    input: hourRateTypeZod.merge(includeInactiveFlagZod),
+    async resolve({ ctx, input: { type, includeInactive = false } }) {
+      const prices = await ctx.prisma.hourRate.findMany({
+        where: {
+          type,
+          isActive: includeInactive ? undefined : true,
+        },
+      });
+
+      return prices.map((p) => ({ ...p, rate: p.rate.toNumber() }));
+    },
+  })
+  .query("getHourPackage", {
+    input: z.object({ id: z.string() }),
+    async resolve({ ctx, input: { id } }) {
+      const hourPackage = await ctx.prisma.hourPackage.findUnique({
+        where: { id },
+      });
+      if (!hourPackage) {
+        return ctx.res?.status(404).json({ message: "Not found" });
+      }
+      return { ...hourPackage, totalValue: hourPackage.totalValue.toNumber() };
+    },
+  })
+  .query("hourPackages", {
+    input: includeInactiveFlagZod.default({}),
+    async resolve({ ctx, input: { includeInactive = false } }) {
+      const packages = await ctx.prisma.hourPackage.findMany({
+        where: includeInactive ? undefined : { isActive: false },
+      });
+      return packages.map((p) => ({
+        ...p,
+        totalValue: p.totalValue.toNumber(),
+        packHours: p.packHours.toNumber(),
+      }));
+    },
+  })
+  .mutation("createHourRate", {
+    input: hourRateTypeZod.extend(addHourRateZod.shape),
+    async resolve({ ctx, input: { type, description, rate } }) {
+      const createdHourRate = await ctx.prisma.hourRate.create({
+        data: {
+          type,
+          description,
+          rate,
+        },
+      });
+
+      return createdHourRate;
+    },
+  })
+  .mutation("deleteHourRate", {
+    input: z.object({ id: z.string() }),
+    async resolve({ ctx, input: { id } }) {
+      const currentHourRate = await ctx.prisma.hourRate.findUnique({
+        where: {
+          id,
+        },
+        select: {
+          _count: {
+            select: {
+              classSessions: true,
+            },
+          },
+        },
+      });
+      if (!currentHourRate?._count.classSessions) {
+        return ctx.prisma.hourRate.delete({
+          where: {
+            id,
+          },
+        });
+      }
+      return ctx.prisma.hourRate.update({
+        where: {
+          id,
+        },
+        data: {
+          isActive: false,
+        },
+      });
+    },
+  })
+  .mutation("editHourRate", {
+    input: z
+      .object({ id: z.string() })
+      .merge(addHourRateZod)
+      .merge(hourRateTypeZod),
+    async resolve({ ctx, input: { id, description, rate, type } }) {
+      const updatedHourRate = await ctx.prisma.hourRate.update({
+        where: { id },
+        data: {
+          description,
+          rate,
+          type,
+        },
+      });
+    },
+  })
+  .mutation("createHourPackage", {
+    input: addHourPackageZod,
+    async resolve({ ctx, input: { description, packHours, totalValue } }) {
+      const newHourPackage = await ctx.prisma.hourPackage.create({
+        data: {
+          description,
+          packHours,
+          totalValue,
+        },
+      });
+
+      return newHourPackage;
+    },
+  })
+  .mutation("editHourPackage", {
+    input: z.object({ id: z.string() }).merge(addHourPackageZod),
+    async resolve({ ctx, input: { id, description, packHours, totalValue } }) {
+      const updated = await ctx.prisma.hourPackage.update({
+        where: { id },
+        data: { description, packHours, totalValue },
+      });
+      return updated;
+    },
+  })
+  .mutation("deleteHourPackage", {
+    input: z.object({ id: z.string() }),
+    async resolve({ ctx, input: { id } }) {
+      //! no relations mean we can safely delete this field.
+      await ctx.prisma.hourPackage.delete({ where: { id } });
     },
   });
