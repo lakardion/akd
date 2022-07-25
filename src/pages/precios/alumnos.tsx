@@ -18,7 +18,7 @@ import { useForm } from "react-hook-form";
 import { trpc } from "utils/trpc";
 
 const useHourRateForm = ({ id }: { id: string }) => {
-  const { data: hourRate } = trpc.useQuery(["akd.getHourRate", { id }], {
+  const { data: hourRate } = trpc.useQuery(["rates.hourRate", { id }], {
     enabled: Boolean(id),
   });
   const defaultValues: AddHourRateFormInput = useMemo(() => {
@@ -43,7 +43,7 @@ const useHourRateForm = ({ id }: { id: string }) => {
 };
 
 const useHourPackageForm = ({ id }: { id: string }) => {
-  const { data: hourPackage } = trpc.useQuery(["akd.getHourPackage", { id }], {
+  const { data: hourPackage } = trpc.useQuery(["rates.hourPackage", { id }], {
     enabled: Boolean(id),
   });
   const defaultValues: AddHourPackageFormInput = useMemo(
@@ -73,7 +73,7 @@ const StudentHourRateList: FC<{
   onDelete: (id: string) => void;
 }> = ({ onEdit, onDelete }) => {
   const { data, isLoading } = trpc.useQuery([
-    "akd.hourRates",
+    "rates.hourRates",
     { type: "STUDENT" },
   ]);
 
@@ -113,7 +113,7 @@ const PackagePriceList: FC<{
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
 }> = ({ onEdit, onDelete }) => {
-  const { data, isLoading } = trpc.useQuery(["akd.hourPackages"]);
+  const { data, isLoading } = trpc.useQuery(["rates.hourPackages"]);
   if (!data) {
     return <Spinner size="sm" />;
   }
@@ -153,18 +153,18 @@ const AddHourRateForm: FC<{ onFinished: () => void; id: string }> = ({
 }) => {
   const queryClient = trpc.useContext();
   const { isLoading: isCreating, mutateAsync: create } = trpc.useMutation(
-    "akd.createHourRate",
+    "rates.createHourRate",
     {
       onSuccess: () => {
-        queryClient.invalidateQueries(["akd.hourRates", { type: "STUDENT" }]);
+        queryClient.invalidateQueries(["rates.hourRates", { type: "STUDENT" }]);
       },
     }
   );
   const { isLoading: isEditing, mutateAsync: edit } = trpc.useMutation(
-    "akd.editHourRate",
+    "rates.editHourRate",
     {
       onSuccess: () => {
-        queryClient.invalidateQueries(["akd.hourRates", { type: "STUDENT" }]);
+        queryClient.invalidateQueries(["rates.hourRates", { type: "STUDENT" }]);
       },
     }
   );
@@ -225,18 +225,18 @@ const AddHourPackageForm: FC<{ onFinished: () => void; id: string }> = ({
 }) => {
   const queryClient = trpc.useContext();
   const { isLoading: isCreating, mutateAsync: create } = trpc.useMutation(
-    "akd.createHourPackage",
+    "rates.createHourPackage",
     {
       onSuccess: () => {
-        queryClient.invalidateQueries("akd.hourPackages");
+        queryClient.invalidateQueries("rates.hourPackages");
       },
     }
   );
   const { isLoading: isEditing, mutateAsync: edit } = trpc.useMutation(
-    "akd.editHourPackage",
+    "rates.editHourPackage",
     {
       onSuccess: () => {
-        queryClient.invalidateQueries("akd.hourPackages");
+        queryClient.invalidateQueries("rates.hourPackages");
       },
     }
   );
@@ -315,9 +315,9 @@ const StudentHourRatePrices = () => {
     isLoading: isDeleting,
     error: deleteError,
     mutateAsync: deleteOne,
-  } = trpc.useMutation("akd.deleteHourRate", {
+  } = trpc.useMutation("rates.deleteHourRate", {
     onSuccess: () => {
-      queryClient.invalidateQueries("akd.hourRates");
+      queryClient.invalidateQueries("rates.hourRates");
     },
   });
 
@@ -384,9 +384,9 @@ const StudentPackagePrices = () => {
     isLoading: isDeleting,
     error: deleteError,
     mutateAsync: deleteOne,
-  } = trpc.useMutation("akd.deleteHourPackage", {
+  } = trpc.useMutation("rates.deleteHourPackage", {
     onSuccess: () => {
-      queryClient.invalidateQueries("akd.hourPackages");
+      queryClient.invalidateQueries("rates.hourPackages");
     },
   });
 

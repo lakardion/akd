@@ -2,39 +2,46 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { StudentFormInput, studentFormZod } from "common";
 import { Button } from "components/button";
 import { Input } from "components/form/input";
+import { Label } from "components/form/label";
 import { ValidationError } from "components/form/validation-error";
 import { Spinner } from "components/spinner";
 import { FC, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { trpc } from "utils/trpc";
+import { MdDelete, MdEdit } from "react-icons/md";
+import { useRouter } from "next/router";
+import Link from "next/link";
 
 const StudentForm: FC<{ onFinished: () => void; studentId: string }> = ({
   studentId,
   onFinished,
 }) => {
   const queryClient = trpc.useContext();
-  const { data: student } = trpc.useQuery(["akd.getStudent", { studentId }], {
-    enabled: Boolean(studentId),
-  });
+  const { data: student } = trpc.useQuery(
+    ["students.student", { id: studentId }],
+    {
+      enabled: Boolean(studentId),
+    }
+  );
   const { mutateAsync: createStudent, isLoading: isCreating } =
-    trpc.useMutation("akd.createStudent", {
+    trpc.useMutation("students.create", {
       onSuccess: () => {
-        queryClient.invalidateQueries("akd.students");
+        queryClient.invalidateQueries("students.students");
       },
     });
   const { mutateAsync: editStudent, isLoading: isEditing } = trpc.useMutation(
-    "akd.editStudent",
+    "students.edit",
     {
       onSuccess: () => {
-        queryClient.invalidateQueries("akd.students");
-        queryClient.invalidateQueries(["akd.getStudent", { studentId }]);
+        queryClient.invalidateQueries("students.students");
+        queryClient.invalidateQueries(["students.student", { id: studentId }]);
       },
     }
   );
 
   const onSubmit = async (data: StudentFormInput) => {
     const updatedStudent = studentId
-      ? await editStudent({ studentId, ...data })
+      ? await editStudent({ id: studentId, ...data })
       : await createStudent(data);
     onFinished();
   };
@@ -68,20 +75,27 @@ const StudentForm: FC<{ onFinished: () => void; studentId: string }> = ({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-2">
-      <h1>{studentId ? "Editar alumno" : "Agregar alumno"}</h1>
-      <label htmlFor="lastName">Apellido</label>
+      <h1 className="text-3xl text-center">
+        {studentId ? "Editar alumno" : "Agregar alumno"}
+      </h1>
+      <Label
+        className="border border-solid border-b-blackish-600/30"
+        htmlFor="lastName"
+      >
+        Apellido
+      </Label>
       <Input {...register("lastName")} placeholder="Last name..." />
       <ValidationError error={errors.name} />
-      <label htmlFor="name">Nombre</label>
+      <Label htmlFor="name">Nombre</Label>
       <Input {...register("name")} placeholder="Name..." />
       <ValidationError error={errors.name} />
-      <label htmlFor="university">Universidad</label>
+      <Label htmlFor="university">Universidad</Label>
       <Input {...register("university")} placeholder="University..." />
       <ValidationError error={errors.university} />
-      <label htmlFor="faculty">Facultad</label>
+      <Label htmlFor="faculty">Facultad</Label>
       <Input {...register("faculty")} placeholder="Facultad..." />
       <ValidationError error={errors.faculty} />
-      <label htmlFor="course">Carrera</label>
+      <Label htmlFor="course">Carrera</Label>
       <Input {...register("course")} placeholder="Carrera..." />
       <ValidationError error={errors.course} />
       <Button type="submit">{studentId ? "Editar" : "Agregar"}</Button>
@@ -93,9 +107,13 @@ const StudentList: FC<{
   handleDelete: (id: string) => void;
   handleEdit: (id: string) => void;
 }> = ({ handleDelete, handleEdit }) => {
-  const { data, isLoading: studentsLoading } = trpc.useQuery(["akd.students"]);
+  const { data, isLoading: studentsLoading } = trpc.useQuery([
+    "students.students",
+  ]);
+  const { asPath } = useRouter();
+
   if (studentsLoading) {
-    return <Spinner size="xs" />;
+    return <Spinner size="sm" />;
   }
   if (!data?.students?.length) {
     return <p>No hay alumnos para mostrar</p>;
@@ -108,7 +126,7 @@ const StudentList: FC<{
   };
 
   return (
-    <ul>
+    <ul className="flex flex-col justify-center items-center w-full">
       {data?.students.map((s) => {
         const status =
           s.hourBalance < 0
@@ -116,22 +134,47 @@ const StudentList: FC<{
             : s.hourBalance === 0
             ? "bg-gray-500"
             : "bg-green-500";
+        const statusTitle =
+          s.hourBalance < 0
+            ? "El alumno debe horas"
+            : s.hourBalance === 0
+            ? "El alumno no tiene horas"
+            : "El alumno tiene horas sin usar";
         return (
-          <li key={s.id} className="border border-slid border-teal-400">
-            <p className="flex gap-2 items-center justify-between">
-              <span>
-                {s.lastName} {s.name}
-              </span>
-              <span
-                className={`inline-block w-3 h-3 rounded-full ${status}`}
-              ></span>
-            </p>
-            <button type="button" onClick={createEditHandler(s.id)}>
-              Edit
-            </button>
-            <button type="button" onClick={createDeleteHandler(s.id)}>
-              Delete
-            </button>
+          <li
+            key={s.id}
+            className="bg-gray-300 w-full rounded-md py-3 px-2 sm:px-20"
+          >
+            <Link href={`${asPath}/${s.id}`}>
+              <button
+                className="flex justify-between items-center w-full transition-transform hover:scale-105 hover:text-primary-600"
+                type="button"
+              >
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-3 h-3 rounded-full ${status} cursor-help mb-0.5`}
+                    title={statusTitle}
+                  ></div>
+                  <p>
+                    {s.lastName} {s.name}
+                  </p>
+                </div>
+                <div className="flex gap-1 items-center">
+                  <button type="button" onClick={createEditHandler(s.id)}>
+                    <MdEdit
+                      size={20}
+                      className="fill-blackish-900 hover:fill-primary-400"
+                    />
+                  </button>
+                  <button type="button" onClick={createDeleteHandler(s.id)}>
+                    <MdDelete
+                      size={20}
+                      className="fill-blackish-900 hover:fill-primary-400"
+                    />
+                  </button>
+                </div>
+              </button>
+            </Link>
           </li>
         );
       })}
@@ -144,10 +187,10 @@ const Students = () => {
   const [showForm, setShowForm] = useState(false);
   const queryClient = trpc.useContext();
   const { isLoading: isLoading, mutateAsync: deleteStudent } = trpc.useMutation(
-    "akd.deleteStudent",
+    "students.delete",
     {
       onSuccess: () => {
-        queryClient.invalidateQueries("akd.students");
+        queryClient.invalidateQueries("students.students");
       },
     }
   );
@@ -160,7 +203,7 @@ const Students = () => {
   };
 
   const handleDelete = async (id: string) => {
-    await deleteStudent({ studentId: id });
+    await deleteStudent({ id });
   };
   const handleEdit = (id: string) => {
     setCurrentStudentId(id);
@@ -168,8 +211,12 @@ const Students = () => {
   };
 
   return (
-    <section>
-      <button onClick={handleAddStudent} type="button">
+    <section className="p-4 rounded-lg w-11/12 sm:max-w-2xl flex flex-col gap-3 items-center">
+      <button
+        onClick={handleAddStudent}
+        type="button"
+        className="rounded-lg bg-primary-500 w-full p-3 text-white"
+      >
         Agregar alumno
       </button>
       {showForm ? (

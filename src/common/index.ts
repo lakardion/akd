@@ -1,3 +1,4 @@
+import { HourRateType } from "@prisma/client";
 import { z } from "zod";
 
 const personZod = z.object({
@@ -58,3 +59,10 @@ export const addHourPackageZod = z
   })
   .merge(describableZod);
 export type AddHourPackageInput = z.infer<typeof addHourPackageZod>;
+
+export const hourRateTypeZod = z.object({
+  type: z.enum([HourRateType.TEACHER, HourRateType.STUDENT]),
+});
+export const includeInactiveFlagZod = z.object({
+  includeInactive: z.boolean().optional(),
+});

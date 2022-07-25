@@ -2,29 +2,41 @@ import { CSSProperties, FC } from "react";
 
 export type SizeVariant = "xs" | "sm" | "md" | "lg" | "xl";
 const BASE_SIZE = 20;
+const BASE_BORDER = 2;
+const PRIMARY_COLOR = "#B33432";
 const mapWidthHeightBySize: Record<
   SizeVariant,
-  { width: number; height: number }
+  { width: number; height: number; border: string; borderTop: string }
 > = {
   xs: {
     height: BASE_SIZE,
     width: BASE_SIZE,
+    border: `${BASE_BORDER}px solid #f3f3f3`,
+    borderTop: `${BASE_BORDER}px solid ${PRIMARY_COLOR}`,
   },
   sm: {
     height: BASE_SIZE * 2,
     width: BASE_SIZE * 2,
+    border: `${BASE_BORDER * 2}px solid #f3f3f3`,
+    borderTop: `${BASE_BORDER * 2}px solid ${PRIMARY_COLOR}`,
   },
   md: {
     height: BASE_SIZE * 3,
     width: BASE_SIZE * 3,
+    border: `${BASE_BORDER * 3}px solid #f3f3f3`,
+    borderTop: `${BASE_BORDER * 3}px solid ${PRIMARY_COLOR}`,
   },
   lg: {
     height: BASE_SIZE * 4,
     width: BASE_SIZE * 4,
+    border: `${BASE_BORDER * 4}px solid #f3f3f3`,
+    borderTop: `${BASE_BORDER * 4}px solid ${PRIMARY_COLOR}`,
   },
   xl: {
     height: BASE_SIZE * 5,
     width: BASE_SIZE * 5,
+    border: `${BASE_BORDER * 5}px solid #f3f3f3`,
+    borderTop: `${BASE_BORDER * 5}px solid ${PRIMARY_COLOR}`,
   },
 };
 
@@ -46,6 +58,7 @@ export const Spinner: FC<{
 
   return (
     <div
+      className="animate-spin"
       style={{
         ...defaultStyles,
         ...customStyles,

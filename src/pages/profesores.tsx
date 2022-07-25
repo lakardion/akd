@@ -13,23 +13,23 @@ const TeacherForm: FC<{ onFinished: () => void; id: string }> = ({
   onFinished,
 }) => {
   const queryClient = trpc.useContext();
-  const { data } = trpc.useQuery(["akd.getTeacher", { id }], {
+  const { data } = trpc.useQuery(["teachers.teacher", { id }], {
     enabled: Boolean(id),
   });
   const { mutateAsync: create, isLoading: isCreating } = trpc.useMutation(
-    "akd.createTeacher",
+    "teachers.create",
     {
       onSuccess: () => {
-        queryClient.invalidateQueries("akd.teachers");
+        queryClient.invalidateQueries("teachers.teachers");
       },
     }
   );
   const { mutateAsync: edit, isLoading: isEditing } = trpc.useMutation(
-    "akd.editTeacher",
+    "teachers.edit",
     {
       onSuccess: () => {
-        queryClient.invalidateQueries("akd.teachers");
-        queryClient.invalidateQueries(["akd.getTeacher", { id }]);
+        queryClient.invalidateQueries("teachers.teachers");
+        queryClient.invalidateQueries(["teachers.teacher", { id }]);
       },
     }
   );
@@ -82,7 +82,9 @@ const TeachersList: FC<{
   handleDelete: (id: string) => void;
   handleEdit: (id: string) => void;
 }> = ({ handleDelete, handleEdit }) => {
-  const { data, isLoading: studentsLoading } = trpc.useQuery(["akd.teachers"]);
+  const { data, isLoading: studentsLoading } = trpc.useQuery([
+    "teachers.teachers",
+  ]);
   if (studentsLoading) {
     return <Spinner size="sm" />;
   }
@@ -133,10 +135,10 @@ const Teachers = () => {
   const [showForm, setShowForm] = useState(false);
   const queryClient = trpc.useContext();
   const { isLoading: isLoading, mutateAsync: deleteOne } = trpc.useMutation(
-    "akd.deleteTeacher",
+    "teachers.delete",
     {
       onSuccess: () => {
-        queryClient.invalidateQueries("akd.teachers");
+        queryClient.invalidateQueries("teachers.teachers");
       },
     }
   );
