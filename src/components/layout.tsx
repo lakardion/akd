@@ -16,7 +16,12 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
     <div className="w-screen h-screen">
       <header className="w-full pb-1 text-accent-900">
         <section className="flex justify-between w-full p-2">
-          <section>La Academia Reg&amp;Stats</section>
+          <section>
+            <span className="text-2xl">La Academia </span>
+            <span className="bg-gradient-to-r from-primary to-blackish bg-clip-text text-transparent">
+              Reg&amp;Stats
+            </span>
+          </section>
           <section>
             <Button onClick={handleLogin}>Login</Button>
           </section>

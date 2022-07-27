@@ -1,3 +1,4 @@
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AddHourPackageFormInput,
@@ -76,7 +77,7 @@ const StudentHourRateList: FC<{
     "rates.hourRates",
     { type: "STUDENT" },
   ]);
-
+  const [parent] = useAutoAnimate<HTMLUListElement>();
   if (!data) {
     return <Spinner size="sm" />;
   }
@@ -88,7 +89,7 @@ const StudentHourRateList: FC<{
   };
 
   return (
-    <ul>
+    <ul ref={parent}>
       {data?.map((sp) => (
         <li key={sp.id} className="flex gap-3 justify-between">
           <div>{sp.description}</div>
@@ -114,6 +115,7 @@ const PackagePriceList: FC<{
   onDelete: (id: string) => void;
 }> = ({ onEdit, onDelete }) => {
   const { data, isLoading } = trpc.useQuery(["rates.hourPackages"]);
+  const [parent] = useAutoAnimate<HTMLUListElement>();
   if (!data) {
     return <Spinner size="sm" />;
   }
@@ -124,7 +126,7 @@ const PackagePriceList: FC<{
     onDelete(id);
   };
   return (
-    <ul>
+    <ul ref={parent}>
       {data.map((d) => (
         <li key={d.id} className="flex gap-3 justify-between">
           <div>{d.description}</div>
@@ -208,10 +210,15 @@ const AddHourRateForm: FC<{ onFinished: () => void; id: string }> = ({
         <ValidationError error={errors.description} />
       </section>
       <section className="flex">
-        <Button type="submit" className="flex-grow">
+        <Button type="submit" className="flex-grow" variant="accent">
           Agregar
         </Button>
-        <Button type="button" onClick={onFinished} className="flex-grow">
+        <Button
+          type="button"
+          onClick={onFinished}
+          className="flex-grow"
+          variant="accent"
+        >
           Cancelar
         </Button>
       </section>
@@ -395,6 +402,7 @@ const StudentPackagePrices = () => {
   };
   const handleCloseCreateEditModal = () => {
     setShowCreateEditModal(false);
+    setCurrentId("");
   };
   const handlePackageEdit = (id: string) => {
     setCurrentId(id);

@@ -56,7 +56,7 @@ export const Modal: FC<{
       ></section>
       <section
         aria-label="modal body"
-        className={`absolute bg-gray-700 rounded-lg text-white top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border border-gray-500 p-3 backdrop-blur-3xl  transition-opacity ease-in duration-200 ${opacityValue} ${className}`}
+        className={`absolute rounded-lg top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-3 backdrop-blur-3xl  transition-opacity ease-in duration-200 ${opacityValue} ${className}`}
       >
         {children}
       </section>

@@ -6,13 +6,17 @@ import { authRouter } from "./auth";
 import { ratesRouter } from "./rates-router";
 import { studentRouter } from "./student-router";
 import { teacherRouter } from "./teacher-router";
+import { classSessionRouter } from "./class-session-router";
+import { paymentRouter } from "./payment-router";
 
 export const appRouter = createRouter()
   .transformer(superjson)
   .merge("auth.", authRouter)
   .merge("students.", studentRouter)
   .merge("teachers.", teacherRouter)
-  .merge("rates.", ratesRouter);
+  .merge("rates.", ratesRouter)
+  .merge("classSessions.", classSessionRouter)
+  .merge("payments.", paymentRouter);
 
 // export type definition of API
 export type AppRouter = typeof appRouter;

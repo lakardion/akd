@@ -1,28 +1,26 @@
-import { studentFormZod } from "common";
-import { DEFAULT_PAGE_SIZE, getPagination } from "utils/pagination";
+import { includeInactiveFlagZod, studentFormZod } from "common";
+import {
+  DEFAULT_PAGE_SIZE,
+  getPagination,
+  paginationZod,
+} from "utils/pagination";
 import { z } from "zod";
 import { createRouter } from "./context";
 
 export const studentRouter = createRouter()
-  .query("student", {
+  .query("single", {
     input: z.object({
       id: z.string(),
     }),
     async resolve({ ctx, input: { id } }) {
-      const student = ctx.prisma.student.findUnique({
+      const student = await ctx.prisma.student.findUnique({
         where: { id },
       });
-      return student;
+      return { ...student, hourBalance: student?.hourBalance.toNumber() };
     },
   })
-  .query("students", {
-    input: z
-      .object({
-        page: z.number().optional(),
-        size: z.number().optional(),
-        includeInactive: z.boolean().optional(),
-      })
-      .default({}),
+  .query("all", {
+    input: includeInactiveFlagZod.merge(paginationZod).default({}),
     async resolve({
       ctx,
       input: { page = 1, size = DEFAULT_PAGE_SIZE, includeInactive = false },

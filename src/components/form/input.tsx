@@ -8,7 +8,7 @@ export const Input = forwardRef(
   ) => {
     return (
       <input
-        className="bg-blackish-100/60 rounded-md px-3 py-1 focus:outline-none focus:ring focus:ring-primary-400 "
+        className="bg-secondary-100 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blackish-900 placeholder:text-slate-500 text-black"
         {...props}
         ref={ref}
       />

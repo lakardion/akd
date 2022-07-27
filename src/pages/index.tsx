@@ -12,6 +12,8 @@ const routes = [
   { href: "/alumnos", label: "Alumnos" },
   { href: "/profesores", label: "Profesores" },
   { href: "/precios", label: "Precios" },
+  { href: "#", label: "Gastos [Coming soon!]" },
+  { href: "#", label: "Reportes [Coming soon!]" },
 ];
 
 const Home: NextPage = () => {

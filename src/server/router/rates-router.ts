@@ -47,7 +47,7 @@ export const ratesRouter = createRouter()
     input: includeInactiveFlagZod.default({}),
     async resolve({ ctx, input: { includeInactive = false } }) {
       const packages = await ctx.prisma.hourPackage.findMany({
-        where: includeInactive ? undefined : { isActive: false },
+        where: includeInactive ? undefined : { isActive: true },
       });
       return packages.map((p) => ({
         ...p,

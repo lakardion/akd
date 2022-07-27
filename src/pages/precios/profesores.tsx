@@ -1,3 +1,4 @@
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AddHourRateFormInput,
@@ -48,6 +49,8 @@ const TeacherHourRateList: FC<{
     { type: "TEACHER" },
   ]);
 
+  const [parent] = useAutoAnimate<HTMLUListElement>();
+
   if (!data) {
     return <Spinner size="sm" />;
   }
@@ -59,7 +62,7 @@ const TeacherHourRateList: FC<{
   };
 
   return (
-    <ul>
+    <ul ref={parent}>
       {data?.map((sp) => (
         <li key={sp.id} className="flex gap-3 justify-between">
           <div>{sp.description}</div>
@@ -140,11 +143,16 @@ const AddHourRateForm: FC<{ onFinished: () => void; id: string }> = ({
         />
         <ValidationError error={errors.description} />
       </section>
-      <section className="flex">
-        <Button type="submit" className="flex-grow">
+      <section className="flex gap-3">
+        <Button type="submit" className="flex-grow" variant="accent">
           Agregar
         </Button>
-        <Button type="button" onClick={onFinished} className="flex-grow">
+        <Button
+          type="button"
+          onClick={onFinished}
+          className="flex-grow"
+          variant="accent"
+        >
           Cancelar
         </Button>
       </section>

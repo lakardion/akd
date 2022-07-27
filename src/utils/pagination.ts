@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export const DEFAULT_PAGE_SIZE = 15;
 
 export const getPagination = ({
@@ -16,3 +18,8 @@ export const getPagination = ({
     previous: page - 1 === 0 ? undefined : page - 1,
   };
 };
+
+export const paginationZod = z.object({
+  page: z.number().optional(),
+  size: z.number().optional(),
+});

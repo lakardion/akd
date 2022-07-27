@@ -1,3 +1,23 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+
+/* React select */
+.akd-container .akd__control {
+  @apply bg-secondary-100 border-none;
+}
+.akd-container .akd__placeholder {
+  @apply text-slate-500;
+}
+.akd__control.akd__control--is-focused {
+  @apply shadow-none outline-none ring-2 ring-blackish-900;
+}

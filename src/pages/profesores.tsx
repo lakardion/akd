@@ -7,6 +7,8 @@ import { Spinner } from "components/spinner";
 import { FC, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { trpc } from "utils/trpc";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
+import { Modal } from "components/modal";
 
 const TeacherForm: FC<{ onFinished: () => void; id: string }> = ({
   id: id,
@@ -85,6 +87,7 @@ const TeachersList: FC<{
   const { data, isLoading: studentsLoading } = trpc.useQuery([
     "teachers.teachers",
   ]);
+  const [parent] = useAutoAnimate<HTMLUListElement>();
   if (studentsLoading) {
     return <Spinner size="sm" />;
   }
@@ -99,7 +102,7 @@ const TeachersList: FC<{
   };
 
   return (
-    <ul>
+    <ul ref={parent}>
       {data?.teachers.map((s) => {
         const status =
           s.balance < 0
@@ -163,7 +166,12 @@ const Teachers = () => {
         Agregar profesor
       </button>
       {showForm ? (
-        <TeacherForm onFinished={handleFinished} id={currentId} />
+        <Modal
+          onBackdropClick={handleFinished}
+          className="w-full md:w-auto bg-white drop-shadow-2xl"
+        >
+          <TeacherForm onFinished={handleFinished} id={currentId} />
+        </Modal>
       ) : null}
       <TeachersList handleDelete={handleDelete} handleEdit={handleEdit} />
     </section>

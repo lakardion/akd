@@ -1,17 +1,44 @@
 import { includeInactiveFlagZod, teacherFormZod } from "common";
-import { DEFAULT_PAGE_SIZE, getPagination } from "utils/pagination";
+import {
+  DEFAULT_PAGE_SIZE,
+  getPagination,
+  paginationZod,
+} from "utils/pagination";
 import { z } from "zod";
 import { createRouter } from "./context";
 
 export const teacherRouter = createRouter()
+  .query("search", {
+    input: z.object({ query: z.string() }),
+    async resolve({ ctx, input: { query } }) {
+      if (!query)
+        return ctx.prisma.teacher.findMany({
+          orderBy: { lastName: "asc" },
+          take: 5,
+        });
+      const foundTeachers = await ctx.prisma.teacher.findMany({
+        where: {
+          OR: [
+            {
+              name: {
+                contains: query.toLowerCase(),
+                mode: "insensitive",
+              },
+            },
+            {
+              lastName: {
+                contains: query.toLowerCase(),
+                mode: "insensitive",
+              },
+            },
+          ],
+        },
+      });
+      return foundTeachers;
+    },
+  })
   .query("teachers", {
-    input: z
-      .object({
-        page: z.number().optional(),
-        size: z.number().optional(),
-      })
-      .merge(includeInactiveFlagZod)
-      .default({}),
+    input: paginationZod.merge(includeInactiveFlagZod).default({}),
     async resolve({
       ctx,
       input: { page = 1, size = DEFAULT_PAGE_SIZE, includeInactive = false },
@@ -76,12 +103,12 @@ export const teacherRouter = createRouter()
           _count: {
             select: {
               classSessions: true,
-              TeacherPayment: true,
+              teacherPayment: true,
             },
           },
         },
       });
-      if (teacher?._count.TeacherPayment || teacher?._count.classSessions) {
+      if (teacher?._count.teacherPayment || teacher?._count.classSessions) {
         return ctx.prisma.teacher.update({
           where: { id },
           data: { isActive: false },
