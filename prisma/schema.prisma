@@ -73,11 +73,12 @@ model Student {
     isActive    Boolean @default(true)
 
     payments            Payment[]
-    ClassSessionStudent ClassSessionStudent[]
+    classSessionStudent ClassSessionStudent[]
 }
 
 model Payment {
     id        String   @id @default(cuid())
+    publicId  Int      @unique @default(autoincrement())
     studentId String
     hourId    String   @unique
     value     Decimal
@@ -112,8 +113,8 @@ model ClassSession {
     teacherHourRateId String
 
     hour                Hour                  @relation(fields: [hourId], references: [id])
-    Teacher             Teacher?              @relation(fields: [teacherId], references: [id])
-    ClassSessionStudent ClassSessionStudent[]
+    teacher             Teacher?              @relation(fields: [teacherId], references: [id])
+    classSessionStudent ClassSessionStudent[]
     teacherHourRate     HourRate              @relation(fields: [teacherHourRateId], references: [id])
 }
 
@@ -121,7 +122,7 @@ model Hour {
     id    String  @id @default(cuid())
     value Decimal
 
-    ClassSession ClassSession?
+    classSession ClassSession?
     payment      Payment?
 }
 
@@ -133,7 +134,7 @@ model Teacher {
     isActive Boolean @default(true)
 
     classSessions  ClassSession[]
-    TeacherPayment TeacherPayment[]
+    teacherPayment TeacherPayment[]
 }
 
 model HourRate {
