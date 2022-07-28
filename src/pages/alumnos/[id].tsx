@@ -18,6 +18,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { debouncePromiseValue } from "utils/delay";
+import { Decimal } from "decimal.js";
 
 const paymentFormZod = z.object({
   hours: z
@@ -188,10 +189,9 @@ const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
   ) => {
     setSelectedHourRate(options?.extra.rate);
     const hours = getValues().hours;
-    setValue(
-      "value",
-      (parseFloat(hours) * (options?.extra.rate ?? 1)).toString()
-    );
+    const decimalHours = new Decimal(hours);
+    const decimalRate = new Decimal(options?.extra.rate ?? 1);
+    setValue("value", decimalHours.times(decimalRate).toString());
   };
 
   const { onChange: onChangeHours, ...restRegisterHours } = useMemo(
@@ -200,10 +200,9 @@ const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
   );
   const handleHourChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (hourTypeSelected?.value === "rate") {
-      setValue(
-        "value",
-        (parseFloat(e.target.value) * (selectedHourRate ?? 1)).toString()
-      );
+      const decimalValue = new Decimal(e.target.value);
+      const hourRateDecimal = new Decimal(selectedHourRate ?? 1);
+      setValue("value", decimalValue.times(hourRateDecimal).toString());
     }
     onChangeHours(e);
   };

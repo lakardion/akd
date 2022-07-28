@@ -16,6 +16,7 @@ specifiers:
   '@types/react-dom': 18.0.5
   autoprefixer: ^10.4.7
   date-fns: ^2.29.1
+  decimal.js: ^10.3.1
   eslint: 8.18.0
   eslint-config-next: 12.2.1
   next: 12.2.1
@@ -44,6 +45,7 @@ dependencies:
   '@trpc/react': 9.26.2_4zadt2mtfbx7275mbcwrjz2noe
   '@trpc/server': 9.26.2
   date-fns: 2.29.1
+  decimal.js: 10.3.1
   next: 12.2.1_qugu52izettqdqqm5qcjcltcia
   next-auth: 4.10.2_biqbaboplfbrettd7655fr4n2y
   react: 18.2.0
@@ -1179,6 +1181,10 @@ packages:
         optional: true
     dependencies:
       ms: 2.1.2
+
+  /decimal.js/10.3.1:
+    resolution: {integrity: sha512-V0pfhfr8suzyPGOx3nmq4aHqabehUZn6Ch9kyFpV79TGDTWFmHqUqXdabR7QHqxzrYolF4+tVmJhUG4OURg5dQ==}
+    dev: false
 
   /deep-is/0.1.4:
     resolution: {integrity: sha512-oIPzksmTg4/MriiaYGO+okXDT7ztn/w3Eptv/+gSIdMdKsJo0u4CfYNFJPy+4SKMuCqGw2wxnA+URMg3t8a/bQ==}
