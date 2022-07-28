@@ -7,6 +7,7 @@ const routes = [
   { href: "/alumnos", label: "alumnos" },
   { href: "/profesores", label: "profesores" },
   { href: "/precios", label: "precios" },
+  { href: "/clases", label: "Clases" },
 ];
 
 export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
@@ -16,12 +17,14 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
     <div className="w-screen h-screen">
       <header className="w-full pb-1 text-accent-900">
         <section className="flex justify-between w-full p-2">
-          <section>
-            <span className="text-2xl">La Academia </span>
-            <span className="bg-gradient-to-r from-primary to-blackish bg-clip-text text-transparent">
-              Reg&amp;Stats
-            </span>
-          </section>
+          <Link href="/">
+            <section className="hover:cursor-pointer">
+              <span className="text-2xl">La Academia </span>
+              <span className="bg-gradient-to-r from-primary to-blackish bg-clip-text text-transparent">
+                Reg&amp;Stats
+              </span>
+            </section>
+          </Link>
           <section>
             <Button onClick={handleLogin}>Login</Button>
           </section>
@@ -33,7 +36,7 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
               <Link href={r.href} key={r.href}>
                 <button
                   type="button"
-                  className={`hover:text-primary-900/75 capitalize ${
+                  className={`hover:text-primary-500/75 capitalize ${
                     isCurrentRoute ? "text-primary-500" : ""
                   }`}
                 >
