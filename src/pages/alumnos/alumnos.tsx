@@ -5,13 +5,14 @@ import { Input } from "components/form/input";
 import { Label } from "components/form/label";
 import { ValidationError } from "components/form/validation-error";
 import { Spinner } from "components/spinner";
-import { FC, useEffect, useMemo, useState } from "react";
+import { FC, MouseEvent, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { trpc } from "utils/trpc";
 import { MdDelete, MdEdit } from "react-icons/md";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
+import { Modal } from "components/modal";
 
 const StudentForm: FC<{ onFinished: () => void; studentId: string }> = ({
   studentId,
@@ -125,12 +126,16 @@ const StudentList: FC<{
   if (!data?.students?.length) {
     return <p>No hay alumnos para mostrar</p>;
   }
-  const createEditHandler = (id: string) => () => {
-    handleEdit(id);
-  };
-  const createDeleteHandler = (id: string) => () => {
-    handleDelete(id);
-  };
+  const createEditHandler =
+    (id: string) => (e: MouseEvent<HTMLButtonElement>) => {
+      e?.stopPropagation();
+      handleEdit(id);
+    };
+  const createDeleteHandler =
+    (id: string) => (e: MouseEvent<HTMLButtonElement>) => {
+      e?.stopPropagation();
+      handleDelete(id);
+    };
 
   return (
     <ul
@@ -189,7 +194,7 @@ const StudentList: FC<{
 
 const Students = () => {
   const [currentStudentId, setCurrentStudentId] = useState("");
-  const [showForm, setShowForm] = useState(false);
+  const [showCreateEditStudent, setShowCreateEditStudent] = useState(false);
   const queryClient = trpc.useContext();
   const { isLoading: isLoading, mutateAsync: deleteStudent } = trpc.useMutation(
     "students.delete",
@@ -200,11 +205,11 @@ const Students = () => {
     }
   );
   const handleAddStudent = () => {
-    setShowForm(true);
+    setShowCreateEditStudent(true);
   };
   const handleFinished = () => {
     setCurrentStudentId("");
-    setShowForm(false);
+    setShowCreateEditStudent(false);
   };
 
   const handleDelete = async (id: string) => {
@@ -212,7 +217,7 @@ const Students = () => {
   };
   const handleEdit = (id: string) => {
     setCurrentStudentId(id);
-    setShowForm(true);
+    setShowCreateEditStudent(true);
   };
 
   return (
@@ -224,8 +229,16 @@ const Students = () => {
       >
         Agregar alumno
       </button>
-      {showForm ? (
-        <StudentForm onFinished={handleFinished} studentId={currentStudentId} />
+      {showCreateEditStudent ? (
+        <Modal
+          onBackdropClick={handleFinished}
+          className="w-full md:w-auto bg-white drop-shadow-2xl"
+        >
+          <StudentForm
+            onFinished={handleFinished}
+            studentId={currentStudentId}
+          />
+        </Modal>
       ) : null}
       <StudentList handleDelete={handleDelete} handleEdit={handleEdit} />
     </section>
