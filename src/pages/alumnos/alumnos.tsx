@@ -13,6 +13,7 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Modal } from "components/modal";
+import { ConfirmForm } from "components/confirm-form";
 
 const StudentForm: FC<{ onFinished: () => void; studentId: string }> = ({
   studentId,
@@ -139,7 +140,7 @@ const StudentList: FC<{
 
   return (
     <ul
-      className="flex flex-col justify-center items-center w-full"
+      className="flex flex-col justify-center items-center w-full gap-3"
       ref={parent}
     >
       {data?.students.map((s) => {
@@ -195,25 +196,30 @@ const StudentList: FC<{
 const Students = () => {
   const [currentStudentId, setCurrentStudentId] = useState("");
   const [showCreateEditStudent, setShowCreateEditStudent] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const queryClient = trpc.useContext();
-  const { isLoading: isLoading, mutateAsync: deleteStudent } = trpc.useMutation(
-    "students.delete",
-    {
+  const { isLoading: isDeleting, mutateAsync: deleteStudent } =
+    trpc.useMutation("students.delete", {
       onSuccess: () => {
         queryClient.invalidateQueries("students.all");
       },
-    }
-  );
+    });
   const handleAddStudent = () => {
     setShowCreateEditStudent(true);
   };
   const handleFinished = () => {
     setCurrentStudentId("");
     setShowCreateEditStudent(false);
+    setShowDeleteConfirm(false);
   };
 
-  const handleDelete = async (id: string) => {
-    await deleteStudent({ id });
+  const handleDelete = (id: string) => {
+    setShowDeleteConfirm(true);
+    setCurrentStudentId(id);
+  };
+  const handleSubmitDelete = async () => {
+    await deleteStudent({ id: currentStudentId });
+    handleFinished();
   };
   const handleEdit = (id: string) => {
     setCurrentStudentId(id);
@@ -241,6 +247,19 @@ const Students = () => {
         </Modal>
       ) : null}
       <StudentList handleDelete={handleDelete} handleEdit={handleEdit} />
+      {showDeleteConfirm ? (
+        <Modal
+          onBackdropClick={handleFinished}
+          className="w-full md:w-auto bg-white drop-shadow-2xl"
+        >
+          <ConfirmForm
+            onCancel={handleFinished}
+            body="Confirma que deseas eliminar este alumno"
+            isConfirming={isDeleting}
+            onConfirm={handleSubmitDelete}
+          />
+        </Modal>
+      ) : null}
     </section>
   );
 };
