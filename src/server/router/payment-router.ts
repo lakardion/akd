@@ -34,20 +34,30 @@ export const paymentRouter = createRouter()
       value: z.number(),
     }),
     async resolve({ ctx, input: { date, studentId, hours, value } }) {
+      //! this is not fully transactional. But I don't seem to be able to do the creating on the fly rather than do it sequentially
       const createdHour = await ctx.prisma.hour.create({
         data: {
           value: hours,
         },
       });
-
-      const created = await ctx.prisma.payment.create({
-        data: {
-          date,
-          value,
-          studentId,
-          hourId: createdHour.id,
-        },
-      });
-      return created;
+      const [createdPayment] = await ctx.prisma.$transaction([
+        ctx.prisma.payment.create({
+          data: {
+            date,
+            value,
+            studentId,
+            hourId: createdHour.id,
+          },
+        }),
+        ctx.prisma.student.update({
+          where: { id: studentId },
+          data: {
+            hourBalance: {
+              increment: hours,
+            },
+          },
+        }),
+      ]);
+      return createdPayment;
     },
   });

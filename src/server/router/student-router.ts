@@ -82,13 +82,13 @@ export const studentRouter = createRouter()
         select: {
           _count: {
             select: {
-              ClassSessionStudent: true,
+              classSessionStudent: true,
               payments: true,
             },
           },
         },
       });
-      if (student?._count.ClassSessionStudent || student?._count.payments) {
+      if (student?._count.classSessionStudent || student?._count.payments) {
         return ctx.prisma.student.update({
           where: { id },
           data: {
