@@ -1,19 +1,31 @@
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { StudentFormInput, studentFormZod } from "common";
 import { Button } from "components/button";
+import { ConfirmForm } from "components/confirm-form";
 import { Input } from "components/form/input";
 import { Label } from "components/form/label";
 import { ValidationError } from "components/form/validation-error";
-import { Spinner } from "components/spinner";
-import { FC, MouseEvent, useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
-import { trpc } from "utils/trpc";
-import { MdDelete, MdEdit } from "react-icons/md";
-import { useRouter } from "next/router";
-import Link from "next/link";
-import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Modal } from "components/modal";
-import { ConfirmForm } from "components/confirm-form";
+import { Spinner } from "components/spinner";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import {
+  ChangeEvent,
+  FC,
+  MouseEvent,
+  UIEventHandler,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useForm } from "react-hook-form";
+import { MdDelete, MdEdit } from "react-icons/md";
+import { getFakeStudents } from "utils/fakes";
+import { trpc } from "utils/trpc";
+import { useDebouncedValue } from "utils/use-debounce";
 
 const StudentForm: FC<{ onFinished: () => void; studentId: string }> = ({
   studentId,
@@ -29,14 +41,14 @@ const StudentForm: FC<{ onFinished: () => void; studentId: string }> = ({
   const { mutateAsync: createStudent, isLoading: isCreating } =
     trpc.useMutation("students.create", {
       onSuccess: () => {
-        queryClient.invalidateQueries("students.all");
+        queryClient.invalidateQueries("students.allSearch");
       },
     });
   const { mutateAsync: editStudent, isLoading: isEditing } = trpc.useMutation(
     "students.edit",
     {
       onSuccess: () => {
-        queryClient.invalidateQueries("students.all");
+        queryClient.invalidateQueries("students.allSearch");
         queryClient.invalidateQueries(["students.single", { id: studentId }]);
       },
     }
@@ -112,21 +124,34 @@ const StudentForm: FC<{ onFinished: () => void; studentId: string }> = ({
     </form>
   );
 };
+
 const StudentList: FC<{
   handleDelete: (id: string) => void;
   handleEdit: (id: string) => void;
 }> = ({ handleDelete, handleEdit }) => {
-  const { data, isLoading: studentsLoading } = trpc.useQuery(["students.all"]);
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 500);
+  const {
+    data: paginatedStudents,
+    fetchNextPage,
+    hasNextPage,
+    isLoading: studentsLoading,
+    isFetching: studentsFetching,
+  } = trpc.useInfiniteQuery(
+    ["students.allSearch", { query: debouncedSearch }],
+    {
+      getNextPageParam: (lastPage) => {
+        return lastPage.nextCursor ? { page: lastPage.nextCursor } : null;
+      },
+      keepPreviousData: true,
+    }
+  );
+
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+  };
   const { asPath } = useRouter();
-
-  const [parent] = useAutoAnimate<HTMLUListElement>();
-
-  if (studentsLoading) {
-    return <Spinner size="sm" />;
-  }
-  if (!data?.students?.length) {
-    return <p>No hay alumnos para mostrar</p>;
-  }
+  const [parent] = useAutoAnimate<HTMLUListElement>({ duration: 500 });
   const createEditHandler =
     (id: string) => (e: MouseEvent<HTMLButtonElement>) => {
       e?.stopPropagation();
@@ -137,63 +162,125 @@ const StudentList: FC<{
       e?.stopPropagation();
       handleDelete(id);
     };
+  const stableFetchNextPage = useCallback(
+    (page: number) => {
+      fetchNextPage({ pageParam: page });
+    },
+    [fetchNextPage]
+  );
+  const flatStudents = useMemo(() => {
+    return paginatedStudents?.pages.flatMap((p) => p.students) ?? [];
+  }, [paginatedStudents?.pages]);
+
+  const watchScroll: UIEventHandler<HTMLUListElement> = (e) => {
+    /**
+     * Some amount to start fetching before reaching the bottom
+     */
+    const queryThreshold = 1;
+    const element = e.currentTarget;
+    if (
+      Math.abs(
+        element.scrollHeight - element.clientHeight - element.scrollTop
+      ) < queryThreshold &&
+      !studentsFetching &&
+      hasNextPage
+    ) {
+      fetchNextPage();
+    }
+  };
 
   return (
-    <ul
-      className="flex flex-col justify-center items-center w-full gap-3"
-      ref={parent}
-    >
-      {data?.students.map((s) => {
-        const status =
-          s.hourBalance < 0
-            ? "bg-red-500"
-            : s.hourBalance === 0
-            ? "bg-gray-500"
-            : "bg-green-500";
-        const statusTitle =
-          s.hourBalance < 0
-            ? "El alumno debe horas"
-            : s.hourBalance === 0
-            ? "El alumno no tiene horas"
-            : "El alumno tiene horas sin usar";
-        return (
-          <Link href={`${asPath}/${s.id}`} key={s.id}>
-            <li
-              key={s.id}
-              className="bg-gray-300 w-full rounded-md py-3 px-2 sm:px-20 flex justify-between items-center transition-transform hover:scale-105 hover:text-primary-600 hover:cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <div
-                  className={`w-3 h-3 rounded-full ${status} cursor-help mb-0.5`}
-                  title={statusTitle}
-                ></div>
-                <p>
-                  {s.lastName} {s.name}
-                </p>
-              </div>
-              <div className="flex gap-1 items-center">
-                <button type="button" onClick={createEditHandler(s.id)}>
-                  <MdEdit
-                    size={20}
-                    className="fill-blackish-900 hover:fill-primary-400"
-                  />
-                </button>
-                <button type="button" onClick={createDeleteHandler(s.id)}>
-                  <MdDelete
-                    size={20}
-                    className="fill-blackish-900 hover:fill-primary-400"
-                  />
-                </button>
-              </div>
-            </li>
-          </Link>
-        );
-      })}
-    </ul>
+    <>
+      <input
+        value={search}
+        placeholder="Buscar alumnos..."
+        onChange={handleSearchChange}
+        className="bg-secondary-100 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blackish-900 placeholder:text-slate-500 text-black w-full"
+      />
+      <ul
+        className="flex flex-col items-center w-full gap-3 md:max-h-[700px] overflow-auto"
+        ref={parent}
+        onScroll={watchScroll}
+      >
+        {studentsLoading ? (
+          <Spinner size="sm" />
+        ) : !flatStudents.length ? (
+          <p>No hay alumnos para mostrar</p>
+        ) : (
+          flatStudents.map((s) => {
+            const status =
+              s.hourBalance < 0
+                ? "bg-red-500"
+                : s.hourBalance === 0
+                ? "bg-gray-500"
+                : "bg-green-500";
+            const statusTitle =
+              s.hourBalance < 0
+                ? "El alumno debe horas"
+                : s.hourBalance === 0
+                ? "El alumno no tiene horas"
+                : "El alumno tiene horas sin usar";
+            return (
+              <Link href={`${asPath}/${s.id}`} key={s.id}>
+                <li
+                  key={s.id}
+                  className="bg-gray-300 w-[95%] rounded-md py-3 px-2 sm:px-20 flex justify-between items-center transition-transform hover:scale-105 hover:text-primary-600 hover:cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`w-3 h-3 rounded-full ${status} cursor-help mb-0.5`}
+                      title={statusTitle}
+                    ></div>
+                    <p>
+                      {s.lastName} {s.name}
+                    </p>
+                  </div>
+                  <div className="flex gap-1 items-center">
+                    <button type="button" onClick={createEditHandler(s.id)}>
+                      <MdEdit
+                        size={20}
+                        className="fill-blackish-900 hover:fill-primary-400"
+                      />
+                    </button>
+                    <button type="button" onClick={createDeleteHandler(s.id)}>
+                      <MdDelete
+                        size={20}
+                        className="fill-blackish-900 hover:fill-primary-400"
+                      />
+                    </button>
+                  </div>
+                </li>
+              </Link>
+            );
+          })
+        )}
+      </ul>
+    </>
   );
 };
 
+const useRunOnce = (fn: () => void) => {
+  const hasRunRef = useRef(false);
+  useEffect(() => {
+    if (!hasRunRef.current) {
+      fn();
+      hasRunRef.current = true;
+    }
+  }, [fn]);
+};
+
+const useAddFakeData = () => {
+  const { mutateAsync } = trpc.useMutation(["students.create"]);
+
+  useRunOnce(() => {
+    getFakeStudents(25).forEach((fs) => {
+      mutateAsync(fs);
+    });
+  });
+};
+
 const Students = () => {
+  // useAddFakeData();
   const [currentStudentId, setCurrentStudentId] = useState("");
   const [showCreateEditStudent, setShowCreateEditStudent] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -201,7 +288,7 @@ const Students = () => {
   const { isLoading: isDeleting, mutateAsync: deleteStudent } =
     trpc.useMutation("students.delete", {
       onSuccess: () => {
-        queryClient.invalidateQueries("students.all");
+        queryClient.invalidateQueries("students.allSearch");
       },
     });
   const handleAddStudent = () => {

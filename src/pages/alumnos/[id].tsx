@@ -19,6 +19,7 @@ import {
 } from "@tanstack/react-table";
 import { debouncePromiseValue } from "utils/delay";
 import { Decimal } from "decimal.js";
+import { PaymentMethodType } from "@prisma/client";
 
 const paymentFormZod = z.object({
   hours: z
@@ -33,6 +34,7 @@ const paymentFormZod = z.object({
     if (!isMatch(value, "yyyy-MM-dd")) return false;
     return true;
   }),
+  paymentMethod: z.enum([PaymentMethodType.DEBIT, PaymentMethodType.TRANSFER]),
 });
 type PaymentFormInput = z.infer<typeof paymentFormZod>;
 
@@ -213,6 +215,7 @@ const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
       date: parse(data.date, "yyyy-MM-dd", new Date()),
       hours: parseFloat(data.hours),
       value: parseFloat(data.value),
+      paymentMethod: data.paymentMethod,
     });
     onFinished();
   };
@@ -259,15 +262,6 @@ const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
             {...restRegisterHours}
           />
           <ValidationError error={errors.hours} />
-          <label htmlFor="value" className="text-2xl">
-            Total $
-          </label>
-          <Input
-            readOnly
-            type="number"
-            {...register("value")}
-            className=" text-center text-blackish text-6xl rounded-lg"
-          />
         </>
       ) : (
         <>
@@ -291,14 +285,40 @@ const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
           <label htmlFor="value" className="text-2xl">
             Total $
           </label>
-          <Input
-            readOnly
-            type="number"
-            {...register("value")}
-            className=" text-center text-blackish text-6xl"
-          />
         </>
       )}
+      <label htmlFor="paymentMethod">Payment method</label>
+      <div className="flex items-center">
+        <div className="flex-grow flex justify-center gap-3 items-center">
+          <label htmlFor="debit">Débito</label>
+          <Input
+            type="radio"
+            id="debit"
+            value={PaymentMethodType.DEBIT}
+            {...register("paymentMethod")}
+            className="border-0 w-full h-6"
+          />
+        </div>
+        <div className="flex-grow flex justify-center gap-3 items-center">
+          <label htmlFor="transfer">Transferencia</label>
+          <Input
+            type="radio"
+            id="transfer"
+            value={PaymentMethodType.TRANSFER}
+            {...register("paymentMethod")}
+            className="border-0 h-6 w-full"
+          />
+        </div>
+      </div>
+      <label htmlFor="value" className="text-2xl">
+        Total $
+      </label>
+      <Input
+        readOnly
+        type="number"
+        {...register("value")}
+        className=" text-center text-blackish text-6xl rounded-lg"
+      />
       <section aria-label="action buttons" className="flex gap-2">
         <PillButton type="submit" className="flex-grow" variant="accent">
           Agregar

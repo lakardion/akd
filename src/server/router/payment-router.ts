@@ -1,3 +1,4 @@
+import { PaymentMethodType } from "@prisma/client";
 import { paginationZod } from "utils/pagination";
 import { identifiableZod } from "utils/server-zods";
 import { z } from "zod";
@@ -32,8 +33,15 @@ export const paymentRouter = createRouter()
       studentId: z.string(),
       hours: z.number(),
       value: z.number(),
+      paymentMethod: z.enum([
+        PaymentMethodType.DEBIT,
+        PaymentMethodType.TRANSFER,
+      ]),
     }),
-    async resolve({ ctx, input: { date, studentId, hours, value } }) {
+    async resolve({
+      ctx,
+      input: { date, studentId, hours, value, paymentMethodType },
+    }) {
       //! this is not fully transactional. But I don't seem to be able to do the creating on the fly rather than do it sequentially
       const createdHour = await ctx.prisma.hour.create({
         data: {
@@ -47,6 +55,7 @@ export const paymentRouter = createRouter()
             value,
             studentId,
             hourId: createdHour.id,
+            paymentMethod: paymentMethodType,
           },
         }),
         ctx.prisma.student.update({

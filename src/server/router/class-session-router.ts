@@ -1,8 +1,48 @@
+import { DEFAULT_PAGE_SIZE, paginationZod } from "utils/pagination";
 import { identifiableZod } from "utils/server-zods";
 import { z } from "zod";
 import { createRouter } from "./context";
 
 export const classSessionRouter = createRouter()
+  .query("all", {
+    input: paginationZod,
+    async resolve({ ctx, input: { page = 1, size = DEFAULT_PAGE_SIZE } }) {
+      return ctx.prisma.classSession.findMany({
+        orderBy: {
+          date: "desc",
+        },
+        skip: (page - 1) * size,
+        take: size,
+        include: {
+          _count: {
+            select: {
+              classSessionStudent: true,
+            },
+          },
+        },
+      });
+    },
+  })
+  .query("single", {
+    input: identifiableZod,
+    async resolve({ ctx, input: { id } }) {
+      const classSession = await ctx.prisma.classSession.findUnique({
+        where: { id },
+        include: {
+          hour: {
+            select: { value: true },
+          },
+          classSessionStudent: {
+            include: {
+              student: true,
+            },
+          },
+          teacher: true,
+          teacherHourRate: true,
+        },
+      });
+    },
+  })
   .query("byStudent", {
     input: identifiableZod,
     async resolve({ ctx, input: { id } }) {

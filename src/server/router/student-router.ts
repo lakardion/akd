@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { includeInactiveFlagZod, studentFormZod } from "common";
 import {
   DEFAULT_PAGE_SIZE,
@@ -17,6 +18,53 @@ export const studentRouter = createRouter()
         where: { id },
       });
       return { ...student, hourBalance: student?.hourBalance.toNumber() };
+    },
+  })
+  .query("allSearch", {
+    input: z.object({
+      query: z.string().optional(),
+      cursor: z
+        .object({ page: z.number().optional(), size: z.number().optional() })
+        .optional()
+        .default({}),
+    }),
+    async resolve({
+      ctx,
+      input: {
+        cursor: { page = 1, size = DEFAULT_PAGE_SIZE },
+        query,
+      },
+    }) {
+      const whereClause: Prisma.StudentWhereInput | undefined = query
+        ? {
+            OR: [
+              {
+                name: {
+                  contains: query,
+                  mode: "insensitive",
+                },
+              },
+              {
+                lastName: {
+                  contains: query,
+                  mode: "insensitive",
+                },
+              },
+            ],
+          }
+        : undefined;
+      const studentsResult = await ctx.prisma.student.findMany({
+        where: whereClause,
+        skip: (page - 1) * size,
+        take: size,
+      });
+      return {
+        nextCursor: studentsResult.length === size ? page + 1 : null,
+        students: studentsResult.map((s) => ({
+          ...s,
+          hourBalance: s.hourBalance.toNumber(),
+        })),
+      };
     },
   })
   .query("all", {
@@ -41,7 +89,6 @@ export const studentRouter = createRouter()
               isActive: true,
             },
       });
-
       return {
         count,
         next,
