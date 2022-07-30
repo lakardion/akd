@@ -1,25 +1,25 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PillButton } from "components/button";
-import { Input } from "components/form/input";
-import { ValidationError } from "components/form/validation-error";
-import { useRouter } from "next/router";
-import { ChangeEvent, FC, useMemo, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { createTRPCVanillaClient, trpc } from "utils/trpc";
-import { z } from "zod";
-import ReactSelect, { SingleValue } from "react-select";
-import AsyncReactSelect from "react-select/async";
-import { format, isMatch, parse } from "date-fns";
-import { Modal } from "components/modal";
+import { PaymentMethodType } from "@prisma/client";
 import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { debouncePromiseValue } from "utils/delay";
+import { PillButton } from "components/button";
+import { Input } from "components/form/input";
+import { ValidationError } from "components/form/validation-error";
+import { Modal } from "components/modal";
+import { format, isMatch, parse } from "date-fns";
 import { Decimal } from "decimal.js";
-import { PaymentMethodType } from "@prisma/client";
+import { useRouter } from "next/router";
+import { ChangeEvent, FC, useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import ReactSelect, { SingleValue } from "react-select";
+import AsyncReactSelect from "react-select/async";
+import { debouncePromiseValue } from "utils/delay";
+import { createTRPCVanillaClient, trpc } from "utils/trpc";
+import { z } from "zod";
 
 const paymentFormZod = z.object({
   hours: z
@@ -97,7 +97,7 @@ const ClassSessionForm: FC<{ onFinished: () => void }> = ({ onFinished }) => {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
       <h1 className="text-2xl">Cargar clase</h1>
-      <label htmlFor="date">Date</label>
+      <label htmlFor="date">Fecha</label>
       <Input type="date" {...register("date")} />
       <ValidationError error={errors.date} />
 
@@ -492,8 +492,11 @@ const StudentDetail = () => {
   });
   const status = getStatus(data?.hourBalance ?? 0);
 
-  const handleToggleView = () => {
-    setActiveView((av) => (av === "payments" ? "classes" : "payments"));
+  const handleSetPaymentActiveView = () => {
+    setActiveView("payments");
+  };
+  const handleSetClassesActiveView = () => {
+    setActiveView("classes");
   };
   const handleShowPaymentModal = () => {
     setShowPaymentmodal(true);
@@ -534,16 +537,14 @@ const StudentDetail = () => {
         aria-label="class and payment history"
         className="w-full flex flex-col gap-3"
       >
-        <header
-          className="w-full flex rounded-r-full rounded-l-full border border-solid border-blackish-600 bg-blackish-300 justify-center items-center text-blackish-800/80 hover:cursor-pointer"
-          onClick={handleToggleView}
-        >
+        <header className="w-full flex rounded-r-full rounded-l-full border border-solid border-blackish-600 bg-blackish-300 justify-center items-center text-blackish-800/80 hover:cursor-pointer">
           <div
             className={`flex-grow text-center rounded-l-full transition-colors ease-in-out delay-150 ${
               activeView === "payments"
                 ? activeViewClass
                 : "hover:bg-primary-400 hover:text-white"
             }`}
+            onClick={handleSetPaymentActiveView}
           >
             Pagos
           </div>
@@ -553,6 +554,7 @@ const StudentDetail = () => {
                 ? activeViewClass
                 : "hover:bg-primary-400 hover:text-white"
             }`}
+            onClick={handleSetClassesActiveView}
           >
             Clases
           </div>
