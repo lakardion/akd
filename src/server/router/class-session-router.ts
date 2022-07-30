@@ -1,19 +1,27 @@
-import { DEFAULT_PAGE_SIZE, paginationZod } from "utils/pagination";
-import { identifiableZod } from "utils/server-zods";
+import { DEFAULT_PAGE_SIZE } from "utils/pagination";
+import { identifiableZod, infiniteCursorZod } from "utils/server-zods";
 import { z } from "zod";
 import { createRouter } from "./context";
 
 export const classSessionRouter = createRouter()
   .query("all", {
-    input: paginationZod,
-    async resolve({ ctx, input: { page = 1, size = DEFAULT_PAGE_SIZE } }) {
-      return ctx.prisma.classSession.findMany({
+    input: z.object({
+      cursor: infiniteCursorZod,
+    }),
+    async resolve({
+      ctx,
+      input: {
+        cursor: { page = 1, size = DEFAULT_PAGE_SIZE },
+      },
+    }) {
+      const classSessions = await ctx.prisma.classSession.findMany({
         orderBy: {
           date: "desc",
         },
         skip: (page - 1) * size,
         take: size,
         include: {
+          teacher: true,
           _count: {
             select: {
               classSessionStudent: true,
@@ -21,6 +29,10 @@ export const classSessionRouter = createRouter()
           },
         },
       });
+      return {
+        nextCursor: classSessions.length === size ? page + 1 : null,
+        classSessions,
+      };
     },
   })
   .query("single", {
@@ -108,5 +120,13 @@ export const classSessionRouter = createRouter()
         },
       });
       return newClassSession;
+    },
+  })
+  .mutation("delete", {
+    input: identifiableZod,
+    async resolve({ ctx, input: { id } }) {
+      return ctx.prisma.classSession.delete({
+        where: { id },
+      });
     },
   });
