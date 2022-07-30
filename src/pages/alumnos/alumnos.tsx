@@ -8,6 +8,7 @@ import { Label } from "components/form/label";
 import { ValidationError } from "components/form/validation-error";
 import { Modal } from "components/modal";
 import { Spinner } from "components/spinner";
+import { useCRUDState } from "hooks";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import {
@@ -281,9 +282,6 @@ const useAddFakeData = () => {
 
 const Students = () => {
   // useAddFakeData();
-  const [currentStudentId, setCurrentStudentId] = useState("");
-  const [showCreateEditStudent, setShowCreateEditStudent] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const queryClient = trpc.useContext();
   const { isLoading: isDeleting, mutateAsync: deleteStudent } =
     trpc.useMutation("students.delete", {
@@ -291,46 +289,36 @@ const Students = () => {
         queryClient.invalidateQueries("students.allSearch");
       },
     });
-  const handleAddStudent = () => {
-    setShowCreateEditStudent(true);
-  };
-  const handleFinished = () => {
-    setCurrentStudentId("");
-    setShowCreateEditStudent(false);
-    setShowDeleteConfirm(false);
-  };
+  const {
+    handleFinished,
+    handleDelete,
+    handleEdit,
+    handleCreate,
+    currentId,
+    showCreateEdit,
+    showDeleteConfirm,
+  } = useCRUDState();
 
-  const handleDelete = (id: string) => {
-    setShowDeleteConfirm(true);
-    setCurrentStudentId(id);
-  };
   const handleSubmitDelete = async () => {
-    await deleteStudent({ id: currentStudentId });
+    await deleteStudent({ id: currentId });
     handleFinished();
-  };
-  const handleEdit = (id: string) => {
-    setCurrentStudentId(id);
-    setShowCreateEditStudent(true);
   };
 
   return (
     <section className="p-4 rounded-lg w-11/12 sm:max-w-2xl flex flex-col gap-3 items-center">
       <button
-        onClick={handleAddStudent}
+        onClick={handleCreate}
         type="button"
         className="rounded-lg bg-primary-800 w-full p-3 text-white hover:bg-primary-400"
       >
         Agregar alumno
       </button>
-      {showCreateEditStudent ? (
+      {showCreateEdit ? (
         <Modal
           onBackdropClick={handleFinished}
           className="w-full md:w-auto bg-white drop-shadow-2xl"
         >
-          <StudentForm
-            onFinished={handleFinished}
-            studentId={currentStudentId}
-          />
+          <StudentForm onFinished={handleFinished} studentId={currentId} />
         </Modal>
       ) : null}
       <StudentList handleDelete={handleDelete} handleEdit={handleEdit} />
