@@ -5,6 +5,7 @@ import {
   getPagination,
   paginationZod,
 } from "utils/pagination";
+import { infiniteCursorZod } from "utils/server-zods";
 import { z } from "zod";
 import { createRouter } from "./context";
 
@@ -23,10 +24,7 @@ export const studentRouter = createRouter()
   .query("allSearch", {
     input: z.object({
       query: z.string().optional(),
-      cursor: z
-        .object({ page: z.number().optional(), size: z.number().optional() })
-        .optional()
-        .default({}),
+      cursor: infiniteCursorZod,
     }),
     async resolve({
       ctx,
@@ -57,6 +55,7 @@ export const studentRouter = createRouter()
         where: whereClause,
         skip: (page - 1) * size,
         take: size,
+        orderBy: { lastName: "asc" },
       });
       return {
         nextCursor: studentsResult.length === size ? page + 1 : null,
