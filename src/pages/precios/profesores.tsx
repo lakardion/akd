@@ -134,14 +134,14 @@ const AddHourRateForm: FC<{ onFinished: () => void; id: string }> = ({
           className="text-black"
           placeholder="Valor..."
         />
-        <ValidationError error={errors.rate} />
+        <ValidationError errorMessages={errors.description?.message} />
         <label htmlFor="description">Nombre descriptivo</label>
         <Input
           {...register("description")}
           className="text-black"
           placeholder="Descripción..."
         />
-        <ValidationError error={errors.description} />
+        <ValidationError errorMessages={errors.rate?.message} />
       </section>
       <section className="flex gap-3">
         <Button type="submit" className="flex-grow" variant="accent">

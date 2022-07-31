@@ -70,10 +70,10 @@ const TeacherForm: FC<{ onFinished: () => void; id: string }> = ({
       <h1>{id ? "Editar alumno" : "Agregar profesor"}</h1>
       <label htmlFor="lastName">Apellido</label>
       <Input {...register("lastName")} placeholder="Last name..." />
-      <ValidationError error={errors.lastName} />
+      <ValidationError errorMessages={errors.lastName?.message} />
       <label htmlFor="name">Nombre</label>
       <Input {...register("name")} placeholder="Name..." />
-      <ValidationError error={errors.name} />
+      <ValidationError errorMessages={errors.name?.message} />
       <Button type="submit">{id ? "Editar" : "Agregar"}</Button>
       <Button onClick={onFinished}>Cancelar</Button>
     </form>

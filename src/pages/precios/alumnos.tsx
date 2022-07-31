@@ -200,14 +200,14 @@ const AddHourRateForm: FC<{ onFinished: () => void; id: string }> = ({
           className="text-black"
           placeholder="Valor..."
         />
-        <ValidationError error={errors.rate} />
+        <ValidationError errorMessages={errors.rate?.message} />
         <label htmlFor="description">Nombre descriptivo</label>
         <Input
           {...register("description")}
           className="text-black"
           placeholder="Descripción..."
         />
-        <ValidationError error={errors.description} />
+        <ValidationError errorMessages={errors.description?.message} />
       </section>
       <section className="flex">
         <Button type="submit" className="flex-grow" variant="accent">
@@ -280,7 +280,7 @@ const AddHourPackageForm: FC<{ onFinished: () => void; id: string }> = ({
           className="text-black"
           placeholder="Horas en paquete..."
         />
-        <ValidationError error={errors.packHours} />
+        <ValidationError errorMessages={errors.packHours?.message} />
         <label htmlFor="totalValue">Valor del paquete</label>
         <Input
           {...register("totalValue")}
@@ -288,14 +288,14 @@ const AddHourPackageForm: FC<{ onFinished: () => void; id: string }> = ({
           className="text-black"
           placeholder="Valor del paquete..."
         />
-        <ValidationError error={errors.totalValue} />
+        <ValidationError errorMessages={errors.totalValue?.message} />
         <label htmlFor="description">Nombre descriptivo</label>
         <Input
           {...register("description")}
           className="text-black"
           placeholder="Descripción..."
         />
-        <ValidationError error={errors.description} />
+        <ValidationError errorMessages={errors.description?.message} />
       </section>
       <section className="flex gap-3">
         <Button

@@ -101,19 +101,19 @@ const StudentForm: FC<{ onFinished: () => void; studentId: string }> = ({
         Apellido
       </Label>
       <Input {...register("lastName")} placeholder="Last name..." />
-      <ValidationError error={errors.name} />
+      <ValidationError errorMessages={errors.lastName?.message} />
       <Label htmlFor="name">Nombre</Label>
       <Input {...register("name")} placeholder="Name..." />
-      <ValidationError error={errors.name} />
+      <ValidationError errorMessages={errors.name?.message} />
       <Label htmlFor="university">Universidad</Label>
       <Input {...register("university")} placeholder="University..." />
-      <ValidationError error={errors.university} />
+      <ValidationError errorMessages={errors.university?.message} />
       <Label htmlFor="faculty">Facultad</Label>
       <Input {...register("faculty")} placeholder="Facultad..." />
-      <ValidationError error={errors.faculty} />
+      <ValidationError errorMessages={errors.faculty?.message} />
       <Label htmlFor="course">Carrera</Label>
       <Input {...register("course")} placeholder="Carrera..." />
-      <ValidationError error={errors.course} />
+      <ValidationError errorMessages={errors.course?.message} />
       <section aria-label="action buttons" className="flex gap-2 w-full">
         <Button className="flex-grow" type="submit">
           {studentId ? "Editar" : "Agregar"}

@@ -86,7 +86,7 @@ const ClassSessionForm: FC<{ onFinished: () => void }> = ({ onFinished }) => {
       <h1 className="text-2xl">Cargar clase</h1>
       <label htmlFor="date">Fecha</label>
       <Input type="date" {...register("date")} />
-      <ValidationError error={errors.date} />
+      <ValidationError errorMessages={errors.date?.message} />
 
       <label>Profesor</label>
       <Controller
@@ -109,7 +109,7 @@ const ClassSessionForm: FC<{ onFinished: () => void }> = ({ onFinished }) => {
           />
         )}
       />
-      <ValidationError error={errors.teacherId} />
+      <ValidationError errorMessages={errors.teacherId?.message} />
     </form>
   );
 };
@@ -216,7 +216,7 @@ const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
       <h1 className="text-3xl text-center">Agregar pago</h1>
       <label htmlFor="date">Date</label>
       <Input {...register("date")} type="date" />
-      <ValidationError error={errors.date} />
+      <ValidationError errorMessages={errors.date?.message} />
       <label>Tipo de hora</label>
       <ReactSelect
         placeholder="Seleccionar tipo de hora"
@@ -248,7 +248,7 @@ const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
             placeholder="Cantidad de horas..."
             {...restRegisterHours}
           />
-          <ValidationError error={errors.hours} />
+          <ValidationError errorMessages={errors.hours?.message} />
         </>
       ) : (
         <>
@@ -268,7 +268,7 @@ const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
             {...restRegisterHours}
             placeholder="Cantidad de horas..."
           />
-          <ValidationError error={errors.hours} />
+          <ValidationError errorMessages={errors.hours?.message} />
           <label htmlFor="value" className="text-2xl">
             Total $
           </label>
