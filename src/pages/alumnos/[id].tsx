@@ -17,6 +17,7 @@ import { ChangeEvent, FC, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import ReactSelect, { SingleValue } from "react-select";
 import AsyncReactSelect from "react-select/async";
+import { debouncedSearchTeachers } from "utils/client-search-utils";
 import { debouncePromiseValue } from "utils/delay";
 import { createTRPCVanillaClient, trpc } from "utils/trpc";
 import { z } from "zod";
@@ -24,11 +25,11 @@ import { z } from "zod";
 const paymentFormZod = z.object({
   hours: z
     .string()
-    .min(1, "Required")
+    .min(1, "Requerido")
     .refine((value) => value !== "0", "Must be greater than 0"),
   value: z
     .string()
-    .min(1, "Required")
+    .min(1, "Requerido")
     .refine((value) => value !== "0", "Must be a number"),
   date: z.string().refine((value) => {
     if (!isMatch(value, "yyyy-MM-dd")) return false;
@@ -59,26 +60,12 @@ const classSessionFormZod = z.object({
     if (!isMatch(value, "yyyy-MM-dd")) return false;
     return true;
   }, "Invalid date, should be yyyy-mm-dd"),
-  teacherId: z.string().min(1, "Required"),
+  teacherId: z.string().min(1, "Requerido"),
 });
 
 type ClassSessionFormInput = z.infer<typeof classSessionFormZod>;
 
 //? might need to debounce this..
-
-const searchTeachers = async (value: string) => {
-  const client = createTRPCVanillaClient();
-  const teachers = await client.query("teachers.search", { query: value });
-  return teachers.map((t) => ({
-    value: t.id,
-    label: `${t.name} ${t.lastName}`,
-  }));
-};
-
-const debouncedSearchTeachers: typeof searchTeachers = debouncePromiseValue(
-  searchTeachers,
-  300
-);
 
 const ClassSessionForm: FC<{ onFinished: () => void }> = ({ onFinished }) => {
   const {
