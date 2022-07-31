@@ -2,15 +2,15 @@ import { HourRateType } from "@prisma/client";
 import { z } from "zod";
 
 const personZod = z.object({
-  name: z.string().min(1, "Required"),
-  lastName: z.string().min(1, "Required"),
+  name: z.string().min(1, "Requerido"),
+  lastName: z.string().min(1, "Requerido"),
 });
 
 export const studentFormZod = z
   .object({
-    university: z.string().min(1, "Required"),
-    faculty: z.string().min(1, "Required"),
-    course: z.string().min(1, "Required"),
+    university: z.string().min(1, "Requerido"),
+    faculty: z.string().min(1, "Requerido"),
+    course: z.string().min(1, "Requerido"),
   })
   .merge(personZod);
 
@@ -28,7 +28,7 @@ export const addHourRateFormZod = z
     rate: z.string().refine((value) => {
       if (value === "0") return false;
       return true;
-    }, "Required"),
+    }, "Requerido"),
   })
   .merge(describableZod);
 
