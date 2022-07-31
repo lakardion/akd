@@ -80,16 +80,14 @@ export const classSessionRouter = createRouter()
       date: z.date(),
       teacherId: z.string(),
       teacherHourRateId: z.string(),
+      hours: z.number(),
     }),
     async resolve({
       ctx,
-      input: { studentIds, date, teacherId, teacherHourRateId },
+      input: { studentIds, date, teacherId, teacherHourRateId, hours },
     }) {
       // const updated = await ctx.prisma.classSession.update({
       //   data: {
-      //     classSessionStudent: {
-      //       connectOrCreate: [{ create: {} }],
-      //     },
       //   },
       // });
     },
@@ -97,28 +95,51 @@ export const classSessionRouter = createRouter()
   .mutation("create", {
     input: z.object({
       studentIds: z.array(z.string()),
-      hourId: z.string(),
       teacherId: z.string(),
       teacherHourRateId: z.string(),
       date: z.date(),
+      hours: z.number(),
     }),
     async resolve({
       ctx,
-      input: { studentIds, hourId, teacherId, teacherHourRateId, date },
+      input: { studentIds, teacherId, teacherHourRateId, date, hours },
     }) {
-      const newClassSession = await ctx.prisma.classSession.create({
-        data: {
-          date,
-          classSessionStudent: {
+      //1- Create hour
+      const hour = await ctx.prisma.hour.create({
+        data: { value: hours },
+      });
+      const classSessionStudent = studentIds.length
+        ? {
             createMany: {
               data: studentIds.map((sids) => ({ studentId: sids })),
             },
-          },
-          hourId,
+          }
+        : undefined;
+      //2 Create class sesssion
+      const newClassSession = await ctx.prisma.classSession.create({
+        data: {
+          date,
+          classSessionStudent,
+          hourId: hour.id,
           teacherId,
           teacherHourRateId,
         },
       });
+      //3- If students were selected in the class then substract from their hours
+      if (classSessionStudent) {
+        await ctx.prisma.student.updateMany({
+          where: {
+            id: {
+              in: studentIds,
+            },
+          },
+          data: {
+            hourBalance: {
+              decrement: hours,
+            },
+          },
+        });
+      }
       return newClassSession;
     },
   })

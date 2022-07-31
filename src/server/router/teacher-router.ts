@@ -8,6 +8,16 @@ import { z } from "zod";
 import { createRouter } from "./context";
 
 export const teacherRouter = createRouter()
+  .query("count", {
+    input: includeInactiveFlagZod.default({}),
+    resolve({ ctx, input: { includeInactive } }) {
+      return ctx.prisma.teacher.count({
+        where: {
+          isActive: includeInactive ? undefined : true,
+        },
+      });
+    },
+  })
   .query("search", {
     input: z.object({ query: z.string() }),
     async resolve({ ctx, input: { query } }) {
