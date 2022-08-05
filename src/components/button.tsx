@@ -41,7 +41,7 @@ export const PillButton: FC<
     <button
       {...props}
       type={type ?? "button"}
-      className={`${buttonClassByVariant[variant]} rounded-lg w-full p-3 ${className}`}
+      className={`${buttonClassByVariant[variant]} rounded-lg w-full p-3 btn-disabled ${className}`}
     >
       {children}
     </button>
