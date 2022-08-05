@@ -35,7 +35,7 @@ const paymentFormZod = z.object({
     if (!isMatch(value, "yyyy-MM-dd")) return false;
     return true;
   }),
-  paymentMethod: z.enum([PaymentMethodType.DEBIT, PaymentMethodType.TRANSFER]),
+  paymentMethod: z.enum([PaymentMethodType.CASH, PaymentMethodType.TRANSFER]),
 });
 type PaymentFormInput = z.infer<typeof paymentFormZod>;
 
@@ -277,11 +277,11 @@ const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
       <label htmlFor="paymentMethod">Payment method</label>
       <div className="flex items-center">
         <div className="flex-grow flex justify-center gap-3 items-center">
-          <label htmlFor="debit">Débito</label>
+          <label htmlFor="cash">Efectivo</label>
           <Input
             type="radio"
-            id="debit"
-            value={PaymentMethodType.DEBIT}
+            id="cash"
+            value={PaymentMethodType.CASH}
             {...register("paymentMethod")}
             className="border-0 w-full h-6"
           />
