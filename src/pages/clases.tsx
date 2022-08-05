@@ -7,7 +7,7 @@ import { ValidationError } from "components/form/validation-error";
 import { Modal } from "components/modal";
 import { Spinner } from "components/spinner";
 import { WarningMessage } from "components/warning-message";
-import { format, setSeconds } from "date-fns";
+import { format, setHours, setMinutes } from "date-fns";
 import { es } from "date-fns/locale";
 import { useCRUDState } from "hooks";
 import Link from "next/link";
@@ -30,7 +30,7 @@ import {
   debouncedSearchStudents,
   debouncedSearchTeachers,
 } from "utils/client-search-utils";
-import { trpc } from "utils/trpc";
+import { inferQueryOutput, trpc } from "utils/trpc";
 import { z } from "zod";
 
 registerLocale("es", es);
@@ -51,64 +51,75 @@ type ClassSessionFormInputs = z.infer<typeof classSessionFormZod>;
 
 const getStaticDate = () => {
   const date = new Date();
-  date.setHours(0);
+  date.setHours(8);
   date.setMinutes(0);
   date.setSeconds(0);
   date.setMilliseconds(0);
 
   return date;
 };
+
 const staticDate = getStaticDate();
 
-const ClassSessionForm: FC<{ id: string; onFinished: () => void }> = ({
-  id,
-  onFinished,
-}) => {
+const getClassSessionFormDefaultValues = (
+  classSession: inferQueryOutput<"classSessions.single"> | undefined
+): ClassSessionFormInputs => {
+  return {
+    dateTime: classSession?.date ?? new Date(),
+    hours: classSession?.hour?.toString() ?? "",
+    students: classSession?.studentOptions?.map((so) => so.value) ?? [],
+    teacherHourRateId: classSession?.teacherHourRateOption?.value ?? "",
+    teacherId: classSession?.teacherOption?.value ?? "",
+  };
+};
+
+const useClassSessionForm = ({ id }: { id: string }) => {
+  const { data: classSession } = trpc.useQuery([
+    "classSessions.single",
+    { id },
+  ]);
   const { data: teacherHourRates } = trpc.useQuery([
     "rates.hourRates",
     { type: "TEACHER" },
   ]);
-  const {
-    formState: { errors },
-    handleSubmit,
-    register,
-    control,
-    setValue,
-  } = useForm<ClassSessionFormInputs>({
-    resolver: zodResolver(classSessionFormZod),
-  });
-  const queryClient = trpc.useContext();
-  const { mutateAsync: create, isLoading: isCreating } = trpc.useMutation(
-    "classSessions.create",
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["classSessions.all"]);
-        queryClient.invalidateQueries(["classSessions.byStudent"]);
-      },
-    }
-  );
 
-  const onSubmit = async (data: ClassSessionFormInputs) => {
-    await create({
-      hours: parseFloat(data.hours),
-      date: data.dateTime,
-      studentIds: data.students,
-      teacherId: data.teacherId,
-      teacherHourRateId: data.teacherHourRateId,
-    });
-    onFinished();
-  };
+  const form = useForm<ClassSessionFormInputs>({
+    resolver: zodResolver(classSessionFormZod),
+    defaultValues: getClassSessionFormDefaultValues(classSession),
+  });
+  const stableFormReset = useMemo(() => {
+    return form.reset;
+  }, [form.reset]);
+
+  useEffect(() => {
+    stableFormReset(getClassSessionFormDefaultValues(classSession));
+
+    //consistently update the react select options as well
+    classSession?.studentOptions?.length &&
+      setSelectedStudents(classSession?.studentOptions);
+    classSession?.teacherOption &&
+      setSelectedTeacher(classSession?.teacherOption);
+    classSession?.teacherHourRateOption &&
+      setSelectedTeacherRate(classSession.teacherHourRateOption);
+  }, [stableFormReset, classSession]);
+
+
+  //select controlled values
   const [selectedDate, setSelectedDate] = useState(staticDate);
-  const handleDateChange = (date: Date) => {
-    setSelectedDate(date);
-    setValue("dateTime", date);
-  };
+  const handleDateChange = useCallback(
+    (date: Date) => {
+      const setValue = form.setValue;
+      setSelectedDate(date);
+      setValue("dateTime", date);
+    },
+    [form.setValue]
+  );
   const [selectedTeacher, setSelectedTeacher] =
     useState<SingleValue<{ value: string; label: string }>>(null);
   const [selectedStudents, setSelectedStudents] = useState<
     MultiValue<SingleValue<{ value: string; label: string }>>
   >([]);
-  const [selectedTeacherRateId, setSelectedTeacherRateId] =
+  const [selectedTeacherRate, setSelectedTeacherRate] =
     useState<SingleValue<{ value: string; label: string }>>(null);
 
   const teacherRateOptions = useMemo(() => {
@@ -119,12 +130,97 @@ const ClassSessionForm: FC<{ id: string; onFinished: () => void }> = ({
   }, [teacherHourRates]);
 
   const parsedStudentsError: string[] = useMemo(() => {
-    const studentErrors = errors.students;
+    const studentErrors = form.formState.errors.students;
     if (Array.isArray(studentErrors)) {
       return studentErrors.flatMap((s) => (s.message ? [s.message] : []));
     }
     return [];
-  }, [errors.students]);
+  }, [form.formState.errors.students]);
+
+  return useMemo(
+    () => ({
+      form,
+      teacherRateOptions,
+      parsedStudentsError,
+      selectedTeacher,
+      setSelectedTeacher,
+      selectedDate,
+      setSelectedDate,
+      selectedTeacherRateId: selectedTeacherRate,
+      setSelectedTeacherRateId: setSelectedTeacherRate,
+      selectedStudents,
+      setSelectedStudents,
+      handleDateChange,
+    }),
+    [
+      form,
+      handleDateChange,
+      parsedStudentsError,
+      selectedDate,
+      selectedStudents,
+      selectedTeacher,
+      selectedTeacherRate,
+      teacherRateOptions,
+    ]
+  );
+};
+
+const ClassSessionForm: FC<{ id: string; onFinished: () => void }> = ({
+  id,
+  onFinished,
+}) => {
+  const {
+    form: {
+      handleSubmit,
+      formState: { errors },
+      control,
+      register,
+    },
+    parsedStudentsError,
+    selectedDate,
+    selectedStudents,
+    selectedTeacher,
+    selectedTeacherRateId,
+    setSelectedStudents,
+    setSelectedTeacher,
+    setSelectedTeacherRateId,
+    teacherRateOptions,
+    handleDateChange,
+  } = useClassSessionForm({ id });
+
+  const queryClient = trpc.useContext();
+  const { mutateAsync: create, isLoading: isCreating } = trpc.useMutation(
+    "classSessions.create",
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["classSessions.all"]);
+        queryClient.invalidateQueries(["classSessions.byStudent"]);
+      },
+    }
+  );
+  const {mutateAsync:edit,isLoading:isEditing}= trpc.useMutation('classSessions.update',{
+      onSuccess:()=>{
+          queryClient.invalidateQueries(['classSessions.single',{id}])
+        }
+    })
+
+  const onSubmit = async (data: ClassSessionFormInputs) => {
+    id ? await edit({
+       date:data.dateTime,
+       hours:parseFloat(data.hours),
+       studentIds:data.students,
+       teacherHourRateId:data.teacherHourRateId,
+       teacherId:data.teacherId
+      })
+     :await create({
+      hours: parseFloat(data.hours),
+      date: data.dateTime,
+      studentIds: data.students,
+      teacherId: data.teacherId,
+      teacherHourRateId: data.teacherHourRateId,
+    }) 
+    onFinished();
+  };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
@@ -145,6 +241,8 @@ const ClassSessionForm: FC<{ id: string; onFinished: () => void }> = ({
             timeFormat={"p"}
             locale="es"
             className="bg-secondary-100 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blackish-900 placeholder:text-slate-500 text-black"
+            minTime={setMinutes(setHours(new Date(),8),0)}
+            maxTime={setMinutes(setHours(new Date(),19),0)}
           />
         )}
       />
@@ -238,6 +336,7 @@ const ClassSessionForm: FC<{ id: string; onFinished: () => void }> = ({
           variant="primary"
           type="submit"
           className="capitalize flex-grow"
+          isLoading={isCreating || isEditing}
         >
           {id ? "Editar clase" : "Crear clase"}
         </Button>
@@ -275,12 +374,12 @@ const ClassSessionList: FC<{
       e?.stopPropagation();
       handleDelete(id);
     };
-  const stableFetchNextPage = useCallback(
-    (page: number) => {
-      fetchNextPage({ pageParam: page });
-    },
-    [fetchNextPage]
-  );
+  // const stableFetchNextPage = useCallback(
+  //   (page: number) => {
+  //     fetchNextPage({ pageParam: page });
+  //   },
+  //   [fetchNextPage]
+  // );
   const flatData = useMemo(() => {
     return data?.pages.flatMap((p) => p.classSessions) ?? [];
   }, [data?.pages]);
@@ -318,7 +417,7 @@ const ClassSessionList: FC<{
             return (
               <li
                 key={s.id}
-                className={`bg-gray-300 w-[95%] rounded-md py-3 px-2 sm:px-20 flex justify-between items-center transition-transform hover:scale-105 hover:text-primary-600 hover:cursor-pointer ${status}`}
+                className={`bg-gray-300 w-full rounded-md py-3 px-2 sm:px-20 flex justify-between items-center ${status}`}
               >
                 <div className="flex items-center gap-2">
                   <p>{format(s.date, "dd-MM-yyyy H:mm")}</p>
@@ -359,11 +458,23 @@ const ClassSessions = () => {
     showCreateEdit,
     currentId,
   } = useCRUDState();
-  const { data: teacherCount } = trpc.useQuery(["teachers.count"]);
-  const { data: teacherRates } = trpc.useQuery([
+  const { data: teacherCount, isLoading: isTeacherCountLoading } =
+    trpc.useQuery(["teachers.count"]);
+  const { data: teacherRates, isLoading: isHourRatesLoading } = trpc.useQuery([
     "rates.hourRates",
     { type: "TEACHER" },
   ]);
+  const { isLoading: isClassSessionLoading } = trpc.useQuery(
+    ["classSessions.single", { id: currentId }],
+    { enabled: Boolean(currentId) }
+  );
+  const { isLoading } = trpc.useInfiniteQuery(["classSessions.all", {}], {
+    getNextPageParam: (lastPage) => {
+      return lastPage.nextCursor ? { page: lastPage.nextCursor } : null;
+    },
+    keepPreviousData: true,
+  });
+
   const queryClient = trpc.useContext();
   const { mutateAsync: deleteOne, isLoading: isDeleting } = trpc.useMutation(
     "classSessions.delete",
@@ -379,6 +490,13 @@ const ClassSessions = () => {
   };
 
   const canCreate = teacherCount && teacherRates?.length;
+  if (isLoading) {
+    return (
+      <section className="flex items-center w-full justify-center">
+        <Spinner size="md" />
+      </section>
+    );
+  }
 
   return (
     <section className="p-4 rounded-lg w-11/12 sm:max-w-2xl flex flex-col gap-3 items-center">
@@ -405,7 +523,7 @@ const ClassSessions = () => {
       <button
         onClick={handleCreate}
         type="button"
-        className="rounded-lg bg-primary-800 w-full p-3 text-white hover:bg-primary-400 disabled:hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="rounded-lg bg-primary-800 w-full p-3 text-white hover:bg-primary-400 :btn-disabled"
         disabled={!canCreate}
       >
         Agregar clase

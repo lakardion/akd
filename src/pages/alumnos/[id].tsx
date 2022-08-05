@@ -214,7 +214,7 @@ const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
       className="flex flex-col p-3 gap-2 w-full md:max-w-[500px]"
     >
       <h1 className="text-3xl text-center">Agregar pago</h1>
-      <label htmlFor="date">Date</label>
+      <label htmlFor="date">Fecha</label>
       <Input {...register("date")} type="date" />
       <ValidationError errorMessages={errors.date?.message} />
       <label>Tipo de hora</label>
@@ -269,12 +269,9 @@ const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
             placeholder="Cantidad de horas..."
           />
           <ValidationError errorMessages={errors.hours?.message} />
-          <label htmlFor="value" className="text-2xl">
-            Total $
-          </label>
         </>
       )}
-      <label htmlFor="paymentMethod">Payment method</label>
+      <label htmlFor="paymentMethod">Medio de pago</label>
       <div className="flex items-center">
         <div className="flex-grow flex justify-center gap-3 items-center">
           <label htmlFor="cash">Efectivo</label>

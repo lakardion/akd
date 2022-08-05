@@ -3,6 +3,26 @@ import { identifiableZod, infiniteCursorZod } from "utils/server-zods";
 import { z } from "zod";
 import { createRouter } from "./context";
 
+const diffStrArrays = (
+  newValues: string[],
+  oldValues: string[]
+): { created: string[]; removed: string[]; untouched: string[] } => {
+  const oldIdsSet = new Set(oldValues);
+  const idsSet = new Set(newValues);
+  const testSet = new Set([...oldValues, ...newValues]);
+
+  const removed: string[] = [];
+  const created: string[] = [];
+  const untouched: string[] = [];
+  testSet.forEach((id) => {
+    if (!oldIdsSet.has(id)) created.push(id);
+    else if (!idsSet.has(id)) removed.push(id);
+    else untouched.push(id);
+  });
+
+  return { created, removed, untouched };
+};
+
 export const classSessionRouter = createRouter()
   .query("all", {
     input: z.object({
@@ -53,6 +73,28 @@ export const classSessionRouter = createRouter()
           teacherHourRate: true,
         },
       });
+
+      return {
+        id: classSession?.id,
+        teacherOption: classSession?.teacher
+          ? {
+            value: classSession?.teacher.id,
+            label: `${classSession?.teacher?.name} ${classSession?.teacher?.lastName}`,
+          }
+          : undefined,
+        date: classSession?.date,
+        teacherHourRateOption: classSession?.teacherHourRate
+          ? {
+            value: classSession?.teacherHourRate.id,
+            label: `${classSession?.teacherHourRate.description} (${classSession?.teacherHourRate.rate})`,
+          }
+          : undefined,
+        hour: classSession?.hour?.value.toNumber(),
+        studentOptions: classSession?.classSessionStudent?.map((css) => ({
+          value: css.studentId,
+          label: `${css.student.name} ${css.student.lastName}`,
+        })),
+      };
     },
   })
   .query("byStudent", {
@@ -75,22 +117,78 @@ export const classSessionRouter = createRouter()
     },
   })
   .mutation("update", {
-    input: z.object({
-      studentIds: z.array(z.string()),
-      date: z.date(),
-      teacherId: z.string(),
-      teacherHourRateId: z.string(),
-      hours: z.number(),
-    }),
+    input: identifiableZod.merge(
+      z.object({
+        oldStudentIds: z.array(z.string()),
+        studentIds: z.array(z.string()),
+        date: z.date(),
+        teacherId: z.string(),
+        teacherHourRateId: z.string(),
+        hours: z.number(),
+        oldHours: z.number()
+      })
+    ),
     async resolve({
       ctx,
-      input: { studentIds, date, teacherId, teacherHourRateId, hours },
+      input: { id, studentIds, date, teacherId, teacherHourRateId, hours, oldHours, oldStudentIds },
     }) {
-      // const updated = await ctx.prisma.classSession.update({
-      //   data: {
-      //   },
-      // });
-    },
+      const {created,removed,untouched} = diffStrArrays(studentIds, oldStudentIds)
+      const hourUpdate = hours !== oldHours ? {
+        update: {
+          value: hours
+        }
+      } : undefined
+      const updatedClassSessions = await ctx.prisma.classSession.update({
+        where: {
+          id
+        },
+        data: {
+          hour: hourUpdate,
+          classSessionStudent: {
+            createMany: created.length ? { data: created.map(id => ({ studentId: id })) } : undefined,
+            deleteMany: removed.length ? removed.map(id => ({ studentId: id })) : undefined
+          }
+        }
+      });
+      //update existing
+      if (oldHours !== hours) {
+        const updatedStudents = await ctx.prisma.student.updateMany({
+          where: {
+            id: {
+              in: untouched
+            }
+          },
+          data: {
+            hourBalance: {
+              increment: oldHours,
+              decrement: hours
+            }
+          }
+        })
+      }
+      //update created
+      ctx.prisma.student.updateMany({
+        where: {
+          id: {
+            in: created
+          }
+        },
+        data: {
+          hourBalance: { decrement: hours }
+        }
+      })
+      //update removed
+      ctx.prisma.student.updateMany({
+        where: {
+          id: {
+            in: removed
+          },
+        },
+        data: {
+          hourBalance: { increment: hours }
+        }
+      })
+    }
   })
   .mutation("create", {
     input: z.object({
@@ -110,10 +208,10 @@ export const classSessionRouter = createRouter()
       });
       const classSessionStudent = studentIds.length
         ? {
-            createMany: {
-              data: studentIds.map((sids) => ({ studentId: sids })),
-            },
-          }
+          createMany: {
+            data: studentIds.map((sids) => ({ studentId: sids })),
+          },
+        }
         : undefined;
       //2 Create class sesssion
       const newClassSession = await ctx.prisma.classSession.create({
