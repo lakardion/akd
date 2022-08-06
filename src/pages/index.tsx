@@ -1,6 +1,6 @@
-import type { NextPage } from "next";
-import Head from "next/head";
-import Link from "next/link";
+import type { NextPage } from 'next';
+import Head from 'next/head';
+import Link from 'next/link';
 
 type TechnologyCardProps = {
   name: string;
@@ -9,11 +9,11 @@ type TechnologyCardProps = {
 };
 
 const routes = [
-  { href: "/alumnos", label: "Alumnos" },
-  { href: "/profesores", label: "Profesores" },
-  { href: "/precios", label: "Precios" },
-  { href: "#", label: "Gastos [Coming soon!]" },
-  { href: "#", label: "Reportes [Coming soon!]" },
+  { href: '/alumnos', label: 'Alumnos' },
+  { href: '/profesores', label: 'Profesores' },
+  { href: '/precios', label: 'Precios' },
+  { href: '#', label: 'Gastos [Coming soon!]' },
+  { href: '#', label: 'Reportes [Coming soon!]' },
 ];
 
 const Home: NextPage = () => {

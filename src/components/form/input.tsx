@@ -1,4 +1,4 @@
-import { ForwardedRef, forwardRef, InputHTMLAttributes } from "react";
+import { ForwardedRef, forwardRef, InputHTMLAttributes } from 'react';
 
 //TODO: add better styling
 export const Input = forwardRef(
@@ -16,4 +16,4 @@ export const Input = forwardRef(
   }
 );
 
-Input.displayName = "Input";
+Input.displayName = 'Input';

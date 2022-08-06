@@ -1,5 +1,5 @@
-import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useAutoAnimate } from '@formkit/auto-animate/react';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   AddHourPackageFormInput,
   addHourPackageFormZod,
@@ -7,25 +7,25 @@ import {
   AddHourRateFormInput,
   addHourRateFormZod,
   AddHourRateInput,
-} from "common";
-import { Button } from "components/button";
-import { ConfirmForm } from "components/confirm-form";
-import { Input } from "components/form/input";
-import { ValidationError } from "components/form/validation-error";
-import { Modal } from "components/modal";
-import { Spinner } from "components/spinner";
-import { FC, useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
-import { trpc } from "utils/trpc";
+} from 'common';
+import { Button } from 'components/button';
+import { ConfirmForm } from 'components/confirm-form';
+import { Input } from 'components/form/input';
+import { ValidationError } from 'components/form/validation-error';
+import { Modal } from 'components/modal';
+import { Spinner } from 'components/spinner';
+import { FC, useEffect, useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { trpc } from 'utils/trpc';
 
 const useHourRateForm = ({ id }: { id: string }) => {
-  const { data: hourRate } = trpc.useQuery(["rates.hourRate", { id }], {
+  const { data: hourRate } = trpc.useQuery(['rates.hourRate', { id }], {
     enabled: Boolean(id),
   });
   const defaultValues: AddHourRateFormInput = useMemo(() => {
     return {
-      description: hourRate?.description ?? "",
-      rate: hourRate?.rate?.toString() ?? "",
+      description: hourRate?.description ?? '',
+      rate: hourRate?.rate?.toString() ?? '',
     };
   }, [hourRate?.description, hourRate?.rate]);
   const form = useForm<AddHourRateFormInput>({
@@ -44,14 +44,14 @@ const useHourRateForm = ({ id }: { id: string }) => {
 };
 
 const useHourPackageForm = ({ id }: { id: string }) => {
-  const { data: hourPackage } = trpc.useQuery(["rates.hourPackage", { id }], {
+  const { data: hourPackage } = trpc.useQuery(['rates.hourPackage', { id }], {
     enabled: Boolean(id),
   });
   const defaultValues: AddHourPackageFormInput = useMemo(
     () => ({
-      description: hourPackage?.description ?? "",
-      packHours: hourPackage?.packHours?.toString() ?? "",
-      totalValue: hourPackage?.totalValue?.toString() ?? "",
+      description: hourPackage?.description ?? '',
+      packHours: hourPackage?.packHours?.toString() ?? '',
+      totalValue: hourPackage?.totalValue?.toString() ?? '',
     }),
     [hourPackage]
   );
@@ -74,8 +74,8 @@ const StudentHourRateList: FC<{
   onDelete: (id: string) => void;
 }> = ({ onEdit, onDelete }) => {
   const { data, isLoading } = trpc.useQuery([
-    "rates.hourRates",
-    { type: "STUDENT" },
+    'rates.hourRates',
+    { type: 'STUDENT' },
   ]);
   const [parent] = useAutoAnimate<HTMLUListElement>();
   if (!data) {
@@ -114,7 +114,7 @@ const PackagePriceList: FC<{
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
 }> = ({ onEdit, onDelete }) => {
-  const { data, isLoading } = trpc.useQuery(["rates.hourPackages"]);
+  const { data, isLoading } = trpc.useQuery(['rates.hourPackages']);
   const [parent] = useAutoAnimate<HTMLUListElement>();
   if (!data) {
     return <Spinner size="sm" />;
@@ -155,18 +155,18 @@ const AddHourRateForm: FC<{ onFinished: () => void; id: string }> = ({
 }) => {
   const queryClient = trpc.useContext();
   const { isLoading: isCreating, mutateAsync: create } = trpc.useMutation(
-    "rates.createHourRate",
+    'rates.createHourRate',
     {
       onSuccess: () => {
-        queryClient.invalidateQueries(["rates.hourRates", { type: "STUDENT" }]);
+        queryClient.invalidateQueries(['rates.hourRates', { type: 'STUDENT' }]);
       },
     }
   );
   const { isLoading: isEditing, mutateAsync: edit } = trpc.useMutation(
-    "rates.editHourRate",
+    'rates.editHourRate',
     {
       onSuccess: () => {
-        queryClient.invalidateQueries(["rates.hourRates", { type: "STUDENT" }]);
+        queryClient.invalidateQueries(['rates.hourRates', { type: 'STUDENT' }]);
       },
     }
   );
@@ -183,8 +183,8 @@ const AddHourRateForm: FC<{ onFinished: () => void; id: string }> = ({
       rate: parseFloat(data.rate),
     };
     const result = id
-      ? await edit({ id, ...parsedData, type: "STUDENT" })
-      : await create({ ...parsedData, type: "STUDENT" });
+      ? await edit({ id, ...parsedData, type: 'STUDENT' })
+      : await create({ ...parsedData, type: 'STUDENT' });
 
     onFinished();
   };
@@ -195,7 +195,7 @@ const AddHourRateForm: FC<{ onFinished: () => void; id: string }> = ({
       <section className="flex flex-col gap-2">
         <label htmlFor="rate">Valor</label>
         <Input
-          {...register("rate")}
+          {...register('rate')}
           type="number"
           className="text-black"
           placeholder="Valor..."
@@ -203,7 +203,7 @@ const AddHourRateForm: FC<{ onFinished: () => void; id: string }> = ({
         <ValidationError errorMessages={errors.rate?.message} />
         <label htmlFor="description">Nombre descriptivo</label>
         <Input
-          {...register("description")}
+          {...register('description')}
           className="text-black"
           placeholder="Descripción..."
         />
@@ -232,18 +232,18 @@ const AddHourPackageForm: FC<{ onFinished: () => void; id: string }> = ({
 }) => {
   const queryClient = trpc.useContext();
   const { isLoading: isCreating, mutateAsync: create } = trpc.useMutation(
-    "rates.createHourPackage",
+    'rates.createHourPackage',
     {
       onSuccess: () => {
-        queryClient.invalidateQueries("rates.hourPackages");
+        queryClient.invalidateQueries('rates.hourPackages');
       },
     }
   );
   const { isLoading: isEditing, mutateAsync: edit } = trpc.useMutation(
-    "rates.editHourPackage",
+    'rates.editHourPackage',
     {
       onSuccess: () => {
-        queryClient.invalidateQueries("rates.hourPackages");
+        queryClient.invalidateQueries('rates.hourPackages');
       },
     }
   );
@@ -270,12 +270,12 @@ const AddHourPackageForm: FC<{ onFinished: () => void; id: string }> = ({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
       <h1 className="font-medium text-3xl">
-        {id ? "Editar paquete de horas" : "Agregar paquete de horas"}
+        {id ? 'Editar paquete de horas' : 'Agregar paquete de horas'}
       </h1>
       <section className="flex flex-col gap-2">
         <label htmlFor="packHours">Horas en paquete</label>
         <Input
-          {...register("packHours")}
+          {...register('packHours')}
           type="number"
           className="text-black"
           placeholder="Horas en paquete..."
@@ -283,7 +283,7 @@ const AddHourPackageForm: FC<{ onFinished: () => void; id: string }> = ({
         <ValidationError errorMessages={errors.packHours?.message} />
         <label htmlFor="totalValue">Valor del paquete</label>
         <Input
-          {...register("totalValue")}
+          {...register('totalValue')}
           type="number"
           className="text-black"
           placeholder="Valor del paquete..."
@@ -291,7 +291,7 @@ const AddHourPackageForm: FC<{ onFinished: () => void; id: string }> = ({
         <ValidationError errorMessages={errors.totalValue?.message} />
         <label htmlFor="description">Nombre descriptivo</label>
         <Input
-          {...register("description")}
+          {...register('description')}
           className="text-black"
           placeholder="Descripción..."
         />
@@ -303,7 +303,7 @@ const AddHourPackageForm: FC<{ onFinished: () => void; id: string }> = ({
           className="flex-grow"
           isLoading={isCreating || isEditing}
         >
-          {id ? "Editar" : "Agregar"}
+          {id ? 'Editar' : 'Agregar'}
         </Button>
         <Button type="button" onClick={onFinished} className="flex-grow">
           Cancelar
@@ -315,16 +315,16 @@ const AddHourPackageForm: FC<{ onFinished: () => void; id: string }> = ({
 
 const StudentHourRatePrices = () => {
   const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
-  const [currentId, setCurrentId] = useState("");
+  const [currentId, setCurrentId] = useState('');
   const [showCreateEditModal, setShowCreateEditModal] = useState(false);
   const queryClient = trpc.useContext();
   const {
     isLoading: isDeleting,
     error: deleteError,
     mutateAsync: deleteOne,
-  } = trpc.useMutation("rates.deleteHourRate", {
+  } = trpc.useMutation('rates.deleteHourRate', {
     onSuccess: () => {
-      queryClient.invalidateQueries("rates.hourRates");
+      queryClient.invalidateQueries('rates.hourRates');
     },
   });
 
@@ -333,7 +333,7 @@ const StudentHourRatePrices = () => {
   };
   const handleCloseCreateEditModal = () => {
     setShowCreateEditModal(false);
-    setCurrentId("");
+    setCurrentId('');
   };
   const handleEdit = (id: string) => {
     setCurrentId(id);
@@ -341,7 +341,7 @@ const StudentHourRatePrices = () => {
   };
   const handleCloseConfirmDeleteModal = () => {
     setShowConfirmDeleteModal(false);
-    setCurrentId("");
+    setCurrentId('');
   };
   const handleDelete = (id: string) => {
     setCurrentId(id);
@@ -349,7 +349,7 @@ const StudentHourRatePrices = () => {
   };
   const handleSubmitDelete = async () => {
     await deleteOne({ id: currentId });
-    setCurrentId("");
+    setCurrentId('');
     setShowConfirmDeleteModal(false);
   };
 
@@ -384,16 +384,16 @@ const StudentHourRatePrices = () => {
 
 const StudentPackagePrices = () => {
   const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
-  const [currentId, setCurrentId] = useState("");
+  const [currentId, setCurrentId] = useState('');
   const [showCreateEditModal, setShowCreateEditModal] = useState(false);
   const queryClient = trpc.useContext();
   const {
     isLoading: isDeleting,
     error: deleteError,
     mutateAsync: deleteOne,
-  } = trpc.useMutation("rates.deleteHourPackage", {
+  } = trpc.useMutation('rates.deleteHourPackage', {
     onSuccess: () => {
-      queryClient.invalidateQueries("rates.hourPackages");
+      queryClient.invalidateQueries('rates.hourPackages');
     },
   });
 
@@ -402,7 +402,7 @@ const StudentPackagePrices = () => {
   };
   const handleCloseCreateEditModal = () => {
     setShowCreateEditModal(false);
-    setCurrentId("");
+    setCurrentId('');
   };
   const handlePackageEdit = (id: string) => {
     setCurrentId(id);
@@ -410,7 +410,7 @@ const StudentPackagePrices = () => {
   };
   const handleCloseConfirmDeleteModal = () => {
     setShowConfirmDeleteModal(false);
-    setCurrentId("");
+    setCurrentId('');
   };
   const handleDelete = (id: string) => {
     setCurrentId(id);
@@ -418,7 +418,7 @@ const StudentPackagePrices = () => {
   };
   const handleSubmitDelete = async () => {
     await deleteOne({ id: currentId });
-    setCurrentId("");
+    setCurrentId('');
     setShowConfirmDeleteModal(false);
   };
 

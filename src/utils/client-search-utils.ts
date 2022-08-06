@@ -1,9 +1,9 @@
-import { debouncePromiseValue } from "./delay";
-import { createTRPCVanillaClient } from "./trpc";
+import { debouncePromiseValue } from './delay';
+import { createTRPCVanillaClient } from './trpc';
 
 const searchTeachers = async (value: string) => {
   const client = createTRPCVanillaClient();
-  const teachers = await client.query("teachers.search", { query: value });
+  const teachers = await client.query('teachers.search', { query: value });
   return teachers.map((t) => ({
     value: t.id,
     label: `${t.name} ${t.lastName}`,
@@ -15,7 +15,7 @@ export const debouncedSearchTeachers: typeof searchTeachers =
 
 const searchStudents = async (value: string) => {
   const client = createTRPCVanillaClient();
-  const { students } = await client.query("students.allSearch", {
+  const { students } = await client.query('students.allSearch', {
     query: value,
   });
   return students.map((s) => ({

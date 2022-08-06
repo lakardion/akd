@@ -1,5 +1,5 @@
-import { z } from "zod";
-import { DEFAULT_PAGE_SIZE } from "./pagination";
+import { z } from 'zod';
+import { DEFAULT_PAGE_SIZE } from './pagination';
 
 export const identifiableZod = z.object({
   id: z.string(),

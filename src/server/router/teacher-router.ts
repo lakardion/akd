@@ -1,14 +1,14 @@
-import { includeInactiveFlagZod, teacherFormZod } from "common";
+import { includeInactiveFlagZod, teacherFormZod } from 'common';
 import {
   DEFAULT_PAGE_SIZE,
   getPagination,
   paginationZod,
-} from "utils/pagination";
-import { z } from "zod";
-import { createRouter } from "./context";
+} from 'utils/pagination';
+import { z } from 'zod';
+import { createRouter } from './context';
 
 export const teacherRouter = createRouter()
-  .query("count", {
+  .query('count', {
     input: includeInactiveFlagZod.default({}),
     resolve({ ctx, input: { includeInactive } }) {
       return ctx.prisma.teacher.count({
@@ -18,12 +18,12 @@ export const teacherRouter = createRouter()
       });
     },
   })
-  .query("search", {
+  .query('search', {
     input: z.object({ query: z.string() }),
     async resolve({ ctx, input: { query } }) {
       if (!query)
         return ctx.prisma.teacher.findMany({
-          orderBy: { lastName: "asc" },
+          orderBy: { lastName: 'asc' },
           take: 5,
         });
       const foundTeachers = await ctx.prisma.teacher.findMany({
@@ -32,13 +32,13 @@ export const teacherRouter = createRouter()
             {
               name: {
                 contains: query.toLowerCase(),
-                mode: "insensitive",
+                mode: 'insensitive',
               },
             },
             {
               lastName: {
                 contains: query.toLowerCase(),
-                mode: "insensitive",
+                mode: 'insensitive',
               },
             },
           ],
@@ -47,7 +47,7 @@ export const teacherRouter = createRouter()
       return foundTeachers;
     },
   })
-  .query("teachers", {
+  .query('teachers', {
     input: paginationZod.merge(includeInactiveFlagZod).default({}),
     async resolve({
       ctx,
@@ -65,7 +65,7 @@ export const teacherRouter = createRouter()
         take: size,
         where: includeInactive ? undefined : { isActive: true },
         orderBy: {
-          lastName: "asc",
+          lastName: 'asc',
         },
         skip: (page - 1) * size,
       });
@@ -81,14 +81,14 @@ export const teacherRouter = createRouter()
       };
     },
   })
-  .query("teacher", {
+  .query('teacher', {
     input: z.object({ id: z.string() }),
     async resolve({ ctx, input: { id } }) {
       const teacher = await ctx.prisma.teacher.findUnique({ where: { id } });
       return teacher;
     },
   })
-  .mutation("edit", {
+  .mutation('edit', {
     input: z.object({ id: z.string() }).extend(teacherFormZod.shape),
     async resolve({ ctx, input: { id, name, lastName } }) {
       const updatedTeacher = await ctx.prisma.teacher.update({
@@ -103,7 +103,7 @@ export const teacherRouter = createRouter()
       return updatedTeacher;
     },
   })
-  .mutation("delete", {
+  .mutation('delete', {
     input: z.object({ id: z.string() }),
     async resolve({ ctx, input: { id } }) {
       //! dont delete if they have relations, set them inactive instead
@@ -127,7 +127,7 @@ export const teacherRouter = createRouter()
       return ctx.prisma.teacher.delete({ where: { id } });
     },
   })
-  .mutation("create", {
+  .mutation('create', {
     input: teacherFormZod,
     async resolve({ ctx, input: { name, lastName } }) {
       const created = await ctx.prisma.teacher.create({

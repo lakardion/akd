@@ -1,7 +1,7 @@
-import { FC } from "react";
-import { FieldError } from "react-hook-form";
+import { FC } from 'react';
+import { FieldError } from 'react-hook-form';
 
-const listFormat = new Intl.ListFormat("es");
+const listFormat = new Intl.ListFormat('es');
 
 export const ValidationError: FC<{ errorMessages?: string | string[] }> = ({
   errorMessages,

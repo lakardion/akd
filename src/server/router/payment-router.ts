@@ -1,16 +1,16 @@
-import { PaymentMethodType } from "@prisma/client";
-import { paginationZod } from "utils/pagination";
-import { identifiableZod } from "utils/server-zods";
-import { z } from "zod";
-import { createRouter } from "./context";
+import { PaymentMethodType } from '@prisma/client';
+import { paginationZod } from 'utils/pagination';
+import { identifiableZod } from 'utils/server-zods';
+import { z } from 'zod';
+import { createRouter } from './context';
 
 export const paymentRouter = createRouter()
-  .query("byStudent", {
+  .query('byStudent', {
     input: paginationZod.merge(identifiableZod),
     async resolve({ ctx, input: { page, size, id } }) {
       const paymentsByStudent = await ctx.prisma.payment.findMany({
         orderBy: {
-          date: "desc",
+          date: 'desc',
         },
         where: {
           studentId: id,
@@ -27,7 +27,7 @@ export const paymentRouter = createRouter()
       }));
     },
   })
-  .mutation("create", {
+  .mutation('create', {
     input: z.object({
       date: z.date(),
       studentId: z.string(),

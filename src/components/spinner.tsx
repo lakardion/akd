@@ -1,9 +1,9 @@
-import { CSSProperties, FC } from "react";
+import { CSSProperties, FC } from 'react';
 
-export type SizeVariant = "xs" | "sm" | "md" | "lg" | "xl";
+export type SizeVariant = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 const BASE_SIZE = 20;
 const BASE_BORDER = 2;
-const PRIMARY_COLOR = "#B33432";
+const PRIMARY_COLOR = '#B33432';
 const mapWidthHeightBySize: Record<
   SizeVariant,
   { width: number; height: number; border: string; borderTop: string }
@@ -48,12 +48,12 @@ export const Spinner: FC<{
   size: SizeVariant;
 }> = ({ customStyles = {}, size }) => {
   const defaultStyles = {
-    border: "10px solid #f3f3f3",
-    borderTop: "10px solid #3498db",
-    width: "100px",
-    height: "100px",
-    borderRadius: "50%",
-    animation: "spin 1s ease-in-out infinite",
+    border: '10px solid #f3f3f3',
+    borderTop: '10px solid #3498db',
+    width: '100px',
+    height: '100px',
+    borderRadius: '50%',
+    animation: 'spin 1s ease-in-out infinite',
   };
 
   return (

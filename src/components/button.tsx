@@ -1,11 +1,11 @@
-import { ButtonHTMLAttributes, FC } from "react";
-import { SizeVariant, Spinner } from "./spinner";
+import { ButtonHTMLAttributes, FC } from 'react';
+import { SizeVariant, Spinner } from './spinner';
 
-export type ButtonColorVariant = "primary" | "accent" | "secondary";
+export type ButtonColorVariant = 'primary' | 'accent' | 'secondary';
 export const buttonClassByVariant: Record<ButtonColorVariant, string> = {
-  primary: "bg-primary-800 hover:bg-primary-400 text-white ",
-  accent: "bg-accent hover:bg-primary-400 text-blackish-900 ",
-  secondary: "bg-secondary hover:bg-primary-200 text-blackish-900 ",
+  primary: 'bg-primary-800 hover:bg-primary-400 text-white ',
+  accent: 'bg-accent hover:bg-primary-400 text-blackish-900 ',
+  secondary: 'bg-secondary hover:bg-primary-200 text-blackish-900 ',
 };
 
 export const Button: FC<
@@ -18,15 +18,15 @@ export const Button: FC<
   children,
   type,
   isLoading = false,
-  spinnerSize = "sm",
+  spinnerSize = 'sm',
   className,
-  variant = "primary",
+  variant = 'primary',
   ...props
 }) => {
   return (
     <button
       {...props}
-      type={type ?? "button"}
+      type={type ?? 'button'}
       className={`${buttonClassByVariant[variant]} py-1 px-2 rounded-md  ${className}`}
     >
       {isLoading ? <Spinner size={spinnerSize} /> : children}
@@ -36,11 +36,11 @@ export const Button: FC<
 
 export const PillButton: FC<
   ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonColorVariant }
-> = ({ className, type, variant = "primary", children, ...props }) => {
+> = ({ className, type, variant = 'primary', children, ...props }) => {
   return (
     <button
       {...props}
-      type={type ?? "button"}
+      type={type ?? 'button'}
       className={`${buttonClassByVariant[variant]} rounded-lg w-full p-3 btn-disabled ${className}`}
     >
       {children}

@@ -1,7 +1,7 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState } from 'react';
 
 export const useCRUDState = () => {
-  const [currentId, setCurrentId] = useState("");
+  const [currentId, setCurrentId] = useState('');
   const [showCreateEdit, setShowCreateEdit] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const handleCreate = () => {
@@ -9,7 +9,7 @@ export const useCRUDState = () => {
   };
 
   const handleFinished = useCallback(() => {
-    setCurrentId("");
+    setCurrentId('');
     setShowCreateEdit(false);
     setShowDeleteConfirm(false);
   }, []);

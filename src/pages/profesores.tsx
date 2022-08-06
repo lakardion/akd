@@ -1,37 +1,37 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { TeacherFormInput, teacherFormZod } from "common";
-import { Button } from "components/button";
-import { Input } from "components/form/input";
-import { ValidationError } from "components/form/validation-error";
-import { Spinner } from "components/spinner";
-import { FC, useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
-import { trpc } from "utils/trpc";
-import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { Modal } from "components/modal";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { TeacherFormInput, teacherFormZod } from 'common';
+import { Button } from 'components/button';
+import { Input } from 'components/form/input';
+import { ValidationError } from 'components/form/validation-error';
+import { Spinner } from 'components/spinner';
+import { FC, useEffect, useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { trpc } from 'utils/trpc';
+import { useAutoAnimate } from '@formkit/auto-animate/react';
+import { Modal } from 'components/modal';
 
 const TeacherForm: FC<{ onFinished: () => void; id: string }> = ({
   id: id,
   onFinished,
 }) => {
   const queryClient = trpc.useContext();
-  const { data } = trpc.useQuery(["teachers.teacher", { id }], {
+  const { data } = trpc.useQuery(['teachers.teacher', { id }], {
     enabled: Boolean(id),
   });
   const { mutateAsync: create, isLoading: isCreating } = trpc.useMutation(
-    "teachers.create",
+    'teachers.create',
     {
       onSuccess: () => {
-        queryClient.invalidateQueries("teachers.teachers");
+        queryClient.invalidateQueries('teachers.teachers');
       },
     }
   );
   const { mutateAsync: edit, isLoading: isEditing } = trpc.useMutation(
-    "teachers.edit",
+    'teachers.edit',
     {
       onSuccess: () => {
-        queryClient.invalidateQueries("teachers.teachers");
-        queryClient.invalidateQueries(["teachers.teacher", { id }]);
+        queryClient.invalidateQueries('teachers.teachers');
+        queryClient.invalidateQueries(['teachers.teacher', { id }]);
       },
     }
   );
@@ -43,8 +43,8 @@ const TeacherForm: FC<{ onFinished: () => void; id: string }> = ({
 
   const defaultValues: TeacherFormInput = useMemo(
     () => ({
-      lastName: data?.lastName ?? "",
-      name: data?.name ?? "",
+      lastName: data?.lastName ?? '',
+      name: data?.name ?? '',
     }),
     [data]
   );
@@ -67,14 +67,14 @@ const TeacherForm: FC<{ onFinished: () => void; id: string }> = ({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-2">
-      <h1>{id ? "Editar alumno" : "Agregar profesor"}</h1>
+      <h1>{id ? 'Editar alumno' : 'Agregar profesor'}</h1>
       <label htmlFor="lastName">Apellido</label>
-      <Input {...register("lastName")} placeholder="Last name..." />
+      <Input {...register('lastName')} placeholder="Last name..." />
       <ValidationError errorMessages={errors.lastName?.message} />
       <label htmlFor="name">Nombre</label>
-      <Input {...register("name")} placeholder="Name..." />
+      <Input {...register('name')} placeholder="Name..." />
       <ValidationError errorMessages={errors.name?.message} />
-      <Button type="submit">{id ? "Editar" : "Agregar"}</Button>
+      <Button type="submit">{id ? 'Editar' : 'Agregar'}</Button>
       <Button onClick={onFinished}>Cancelar</Button>
     </form>
   );
@@ -85,7 +85,7 @@ const TeachersList: FC<{
   handleEdit: (id: string) => void;
 }> = ({ handleDelete, handleEdit }) => {
   const { data, isLoading: studentsLoading } = trpc.useQuery([
-    "teachers.teachers",
+    'teachers.teachers',
   ]);
   const [parent] = useAutoAnimate<HTMLUListElement>();
   if (studentsLoading) {
@@ -106,10 +106,10 @@ const TeachersList: FC<{
       {data?.teachers.map((s) => {
         const status =
           s.balance < 0
-            ? "bg-red-500"
+            ? 'bg-red-500'
             : s.balance === 0
-            ? "bg-gray-500"
-            : "bg-green-500";
+            ? 'bg-gray-500'
+            : 'bg-green-500';
         return (
           <li key={s.id} className="border border-slid border-teal-400">
             <p className="flex gap-2 items-center justify-between">
@@ -134,14 +134,14 @@ const TeachersList: FC<{
 };
 
 const Teachers = () => {
-  const [currentId, setCurrentId] = useState("");
+  const [currentId, setCurrentId] = useState('');
   const [showForm, setShowForm] = useState(false);
   const queryClient = trpc.useContext();
   const { isLoading: isLoading, mutateAsync: deleteOne } = trpc.useMutation(
-    "teachers.delete",
+    'teachers.delete',
     {
       onSuccess: () => {
-        queryClient.invalidateQueries("teachers.teachers");
+        queryClient.invalidateQueries('teachers.teachers');
       },
     }
   );
@@ -149,7 +149,7 @@ const Teachers = () => {
     setShowForm(true);
   };
   const handleFinished = () => {
-    setCurrentId("");
+    setCurrentId('');
     setShowForm(false);
   };
   const handleDelete = async (id: string) => {

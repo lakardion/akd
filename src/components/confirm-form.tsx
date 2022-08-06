@@ -1,5 +1,5 @@
-import { FC } from "react";
-import { Button } from "./button";
+import { FC } from 'react';
+import { Button } from './button';
 
 export const ConfirmForm: FC<{
   body: string;
@@ -9,7 +9,7 @@ export const ConfirmForm: FC<{
   errorMessage?: string;
   isConfirming?: boolean;
 }> = ({
-  title = "Are you sure?",
+  title = 'Are you sure?',
   onConfirm,
   onCancel,
   body,

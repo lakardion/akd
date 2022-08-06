@@ -1,4 +1,4 @@
-import { FC, LabelHTMLAttributes } from "react";
+import { FC, LabelHTMLAttributes } from 'react';
 
 export const Label: FC<LabelHTMLAttributes<HTMLLabelElement>> = (props) => {
   return (

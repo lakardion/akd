@@ -1,22 +1,22 @@
 // src/server/router/index.ts
-import superjson from "superjson";
-import { createRouter } from "./context";
+import superjson from 'superjson';
+import { createRouter } from './context';
 
-import { authRouter } from "./auth";
-import { ratesRouter } from "./rates-router";
-import { studentRouter } from "./student-router";
-import { teacherRouter } from "./teacher-router";
-import { classSessionRouter } from "./class-session-router";
-import { paymentRouter } from "./payment-router";
+import { authRouter } from './auth';
+import { ratesRouter } from './rates-router';
+import { studentRouter } from './student-router';
+import { teacherRouter } from './teacher-router';
+import { classSessionRouter } from './class-session-router';
+import { paymentRouter } from './payment-router';
 
 export const appRouter = createRouter()
   .transformer(superjson)
-  .merge("auth.", authRouter)
-  .merge("students.", studentRouter)
-  .merge("teachers.", teacherRouter)
-  .merge("rates.", ratesRouter)
-  .merge("classSessions.", classSessionRouter)
-  .merge("payments.", paymentRouter);
+  .merge('auth.', authRouter)
+  .merge('students.', studentRouter)
+  .merge('teachers.', teacherRouter)
+  .merge('rates.', ratesRouter)
+  .merge('classSessions.', classSessionRouter)
+  .merge('payments.', paymentRouter);
 
 // export type definition of API
 export type AppRouter = typeof appRouter;

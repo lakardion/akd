@@ -1,1 +1,1 @@
-export { useCRUDState } from "./use-crud-state";
+export { useCRUDState } from './use-crud-state';

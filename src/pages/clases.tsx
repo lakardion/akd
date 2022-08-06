@@ -1,16 +1,16 @@
-import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "components/button";
-import { ConfirmForm } from "components/confirm-form";
-import { Input } from "components/form/input";
-import { ValidationError } from "components/form/validation-error";
-import { Modal } from "components/modal";
-import { Spinner } from "components/spinner";
-import { WarningMessage } from "components/warning-message";
-import { format, setHours, setMinutes } from "date-fns";
-import { es } from "date-fns/locale";
-import { useCRUDState } from "hooks";
-import Link from "next/link";
+import { useAutoAnimate } from '@formkit/auto-animate/react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Button } from 'components/button';
+import { ConfirmForm } from 'components/confirm-form';
+import { Input } from 'components/form/input';
+import { ValidationError } from 'components/form/validation-error';
+import { Modal } from 'components/modal';
+import { Spinner } from 'components/spinner';
+import { WarningMessage } from 'components/warning-message';
+import { format, setHours, setMinutes } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { useCRUDState } from 'hooks';
+import Link from 'next/link';
 import {
   FC,
   MouseEvent,
@@ -19,33 +19,33 @@ import {
   useEffect,
   useMemo,
   useState,
-} from "react";
-import ReactDatePicker, { registerLocale } from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
-import { Controller, useForm } from "react-hook-form";
-import { MdDelete, MdEdit } from "react-icons/md";
-import ReactSelect, { MultiValue, SingleValue } from "react-select";
-import AsyncReactSelect from "react-select/async";
+} from 'react';
+import ReactDatePicker, { registerLocale } from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { Controller, useForm } from 'react-hook-form';
+import { MdDelete, MdEdit } from 'react-icons/md';
+import ReactSelect, { MultiValue, SingleValue } from 'react-select';
+import AsyncReactSelect from 'react-select/async';
 import {
   debouncedSearchStudents,
   debouncedSearchTeachers,
-} from "utils/client-search-utils";
-import { inferQueryOutput, trpc } from "utils/trpc";
-import { z } from "zod";
+} from 'utils/client-search-utils';
+import { inferQueryOutput, trpc } from 'utils/trpc';
+import { z } from 'zod';
 
-registerLocale("es", es);
+registerLocale('es', es);
 
 const classSessionFormZod = z.object({
-  teacherId: z.string({ required_error: "Requerido" }).min(1, "Requerido"),
+  teacherId: z.string({ required_error: 'Requerido' }).min(1, 'Requerido'),
   students: z.array(z.string()),
-  dateTime: z.date({ required_error: "Requerido" }),
-  teacherHourRateId: z.string().min(1, "Requerido"),
+  dateTime: z.date({ required_error: 'Requerido' }),
+  teacherHourRateId: z.string().min(1, 'Requerido'),
   hours: z
     .string()
-    .min(1, "Requerido")
+    .min(1, 'Requerido')
     .refine((value) => {
       return !isNaN(parseInt(value));
-    }, "Must be a number"),
+    }, 'Must be a number'),
 });
 type ClassSessionFormInputs = z.infer<typeof classSessionFormZod>;
 
@@ -62,25 +62,25 @@ const getStaticDate = () => {
 const staticDate = getStaticDate();
 
 const getClassSessionFormDefaultValues = (
-  classSession: inferQueryOutput<"classSessions.single"> | undefined
+  classSession: inferQueryOutput<'classSessions.single'> | undefined
 ): ClassSessionFormInputs => {
   return {
     dateTime: classSession?.date ?? new Date(),
-    hours: classSession?.hour?.toString() ?? "",
+    hours: classSession?.hour?.toString() ?? '',
     students: classSession?.studentOptions?.map((so) => so.value) ?? [],
-    teacherHourRateId: classSession?.teacherHourRateOption?.value ?? "",
-    teacherId: classSession?.teacherOption?.value ?? "",
+    teacherHourRateId: classSession?.teacherHourRateOption?.value ?? '',
+    teacherId: classSession?.teacherOption?.value ?? '',
   };
 };
 
 const useClassSessionForm = ({ id }: { id: string }) => {
   const { data: classSession } = trpc.useQuery([
-    "classSessions.single",
+    'classSessions.single',
     { id },
   ]);
   const { data: teacherHourRates } = trpc.useQuery([
-    "rates.hourRates",
-    { type: "TEACHER" },
+    'rates.hourRates',
+    { type: 'TEACHER' },
   ]);
 
   const form = useForm<ClassSessionFormInputs>({
@@ -103,14 +103,13 @@ const useClassSessionForm = ({ id }: { id: string }) => {
       setSelectedTeacherRate(classSession.teacherHourRateOption);
   }, [stableFormReset, classSession]);
 
-
   //select controlled values
   const [selectedDate, setSelectedDate] = useState(staticDate);
   const handleDateChange = useCallback(
     (date: Date) => {
       const setValue = form.setValue;
       setSelectedDate(date);
-      setValue("dateTime", date);
+      setValue('dateTime', date);
     },
     [form.setValue]
   );
@@ -152,7 +151,7 @@ const useClassSessionForm = ({ id }: { id: string }) => {
       setSelectedStudents,
       handleDateChange,
       oldHours: classSession?.hour,
-      oldStudents: classSession?.studentOptions?.map(so => so.value) ?? []
+      oldStudents: classSession?.studentOptions?.map((so) => so.value) ?? [],
     }),
     [
       form,
@@ -163,7 +162,7 @@ const useClassSessionForm = ({ id }: { id: string }) => {
       selectedTeacher,
       selectedTeacherRate,
       teacherRateOptions,
-      classSession
+      classSession,
     ]
   );
 };
@@ -189,50 +188,55 @@ const ClassSessionForm: FC<{ id: string; onFinished: () => void }> = ({
     setSelectedTeacherRateId,
     teacherRateOptions,
     handleDateChange,
-    oldHours, oldStudents
+    oldHours,
+    oldStudents,
   } = useClassSessionForm({ id });
 
   const queryClient = trpc.useContext();
   const { mutateAsync: create, isLoading: isCreating } = trpc.useMutation(
-    "classSessions.create",
+    'classSessions.create',
     {
       onSuccess: () => {
-        queryClient.invalidateQueries(["classSessions.all"]);
-        queryClient.invalidateQueries(["classSessions.byStudent"]);
+        queryClient.invalidateQueries(['classSessions.all']);
+        queryClient.invalidateQueries(['classSessions.byStudent']);
       },
     }
   );
-  const { mutateAsync: edit, isLoading: isEditing } = trpc.useMutation('classSessions.update', {
-    onSuccess: () => {
-      queryClient.invalidateQueries(['classSessions.single', { id }])
+  const { mutateAsync: edit, isLoading: isEditing } = trpc.useMutation(
+    'classSessions.update',
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['classSessions.single', { id }]);
+      },
     }
-  })
+  );
 
   const onSubmit = async (data: ClassSessionFormInputs) => {
-    id ? await edit({
-      date: data.dateTime,
-      hours: parseFloat(data.hours),
-      studentIds: data.students ?? [],
-      teacherHourRateId: data.teacherHourRateId,
-      teacherId: data.teacherId,
-      oldHours:oldHours ?? 0,
-      oldStudentIds:oldStudents,
-      id
-    })
+    id
+      ? await edit({
+          date: data.dateTime,
+          hours: parseFloat(data.hours),
+          studentIds: data.students ?? [],
+          teacherHourRateId: data.teacherHourRateId,
+          teacherId: data.teacherId,
+          oldHours: oldHours ?? 0,
+          oldStudentIds: oldStudents,
+          id,
+        })
       : await create({
-        hours: parseFloat(data.hours),
-        date: data.dateTime,
-        studentIds: data.students,
-        teacherId: data.teacherId,
-        teacherHourRateId: data.teacherHourRateId,
-      })
+          hours: parseFloat(data.hours),
+          date: data.dateTime,
+          studentIds: data.students,
+          teacherId: data.teacherId,
+          teacherHourRateId: data.teacherHourRateId,
+        });
     onFinished();
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
       <h1 className="text-3xl text-center">
-        {id ? "Editar clase" : "Agregar clase"}
+        {id ? 'Editar clase' : 'Agregar clase'}
       </h1>
       <label htmlFor="dateTime">Fecha</label>
       <Controller
@@ -244,8 +248,8 @@ const ClassSessionForm: FC<{ id: string; onFinished: () => void }> = ({
             selected={selectedDate}
             onChange={handleDateChange}
             showTimeSelect
-            dateFormat={"Pp"}
-            timeFormat={"p"}
+            dateFormat={'Pp'}
+            timeFormat={'p'}
             locale="es"
             className="bg-secondary-100 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blackish-900 placeholder:text-slate-500 text-black"
             minTime={setMinutes(setHours(new Date(), 8), 0)}
@@ -270,7 +274,7 @@ const ClassSessionForm: FC<{ id: string; onFinished: () => void }> = ({
             className="text-black akd-container"
             classNamePrefix="akd"
             onChange={(value) => {
-              field.onChange(value?.value ?? "");
+              field.onChange(value?.value ?? '');
               setSelectedTeacher(value);
             }}
             value={selectedTeacher}
@@ -291,7 +295,7 @@ const ClassSessionForm: FC<{ id: string; onFinished: () => void }> = ({
             className="text-black akd-container"
             classNamePrefix="akd"
             onChange={(value) => {
-              field.onChange(value?.value ?? "");
+              field.onChange(value?.value ?? '');
               setSelectedTeacherRateId(value);
             }}
             value={selectedTeacherRateId}
@@ -305,7 +309,7 @@ const ClassSessionForm: FC<{ id: string; onFinished: () => void }> = ({
       <Input
         type="number"
         placeholder="Agregar horas..."
-        {...register("hours")}
+        {...register('hours')}
       />
       <ValidationError errorMessages={errors.hours?.message} />
       <label htmlFor="students">Alumnos</label>
@@ -345,7 +349,7 @@ const ClassSessionForm: FC<{ id: string; onFinished: () => void }> = ({
           className="capitalize flex-grow"
           isLoading={isCreating || isEditing}
         >
-          {id ? "Editar clase" : "Crear clase"}
+          {id ? 'Editar clase' : 'Crear clase'}
         </Button>
         <Button
           variant="primary"
@@ -364,7 +368,7 @@ const ClassSessionList: FC<{
   handleEdit: (id: string) => void;
 }> = ({ handleDelete, handleEdit }) => {
   const { data, fetchNextPage, hasNextPage, isLoading, isFetching } =
-    trpc.useInfiniteQuery(["classSessions.all", {}], {
+    trpc.useInfiniteQuery(['classSessions.all', {}], {
       getNextPageParam: (lastPage) => {
         return lastPage.nextCursor ? { page: lastPage.nextCursor } : null;
       },
@@ -420,14 +424,14 @@ const ClassSessionList: FC<{
           <p>No hay clases para mostrar</p>
         ) : (
           flatData.map((s) => {
-            const status = s.date < new Date() ? "opacity-60" : "";
+            const status = s.date < new Date() ? 'opacity-60' : '';
             return (
               <li
                 key={s.id}
                 className={`bg-gray-300 w-full rounded-md py-3 px-2 sm:px-20 flex justify-between items-center ${status}`}
               >
                 <div className="flex items-center gap-2">
-                  <p>{format(s.date, "dd-MM-yyyy H:mm")}</p>
+                  <p>{format(s.date, 'dd-MM-yyyy H:mm')}</p>
                   <p>
                     {s.teacher?.name} {s.teacher?.lastName}
                   </p>
@@ -466,16 +470,16 @@ const ClassSessions = () => {
     currentId,
   } = useCRUDState();
   const { data: teacherCount, isLoading: isTeacherCountLoading } =
-    trpc.useQuery(["teachers.count"]);
+    trpc.useQuery(['teachers.count']);
   const { data: teacherRates, isLoading: isHourRatesLoading } = trpc.useQuery([
-    "rates.hourRates",
-    { type: "TEACHER" },
+    'rates.hourRates',
+    { type: 'TEACHER' },
   ]);
   const { isLoading: isClassSessionLoading } = trpc.useQuery(
-    ["classSessions.single", { id: currentId }],
+    ['classSessions.single', { id: currentId }],
     { enabled: Boolean(currentId) }
   );
-  const { isLoading } = trpc.useInfiniteQuery(["classSessions.all", {}], {
+  const { isLoading } = trpc.useInfiniteQuery(['classSessions.all', {}], {
     getNextPageParam: (lastPage) => {
       return lastPage.nextCursor ? { page: lastPage.nextCursor } : null;
     },
@@ -484,10 +488,10 @@ const ClassSessions = () => {
 
   const queryClient = trpc.useContext();
   const { mutateAsync: deleteOne, isLoading: isDeleting } = trpc.useMutation(
-    "classSessions.delete",
+    'classSessions.delete',
     {
       onSuccess: () => {
-        queryClient.invalidateQueries(["classSessions.all"]);
+        queryClient.invalidateQueries(['classSessions.all']);
       },
     }
   );
@@ -511,13 +515,13 @@ const ClassSessions = () => {
         <section aria-label="warning" className="w-full">
           <WarningMessage>
             <p className="italic">
-              No se pueden cargar clases a menos que haya{" "}
+              No se pueden cargar clases a menos que haya{' '}
               <Link href="/profesores">
                 <span className="text-blue-600 hover:underline hover:cursor-pointer">
                   profesores
                 </span>
-              </Link>{" "}
-              y{" "}
+              </Link>{' '}
+              y{' '}
               <Link href="/precios/profesores">
                 <span className="text-blue-600 hover:underline hover:cursor-pointer">
                   ratios
