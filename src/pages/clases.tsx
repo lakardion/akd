@@ -151,6 +151,8 @@ const useClassSessionForm = ({ id }: { id: string }) => {
       selectedStudents,
       setSelectedStudents,
       handleDateChange,
+      oldHours: classSession?.hour,
+      oldStudents: classSession?.studentOptions?.map(so => so.value) ?? []
     }),
     [
       form,
@@ -161,6 +163,7 @@ const useClassSessionForm = ({ id }: { id: string }) => {
       selectedTeacher,
       selectedTeacherRate,
       teacherRateOptions,
+      classSession
     ]
   );
 };
@@ -186,6 +189,7 @@ const ClassSessionForm: FC<{ id: string; onFinished: () => void }> = ({
     setSelectedTeacherRateId,
     teacherRateOptions,
     handleDateChange,
+    oldHours, oldStudents
   } = useClassSessionForm({ id });
 
   const queryClient = trpc.useContext();
@@ -198,27 +202,30 @@ const ClassSessionForm: FC<{ id: string; onFinished: () => void }> = ({
       },
     }
   );
-  const {mutateAsync:edit,isLoading:isEditing}= trpc.useMutation('classSessions.update',{
-      onSuccess:()=>{
-          queryClient.invalidateQueries(['classSessions.single',{id}])
-        }
-    })
+  const { mutateAsync: edit, isLoading: isEditing } = trpc.useMutation('classSessions.update', {
+    onSuccess: () => {
+      queryClient.invalidateQueries(['classSessions.single', { id }])
+    }
+  })
 
   const onSubmit = async (data: ClassSessionFormInputs) => {
     id ? await edit({
-       date:data.dateTime,
-       hours:parseFloat(data.hours),
-       studentIds:data.students,
-       teacherHourRateId:data.teacherHourRateId,
-       teacherId:data.teacherId
-      })
-     :await create({
-      hours: parseFloat(data.hours),
       date: data.dateTime,
-      studentIds: data.students,
-      teacherId: data.teacherId,
+      hours: parseFloat(data.hours),
+      studentIds: data.students ?? [],
       teacherHourRateId: data.teacherHourRateId,
-    }) 
+      teacherId: data.teacherId,
+      oldHours:oldHours ?? 0,
+      oldStudentIds:oldStudents,
+      id
+    })
+      : await create({
+        hours: parseFloat(data.hours),
+        date: data.dateTime,
+        studentIds: data.students,
+        teacherId: data.teacherId,
+        teacherHourRateId: data.teacherHourRateId,
+      })
     onFinished();
   };
 
@@ -241,8 +248,8 @@ const ClassSessionForm: FC<{ id: string; onFinished: () => void }> = ({
             timeFormat={"p"}
             locale="es"
             className="bg-secondary-100 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blackish-900 placeholder:text-slate-500 text-black"
-            minTime={setMinutes(setHours(new Date(),8),0)}
-            maxTime={setMinutes(setHours(new Date(),19),0)}
+            minTime={setMinutes(setHours(new Date(), 8), 0)}
+            maxTime={setMinutes(setHours(new Date(), 19), 0)}
           />
         )}
       />

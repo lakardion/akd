@@ -132,13 +132,13 @@ export const classSessionRouter = createRouter()
       ctx,
       input: { id, studentIds, date, teacherId, teacherHourRateId, hours, oldHours, oldStudentIds },
     }) {
-      const {created,removed,untouched} = diffStrArrays(studentIds, oldStudentIds)
+      const { created, removed, untouched } = diffStrArrays(studentIds, oldStudentIds)
       const hourUpdate = hours !== oldHours ? {
         update: {
           value: hours
         }
       } : undefined
-      const updatedClassSessions = await ctx.prisma.classSession.update({
+      const updatedClassSessionsPromise = ctx.prisma.classSession.update({
         where: {
           id
         },
@@ -151,23 +151,21 @@ export const classSessionRouter = createRouter()
         }
       });
       //update existing
-      if (oldHours !== hours) {
-        const updatedStudents = await ctx.prisma.student.updateMany({
-          where: {
-            id: {
-              in: untouched
-            }
-          },
-          data: {
-            hourBalance: {
-              increment: oldHours,
-              decrement: hours
-            }
+      const updateUntouchedStudentsPromise = hours !== oldHours ? ctx.prisma.student.updateMany({
+        where: {
+          id: {
+            in: untouched
           }
-        })
-      }
+        },
+        data: {
+          hourBalance: {
+            increment: oldHours - hours,
+          }
+        }
+      }) : undefined;
       //update created
-      ctx.prisma.student.updateMany({
+      //
+      const updateCreatedPromise = ctx.prisma.student.updateMany({
         where: {
           id: {
             in: created
@@ -178,7 +176,7 @@ export const classSessionRouter = createRouter()
         }
       })
       //update removed
-      ctx.prisma.student.updateMany({
+      const updateRemovedPromise = ctx.prisma.student.updateMany({
         where: {
           id: {
             in: removed
@@ -188,6 +186,8 @@ export const classSessionRouter = createRouter()
           hourBalance: { increment: hours }
         }
       })
+      const commitables = updateUntouchedStudentsPromise ? [updatedClassSessionsPromise, updateUntouchedStudentsPromise, updateCreatedPromise, updateRemovedPromise] : [updatedClassSessionsPromise, updateCreatedPromise, updateRemovedPromise]
+      await ctx.prisma.$transaction(commitables)
     }
   })
   .mutation("create", {
