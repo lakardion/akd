@@ -25,7 +25,7 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className="container mx-auto flex flex-col items-center justify-center h-screen p-4">
+      <section className="container mx-auto flex flex-col items-center justify-center md:h-[calc(100vh-94px)] p-4">
         <ul>
           {routes.map((r) => (
             <li key={r.href}>
@@ -35,7 +35,7 @@ const Home: NextPage = () => {
             </li>
           ))}
         </ul>
-      </main>
+      </section>
     </>
   );
 };

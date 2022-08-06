@@ -1,45 +1,45 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { PaymentMethodType } from "@prisma/client";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { PaymentMethodType } from '@prisma/client';
 import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
-} from "@tanstack/react-table";
-import { PillButton } from "components/button";
-import { Input } from "components/form/input";
-import { ValidationError } from "components/form/validation-error";
-import { Modal } from "components/modal";
-import { format, isMatch, parse } from "date-fns";
-import { Decimal } from "decimal.js";
-import { useRouter } from "next/router";
-import { ChangeEvent, FC, useMemo, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import ReactSelect, { SingleValue } from "react-select";
-import AsyncReactSelect from "react-select/async";
-import { debouncedSearchTeachers } from "utils/client-search-utils";
-import { debouncePromiseValue } from "utils/delay";
-import { createTRPCVanillaClient, trpc } from "utils/trpc";
-import { z } from "zod";
+} from '@tanstack/react-table';
+import { PillButton } from 'components/button';
+import { Input } from 'components/form/input';
+import { ValidationError } from 'components/form/validation-error';
+import { Modal } from 'components/modal';
+import { format, isMatch, parse } from 'date-fns';
+import { Decimal } from 'decimal.js';
+import { useRouter } from 'next/router';
+import { ChangeEvent, FC, useEffect, useMemo, useState } from 'react';
+import { Controller, useForm, useWatch } from 'react-hook-form';
+import ReactSelect, { SingleValue } from 'react-select';
+import AsyncReactSelect from 'react-select/async';
+import { debouncedSearchTeachers } from 'utils/client-search-utils';
+import { debouncePromiseValue } from 'utils/delay';
+import { createTRPCVanillaClient, trpc } from 'utils/trpc';
+import { z } from 'zod';
 
 const paymentFormZod = z.object({
   hours: z
     .string()
-    .min(1, "Requerido")
-    .refine((value) => value !== "0", "Must be greater than 0"),
+    .min(1, 'Requerido')
+    .refine((value) => value !== '0', 'Must be greater than 0'),
   value: z
     .string()
-    .min(1, "Requerido")
-    .refine((value) => value !== "0", "Must be a number"),
+    .min(1, 'Requerido')
+    .refine((value) => value !== '0', 'Must be a number'),
   date: z.string().refine((value) => {
-    if (!isMatch(value, "yyyy-MM-dd")) return false;
+    if (!isMatch(value, 'yyyy-MM-dd')) return false;
     return true;
   }),
   paymentMethod: z.enum([PaymentMethodType.CASH, PaymentMethodType.TRANSFER]),
 });
 type PaymentFormInput = z.infer<typeof paymentFormZod>;
 
-type HourType = "package" | "rate";
+type HourType = 'package' | 'rate';
 type HourTypeSelectOption = SingleValue<
   { value: HourType; label: string } | undefined
 >;
@@ -57,10 +57,10 @@ type HourRateSelectOption = SingleValue<{
 
 const classSessionFormZod = z.object({
   date: z.string().refine((value) => {
-    if (!isMatch(value, "yyyy-MM-dd")) return false;
+    if (!isMatch(value, 'yyyy-MM-dd')) return false;
     return true;
-  }, "Invalid date, should be yyyy-mm-dd"),
-  teacherId: z.string().min(1, "Requerido"),
+  }, 'Invalid date, should be yyyy-mm-dd'),
+  teacherId: z.string().min(1, 'Requerido'),
 });
 
 type ClassSessionFormInput = z.infer<typeof classSessionFormZod>;
@@ -85,7 +85,7 @@ const ClassSessionForm: FC<{ onFinished: () => void }> = ({ onFinished }) => {
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
       <h1 className="text-2xl">Cargar clase</h1>
       <label htmlFor="date">Fecha</label>
-      <Input type="date" {...register("date")} />
+      <Input type="date" {...register('date')} />
       <ValidationError errorMessages={errors.date?.message} />
 
       <label>Profesor</label>
@@ -101,7 +101,7 @@ const ClassSessionForm: FC<{ onFinished: () => void }> = ({ onFinished }) => {
             className="text-black akd-container"
             classNamePrefix="akd"
             onChange={(value) => {
-              field.onChange(value?.value ?? "");
+              field.onChange(value?.value ?? '');
               setSelectedTeacher(value);
             }}
             value={selectedTeacher}
@@ -119,17 +119,17 @@ const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
   onFinished,
 }) => {
   const { data: hourRates } = trpc.useQuery([
-    "rates.hourRates",
-    { type: "STUDENT" },
+    'rates.hourRates',
+    { type: 'STUDENT' },
   ]);
   const queryClient = trpc.useContext();
-  const { data: hourPackages } = trpc.useQuery(["rates.hourPackages"]);
+  const { data: hourPackages } = trpc.useQuery(['rates.hourPackages']);
   const { mutateAsync: create, isLoading: isCreating } = trpc.useMutation(
-    "payments.create",
+    'payments.create',
     {
       onSuccess: () => {
         queryClient.invalidateQueries([
-          "payments.byStudent",
+          'payments.byStudent',
           { id: studentId },
         ]);
       },
@@ -141,7 +141,7 @@ const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
   const handleHourTypeChange = (option: HourTypeSelectOption) => {
     setHourTypeSelected(option);
     setSelectedHourRate(undefined);
-    setValue("value", "");
+    setValue('value', '');
   };
   const {
     formState: { errors },
@@ -149,7 +149,9 @@ const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
     register,
     setValue,
     getValues,
+    control,
   } = useForm<PaymentFormInput>({ resolver: zodResolver(paymentFormZod) });
+  const value = useWatch<PaymentFormInput>({ name: 'value', control });
 
   const packageOptions: HourPackageSelectOption[] = useMemo(
     () =>
@@ -161,8 +163,8 @@ const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
     [hourPackages]
   );
   const handlePackageChange = (option: HourPackageSelectOption) => {
-    setValue("hours", option?.extra.hours.toString() ?? "");
-    setValue("value", option?.extra.amount.toString() ?? "");
+    setValue('hours', option?.extra.hours.toString() ?? '');
+    setValue('value', option?.extra.amount.toString() ?? '');
   };
   const hourRateOptions: HourRateSelectOption[] = useMemo(
     () =>
@@ -173,33 +175,40 @@ const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
       })) ?? [],
     [hourRates]
   );
+
   const handleRateOptionChange = (
     options: HourRateSelectOption | undefined
   ) => {
     setSelectedHourRate(options?.extra.rate);
     const hours = getValues().hours;
+    if (!hours) return;
     const decimalHours = new Decimal(hours);
     const decimalRate = new Decimal(options?.extra.rate ?? 1);
-    setValue("value", decimalHours.times(decimalRate).toString());
+    setValue('value', decimalHours.times(decimalRate).toString());
   };
 
   const { onChange: onChangeHours, ...restRegisterHours } = useMemo(
-    () => register("hours"),
+    () => register('hours'),
     [register]
   );
+
   const handleHourChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (hourTypeSelected?.value === "rate") {
+    onChangeHours(e);
+    if (!e.target.value) {
+      setValue('value', '0');
+      return;
+    }
+    if (hourTypeSelected?.value === 'rate') {
       const decimalValue = new Decimal(e.target.value);
       const hourRateDecimal = new Decimal(selectedHourRate ?? 1);
-      setValue("value", decimalValue.times(hourRateDecimal).toString());
+      setValue('value', decimalValue.times(hourRateDecimal).toString());
     }
-    onChangeHours(e);
   };
 
   const onSubmit = async (data: PaymentFormInput) => {
     await create({
       studentId,
-      date: parse(data.date, "yyyy-MM-dd", new Date()),
+      date: parse(data.date, 'yyyy-MM-dd', new Date()),
       hours: parseFloat(data.hours),
       value: parseFloat(data.value),
       paymentMethod: data.paymentMethod,
@@ -211,25 +220,25 @@ const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-col p-3 gap-2 w-full md:max-w-[500px]"
+      className="flex flex-col p-3 gap-2 w-full md:w-[500px]"
     >
       <h1 className="text-3xl text-center">Agregar pago</h1>
       <label htmlFor="date">Fecha</label>
-      <Input {...register("date")} type="date" />
+      <Input {...register('date')} type="date" />
       <ValidationError errorMessages={errors.date?.message} />
       <label>Tipo de hora</label>
       <ReactSelect
         placeholder="Seleccionar tipo de hora"
         options={[
-          { value: "rate", label: "Ratio por hora" },
-          { value: "package", label: "Paquete de horas" },
+          { value: 'rate', label: 'Ratio por hora' },
+          { value: 'package', label: 'Paquete de horas' },
         ]}
         value={hourTypeSelected}
         onChange={handleHourTypeChange}
         className="text-blackish-900 akd-container"
-        classNamePrefix={"akd"}
+        classNamePrefix={'akd'}
       />
-      {hourTypeSelected?.value === "package" ? (
+      {hourTypeSelected?.value === 'package' ? (
         <>
           <label>Paquete de horas</label>
           <ReactSelect
@@ -259,7 +268,7 @@ const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
             onChange={handleRateOptionChange}
             className="text-blackish-900 akd-container"
             key="hour-rate"
-            classNamePrefix={"akd"}
+            classNamePrefix={'akd'}
           />
           <label htmlFor="hours">Cantidad de horas</label>
           <Input
@@ -279,7 +288,7 @@ const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
             type="radio"
             id="cash"
             value={PaymentMethodType.CASH}
-            {...register("paymentMethod")}
+            {...register('paymentMethod')}
             className="border-0 w-full h-6"
           />
         </div>
@@ -289,20 +298,30 @@ const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
             type="radio"
             id="transfer"
             value={PaymentMethodType.TRANSFER}
-            {...register("paymentMethod")}
+            {...register('paymentMethod')}
             className="border-0 h-6 w-full"
           />
         </div>
       </div>
-      <label htmlFor="value" className="text-2xl">
-        Total $
-      </label>
-      <Input
-        readOnly
-        type="number"
-        {...register("value")}
-        className=" text-center text-blackish text-6xl rounded-lg"
-      />
+      <div className="py-4">
+        <Input
+          readOnly
+          type="number"
+          hidden
+          {...register('value')}
+          //  className=" text-center text-blackish text-6xl rounded-lg"
+        />
+        {value && parseInt(value) ? (
+          <>
+            <label htmlFor="value" className="text-2xl">
+              Total
+            </label>
+            <p className="text-center text-blackish text-6xl rounded-lg p-3">
+              $ {value}
+            </p>
+          </>
+        ) : null}
+      </div>
       <section aria-label="action buttons" className="flex gap-2">
         <PillButton type="submit" className="flex-grow" variant="accent">
           Agregar
@@ -322,31 +341,33 @@ const defaultColumns: ColumnDef<{
   publicId: number;
 }>[] = [
   {
-    id: "publicId",
-    accessorKey: "publicId",
-    header: "#",
+    id: 'publicId',
+    accessorKey: 'publicId',
+    header: '#',
   },
   {
-    id: "date",
-    header: "Día",
-    accessorFn: (vals) => format(vals.date, "dd-MM-yyyy"),
+    id: 'date',
+    header: 'Día',
+    accessorFn: (vals) => format(vals.date, 'dd-MM-yyyy'),
   },
   {
-    id: "hourValue",
-    accessorKey: "hourValue",
-    header: "Horas",
+    id: 'hourValue',
+    accessorKey: 'hourValue',
+    header: 'Horas',
   },
   {
-    id: "value",
+    id: 'value',
     accessorFn: (vals) => `$ ${vals.value}`,
-    header: "Monto total",
+    header: 'Monto total',
   },
 ];
+
 const ClassSessionTable = () => {
   return <></>;
 };
+
 const PaymentTable: FC<{ studentId: string }> = ({ studentId }) => {
-  const { data } = trpc.useQuery(["payments.byStudent", { id: studentId }], {
+  const { data } = trpc.useQuery(['payments.byStudent', { id: studentId }], {
     enabled: Boolean(studentId),
   });
 
@@ -369,9 +390,9 @@ const PaymentTable: FC<{ studentId: string }> = ({ studentId }) => {
         {table.getHeaderGroups().map((hg, idx, arr) => (
           <tr key={hg.id}>
             {hg.headers.map((h, idx, arr) => {
-              const leftCornerClassName = idx === 0 ? "rounded-tl-lg" : "";
+              const leftCornerClassName = idx === 0 ? 'rounded-tl-lg' : '';
               const rightCornerClassName =
-                idx === arr.length - 1 ? "rounded-tr-lg" : "";
+                idx === arr.length - 1 ? 'rounded-tr-lg' : '';
               return (
                 <th
                   key={h.id}
@@ -389,16 +410,16 @@ const PaymentTable: FC<{ studentId: string }> = ({ studentId }) => {
           <tr key={r.id}>
             {r.getVisibleCells().map((c, cidx, carr) => {
               const leftBottomCornerClassName =
-                ridx === rarr.length - 1 && cidx === 0 ? "rounded-bl-lg" : "";
+                ridx === rarr.length - 1 && cidx === 0 ? 'rounded-bl-lg' : '';
               const rightBottomCornerClassName =
                 ridx === rarr.length - 1 && cidx === carr.length - 1
-                  ? "rounded-br-lg"
-                  : "";
+                  ? 'rounded-br-lg'
+                  : '';
               return (
                 <td
                   key={c.id}
                   className={`${leftBottomCornerClassName}${rightBottomCornerClassName} ${
-                    ridx % 2 === 1 ? "bg-primary-100" : "bg-primary-50"
+                    ridx % 2 === 1 ? 'bg-primary-100' : 'bg-primary-50'
                   } pr-1`}
                 >
                   {flexRender(c.column.columnDef.cell, c.getContext())}
@@ -413,7 +434,7 @@ const PaymentTable: FC<{ studentId: string }> = ({ studentId }) => {
 };
 
 const PaymentsList: FC<{ studentId: string }> = ({ studentId }) => {
-  const { data } = trpc.useQuery(["payments.byStudent", { id: studentId }], {
+  const { data } = trpc.useQuery(['payments.byStudent', { id: studentId }], {
     enabled: Boolean(studentId),
   });
 
@@ -428,30 +449,30 @@ const PaymentsList: FC<{ studentId: string }> = ({ studentId }) => {
   );
 };
 
-const activeViewClass = "bg-primary-700 text-white";
-type StudentStatus = "OWES" | "NO_HOURS" | "HAS_HOURS";
+const activeViewClass = 'bg-primary-700 text-white';
+type StudentStatus = 'OWES' | 'NO_HOURS' | 'HAS_HOURS';
 
 const colorByStatus: Record<StudentStatus, string> = {
-  HAS_HOURS: "green-500",
-  NO_HOURS: "gray-500",
-  OWES: "red-500",
+  HAS_HOURS: 'green-500',
+  NO_HOURS: 'gray-500',
+  OWES: 'red-500',
 };
 
 const getPhraseByStatus = (hours: number, status: StudentStatus) => {
-  const plural = hours === 1 ? "" : "s";
+  const plural = hours === 1 ? '' : 's';
   switch (status) {
-    case "HAS_HOURS":
+    case 'HAS_HOURS':
       return `( Tiene ${hours} hora${plural} disponible${plural} )`;
-    case "NO_HOURS":
-      return "( No tiene horas disponibles )";
-    case "OWES":
+    case 'NO_HOURS':
+      return '( No tiene horas disponibles )';
+    case 'OWES':
       return `( Debe ${hours} hora${plural} )`;
   }
 };
 
 const getStatus = (hours: number) => {
   const value: StudentStatus =
-    hours < 0 ? "OWES" : hours === 0 ? "NO_HOURS" : "HAS_HOURS";
+    hours < 0 ? 'OWES' : hours === 0 ? 'NO_HOURS' : 'HAS_HOURS';
   const color = colorByStatus[value];
   const statusMessage = getPhraseByStatus(hours, value);
   return { value, color, statusMessage };
@@ -460,27 +481,27 @@ const getStatus = (hours: number) => {
 const StudentDetail = () => {
   const [showPaymentmodal, setShowPaymentmodal] = useState(false);
   const [showClassSessionModal, setShowClassSessionModal] = useState(false);
-  const [activeView, setActiveView] = useState<"payments" | "classes">(
-    "payments"
+  const [activeView, setActiveView] = useState<'payments' | 'classes'>(
+    'payments'
   );
   const {
     query: { id },
   } = useRouter();
 
   const stableId = useMemo(() => {
-    return typeof id === "string" ? id : "";
+    return typeof id === 'string' ? id : '';
   }, [id]);
 
-  const { data } = trpc.useQuery(["students.single", { id: stableId }], {
+  const { data } = trpc.useQuery(['students.single', { id: stableId }], {
     enabled: Boolean(id),
   });
   const status = getStatus(data?.hourBalance ?? 0);
 
   const handleSetPaymentActiveView = () => {
-    setActiveView("payments");
+    setActiveView('payments');
   };
   const handleSetClassesActiveView = () => {
-    setActiveView("classes");
+    setActiveView('classes');
   };
   const handleShowPaymentModal = () => {
     setShowPaymentmodal(true);
@@ -503,7 +524,7 @@ const StudentDetail = () => {
     );
 
   return (
-    <section className="flex flex-col gap-3 items-center p-3 md:min-w-[500px]">
+    <section className="flex flex-col gap-3 items-center p-3  w-full sm:max-w-[550px]">
       <h1 className="text-3xl">
         {data?.name} {data?.lastName}
       </h1>
@@ -524,9 +545,9 @@ const StudentDetail = () => {
         <header className="w-full flex rounded-r-full rounded-l-full border border-solid border-blackish-600 bg-blackish-300 justify-center items-center text-blackish-800/80 hover:cursor-pointer">
           <div
             className={`flex-grow text-center rounded-l-full transition-colors ease-in-out delay-150 ${
-              activeView === "payments"
+              activeView === 'payments'
                 ? activeViewClass
-                : "hover:bg-primary-400 hover:text-white"
+                : 'hover:bg-primary-400 hover:text-white'
             }`}
             onClick={handleSetPaymentActiveView}
           >
@@ -534,16 +555,16 @@ const StudentDetail = () => {
           </div>
           <div
             className={`flex-grow text-center rounded-r-full transition-colors ease-in-out delay-150 ${
-              activeView === "classes"
+              activeView === 'classes'
                 ? activeViewClass
-                : "hover:bg-primary-400 hover:text-white"
+                : 'hover:bg-primary-400 hover:text-white'
             }`}
             onClick={handleSetClassesActiveView}
           >
             Clases
           </div>
         </header>
-        {activeView === "payments" ? (
+        {activeView === 'payments' ? (
           <PaymentTable studentId={stableId} />
         ) : (
           <ClassSessionTable />
