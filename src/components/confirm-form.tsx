@@ -1,15 +1,15 @@
-import { FC } from 'react';
+import { FC, ReactNode } from 'react';
 import { Button } from './button';
 
 export const ConfirmForm: FC<{
-  body: string;
+  body: ReactNode;
   title?: string;
   onConfirm: () => void;
   onCancel: () => void;
   errorMessage?: string;
   isConfirming?: boolean;
 }> = ({
-  title = 'Are you sure?',
+  title = 'Estás seguro?',
   onConfirm,
   onCancel,
   body,
@@ -19,17 +19,21 @@ export const ConfirmForm: FC<{
   return (
     <section className="p-3 flex flex-col gap-3">
       <h1 className="text-3xl text-center">{title}</h1>
-      <p className="text-sm text-center">{body}</p>
+      {typeof body === 'string' ? (
+        <p className="text-sm text-center">{body}</p>
+      ) : (
+        body
+      )}
       <section aria-label="action buttons" className="flex gap-3">
         <Button
           onClick={onConfirm}
           isLoading={isConfirming}
           className="flex-grow"
         >
-          Confirm
+          Confirmar
         </Button>
         <Button onClick={onCancel} className="flex-grow">
-          Cancel
+          Cancelar
         </Button>
       </section>
       {errorMessage ? (

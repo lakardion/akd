@@ -368,9 +368,39 @@ export const classSessionRouter = createRouter()
   .mutation('delete', {
     input: identifiableZod,
     async resolve({ ctx, input: { id } }) {
-      return ctx.prisma.classSession.delete({
-        where: { id },
-      });
+      const classSessionStudent = await ctx.prisma.classSessionStudent.findMany(
+        {
+          where: {
+            classSessionId: id,
+          },
+          include: {
+            classSession: {
+              include: {
+                hour: {
+                  select: { value: true },
+                },
+              },
+            },
+          },
+        }
+      );
+      return ctx.prisma.$transaction([
+        ctx.prisma.student.updateMany({
+          where: {
+            id: {
+              in: classSessionStudent.map((cst) => cst.studentId),
+            },
+          },
+          data: {
+            hourBalance: {
+              increment: classSessionStudent[0]?.classSession.hour.value,
+            },
+          },
+        }),
+        ctx.prisma.classSession.delete({
+          where: { id },
+        }),
+      ]);
     },
   })
   .mutation('addStudent', {

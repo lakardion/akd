@@ -349,7 +349,7 @@ export const ClassSessionTable: FC<{ studentId: string }> = ({ studentId }) => {
         <Spinner size="sm" />
       </section>
     );
-  if (!data)
+  if (!data?.results.length)
     return (
       <section className="flex w-full justify-center">
         <p className="italic">No hay clases disponibles</p>

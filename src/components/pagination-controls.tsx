@@ -35,15 +35,15 @@ export const PaginationControls: FC<{
           onClick={goFirst}
           type="button"
           disabled={page === 1}
-          className="text-primary-300 hover:text-primary-600 disabled:text-blackish-300"
+          className="text-primary-300 hover:text-primary-600 disabled:text-blackish-300 disabled:cursor-not-allowed"
         >
           <MdOutlineSkipPrevious size={iconSize} />
         </button>
         <button
           onClick={goPrevious}
           type="button"
-          disabled={Boolean(previousPage)}
-          className="text-primary-300 hover:text-primary-600 disabled:text-blackish-300"
+          disabled={!Boolean(previousPage)}
+          className="text-primary-300 hover:text-primary-600 disabled:text-blackish-300 disabled:cursor-not-allowed"
         >
           <MdNavigateBefore size={iconSize} />
         </button>
@@ -53,8 +53,8 @@ export const PaginationControls: FC<{
         <button
           onClick={goNext}
           type="button"
-          disabled={Boolean(nextPage)}
-          className="text-primary-300 hover:text-primary-600 disabled:text-blackish-300"
+          disabled={!Boolean(nextPage)}
+          className="text-primary-300 hover:text-primary-600 disabled:text-blackish-300 disabled:cursor-not-allowed"
         >
           <MdNavigateNext size={iconSize} />
         </button>
@@ -62,7 +62,7 @@ export const PaginationControls: FC<{
           onClick={goLast}
           type="button"
           disabled={page === totalPages}
-          className="text-primary-300 hover:text-primary-600 disabled:text-blackish-300"
+          className="text-primary-300 hover:text-primary-600 disabled:text-blackish-300 disabled:cursor-not-allowed"
         >
           <MdOutlineSkipNext size={iconSize} />
         </button>

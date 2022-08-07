@@ -208,7 +208,15 @@ const ClassSessions = () => {
         >
           <ConfirmForm
             onCancel={handleFinished}
-            body="Confirma que deseas eliminar este alumno"
+            body={
+              <div className="flex flex-col gap-3">
+                <WarningMessage>
+                  Si eliminás la clase, los alumnos que forman parte de ella
+                  recibirán sus horas de vuelta
+                </WarningMessage>
+                <p>Confirma que deseás eliminar la clase</p>
+              </div>
+            }
             isConfirming={isDeleting}
             onConfirm={handleSubmitDelete}
           />
