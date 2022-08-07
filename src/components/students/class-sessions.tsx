@@ -4,15 +4,18 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { Input } from 'components/form/input';
-import { ValidationError } from 'components/form/validation-error';
+import { PillButton, Button } from 'components/button';
+import { ClassSessionForm } from 'components/class-sessions/form';
+import { Input, ValidationError } from 'components/form';
 import { PaginationControls } from 'components/pagination-controls';
 import { Spinner } from 'components/spinner';
 import { Table } from 'components/table';
-import { format, isMatch } from 'date-fns';
-import { FC, useMemo, useState } from 'react';
+import { WarningMessage } from 'components/warning-message';
+import { addDays, format, isMatch, parse } from 'date-fns';
+import { ChangeEvent, FC, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { SingleValue } from 'react-select';
+import { MdClose } from 'react-icons/md';
+import ReactSelect, { SingleValue } from 'react-select';
 import AsyncReactSelect from 'react-select/async';
 import { debouncedSearchTeachers } from 'utils/client-search-utils';
 import { trpc } from 'utils/trpc';
@@ -25,12 +28,112 @@ const classSessionFormZod = z.object({
   }, 'Invalid date, should be yyyy-mm-dd'),
   teacherId: z.string().min(1, 'Requerido'),
 });
-
 type ClassSessionFormInput = z.infer<typeof classSessionFormZod>;
 
-export const ClassSessionForm: FC<{ onFinished: () => void }> = ({
-  onFinished,
-}) => {
+const attachToExistingClassSessionZod = z.object({
+  classSessionId: z.string(),
+});
+type AttachToExistingClassSessionInput = z.infer<
+  typeof attachToExistingClassSessionZod
+>;
+
+const ExistingAttachClassSessionForm: FC<{
+  goBack: () => void;
+  onFinished: () => void;
+}> = ({ goBack, onFinished }) => {
+  const [selectedDate, setSelectedDate] = useState<string>();
+  const { handleSubmit, control } = useForm<AttachToExistingClassSessionInput>({
+    resolver: zodResolver(attachToExistingClassSessionZod),
+  });
+  const onSubmit = async () => {
+    onFinished();
+  };
+
+  const {
+    data: classSessionByDate,
+    isFetching,
+    isLoading,
+  } = trpc.useQuery(
+    [
+      'classSessions.byDate',
+      {
+        from: parse(selectedDate!, 'yyyy-MM-dd', new Date()),
+        to: addDays(parse(selectedDate!, 'yyyy-MM-dd', new Date()), 1),
+      },
+    ],
+    {
+      enabled: Boolean(selectedDate),
+    }
+  );
+  const classSessionOptions: SingleValue<{ value: string; label: string }>[] =
+    useMemo(
+      () =>
+        classSessionByDate?.map((csbd) => ({
+          value: csbd.id,
+          label: `${format(csbd.date, 'kk:mm')} - ${csbd.teacher?.name} ${
+            csbd.teacher?.lastName
+          }`,
+        })) ?? [],
+      [classSessionByDate]
+    );
+  const handleDateChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setSelectedDate(e.target.value);
+  };
+
+  return (
+    <form
+      name="attach-to-existing"
+      onSubmit={handleSubmit(onSubmit)}
+      className="flex flex-col gap-3 w-full"
+    >
+      <h1 className="text-3xl">Agregar a clase existente</h1>
+      <label htmlFor="date">Fecha</label>
+      <Input type="date" value={selectedDate} onChange={handleDateChange} />
+      {!classSessionOptions.length && !(isFetching || isLoading) ? (
+        <WarningMessage>No hay clases para esa fecha</WarningMessage>
+      ) : null}
+      <label htmlFor="classSessionId">Clase</label>
+      <Controller
+        control={control}
+        name="classSessionId"
+        render={({ field }) => (
+          <ReactSelect
+            onBlur={field.onBlur}
+            ref={field.ref}
+            options={classSessionOptions}
+            onChange={(option) => {
+              field.onChange(option?.value);
+            }}
+            isLoading={isFetching || isLoading}
+            placeholder={'Seleccionar clase...'}
+            noOptionsMessage={({ inputValue }) => (
+              <p>No hay clases para esa fecha</p>
+            )}
+            isDisabled={!selectedDate || !classSessionOptions.length}
+          />
+        )}
+      />
+      <section className="flex w-full gap-3">
+        <PillButton variant="accent" type="submit" className="flex-grow">
+          Add to class
+        </PillButton>
+        <PillButton
+          variant="accent"
+          type="button"
+          className="flex-grow"
+          onClick={goBack}
+        >
+          Cancel
+        </PillButton>
+      </section>
+    </form>
+  );
+};
+
+const NewAttachClassSessionForm: FC<{
+  goBack: () => void;
+  onFinished: () => void;
+}> = ({ goBack, onFinished }) => {
   const {
     handleSubmit,
     register,
@@ -39,18 +142,18 @@ export const ClassSessionForm: FC<{ onFinished: () => void }> = ({
   } = useForm<ClassSessionFormInput>({
     resolver: zodResolver(classSessionFormZod),
   });
-  const onSubmit = async () => {};
-
   const [selectedTeacher, setSelectedTeacher] =
     useState<SingleValue<{ value: string; label: string }>>();
+  const onSubmit = async () => {
+    onFinished();
+  };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
-      <h1 className="text-2xl">Cargar clase</h1>
-      <label htmlFor="date">Fecha</label>
-      <Input type="date" {...register('date')} />
-      <ValidationError errorMessages={errors.date?.message} />
-
+    <form
+      name="create-from-scratch"
+      onSubmit={handleSubmit(onSubmit)}
+      className="flex flex-col gap-3"
+    >
       <label>Profesor</label>
       <Controller
         name="teacherId"
@@ -73,9 +176,83 @@ export const ClassSessionForm: FC<{ onFinished: () => void }> = ({
         )}
       />
       <ValidationError errorMessages={errors.teacherId?.message} />
+      <label htmlFor="date">Fecha</label>
+      <Input type="date" {...register('date')} />
+      <ValidationError errorMessages={errors.date?.message} />
+      <section aria-label="action buttons" className="flex w-full">
+        <PillButton variant="accent" type="submit" className="flex-grow">
+          Crear clase y agregar alumno
+        </PillButton>
+        <PillButton variant="accent" onClick={goBack} className="flex-grow">
+          Cancelar
+        </PillButton>
+      </section>
     </form>
   );
 };
+
+type AttachToClassView = 'create' | 'existing' | 'main';
+
+export const StudentAttachToClassSessionForm: FC<{
+  onFinished: () => void;
+  studentInfo: SingleValue<{ value: string; label: string }>;
+}> = ({ onFinished, studentInfo }) => {
+  const [view, setView] = useState<AttachToClassView>('main');
+  const createSwitchToViewHandler = (view: AttachToClassView) => () => {
+    setView(view);
+  };
+  const goBack = createSwitchToViewHandler('main');
+
+  if (view === 'create') {
+    return (
+      <ClassSessionForm
+        id=""
+        onFinished={onFinished}
+        preloadedStudents={[studentInfo]}
+      />
+    );
+  }
+  if (view === 'existing') {
+    return (
+      <ExistingAttachClassSessionForm goBack={goBack} onFinished={onFinished} />
+    );
+  }
+
+  if (view === 'main')
+    return (
+      <section className="relative flex flex-col gap-6 pt-5">
+        <div
+          aria-label="close modal"
+          className="absolute top-1 right-1 hover:cursor-pointer hover:text-primary-500"
+          onClick={onFinished}
+        >
+          <MdClose size={25} />
+        </div>
+        <h1 className="text-3xl">Agregar alumno a clase</h1>
+        <section
+          aria-label="add to class options"
+          className="flex flex-col w-full gap-5 justify-evenly flex-grow"
+        >
+          <Button
+            onClick={createSwitchToViewHandler('existing')}
+            className="py-3"
+          >
+            Clase existente
+          </Button>
+          <Button
+            type="button"
+            onClick={createSwitchToViewHandler('create')}
+            className="py-3"
+          >
+            Nueva clase
+          </Button>
+        </section>
+      </section>
+    );
+  //this can never happen
+  return null;
+};
+
 type ClassSessionRow = {
   date: Date;
   teacher: {
@@ -156,7 +333,7 @@ export const ClassSessionTable: FC<{ studentId: string }> = ({ studentId }) => {
   const goLastPage = () => {
     setPage(data.totalPages);
   };
-  console.log({ data });
+
   return (
     <section>
       <PaginationControls

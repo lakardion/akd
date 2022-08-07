@@ -1,7 +1,7 @@
 import { PillButton } from 'components/button';
 import { Modal } from 'components/modal';
 import {
-  ClassSessionForm,
+  StudentAttachToClassSessionForm,
   ClassSessionTable,
   PaymentForm,
   PaymentTable,
@@ -145,9 +145,17 @@ const StudentDetail = () => {
       {showClassSessionModal ? (
         <Modal
           onBackdropClick={handleCloseClassSessionModal}
-          className="w-full md:w-auto bg-white drop-shadow-2xl"
+          className="w-[90%] md:w-[60%] max-w-[500px] bg-white drop-shadow-2xl"
         >
-          <ClassSessionForm onFinished={handleCloseClassSessionModal} />
+          {data ? (
+            <StudentAttachToClassSessionForm
+              studentInfo={{
+                value: data.id ?? '',
+                label: `${data.name} ${data.lastName}`,
+              }}
+              onFinished={handleCloseClassSessionModal}
+            />
+          ) : null}
         </Modal>
       ) : null}
     </section>

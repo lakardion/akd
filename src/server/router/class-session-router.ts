@@ -91,6 +91,30 @@ export const classSessionRouter = createRouter()
       };
     },
   })
+  .query('byDate', {
+    input: z.object({ from: z.date(), to: z.date() }),
+    async resolve({ ctx, input: { from, to } }) {
+      return ctx.prisma.classSession.findMany({
+        where: {
+          date: {
+            gte: from,
+            lte: to,
+          },
+        },
+        include: {
+          teacher: {
+            select: {
+              name: true,
+              lastName: true,
+            },
+          },
+        },
+        orderBy: {
+          date: 'asc',
+        },
+      });
+    },
+  })
   .query('all', {
     input: z.object({
       cursor: infiniteCursorZod,

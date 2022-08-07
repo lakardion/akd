@@ -4,7 +4,6 @@ import { StudentFormInput, studentFormZod } from 'common';
 import { Button } from 'components/button';
 import { ConfirmForm } from 'components/confirm-form';
 import { Input } from 'components/form/input';
-import { Label } from 'components/form/label';
 import { ValidationError } from 'components/form/validation-error';
 import { Modal } from 'components/modal';
 import { Spinner } from 'components/spinner';
@@ -94,24 +93,19 @@ const StudentForm: FC<{ onFinished: () => void; studentId: string }> = ({
       <h1 className="text-3xl text-center">
         {studentId ? 'Editar alumno' : 'Agregar alumno'}
       </h1>
-      <Label
-        className="border border-solid border-b-blackish-600/30"
-        htmlFor="lastName"
-      >
-        Apellido
-      </Label>
+      <label htmlFor="lastName">Apellido</label>
       <Input {...register('lastName')} placeholder="Last name..." />
       <ValidationError errorMessages={errors.lastName?.message} />
-      <Label htmlFor="name">Nombre</Label>
+      <label htmlFor="name">Nombre</label>
       <Input {...register('name')} placeholder="Name..." />
       <ValidationError errorMessages={errors.name?.message} />
-      <Label htmlFor="university">Universidad</Label>
+      <label htmlFor="university">Universidad</label>
       <Input {...register('university')} placeholder="University..." />
       <ValidationError errorMessages={errors.university?.message} />
-      <Label htmlFor="faculty">Facultad</Label>
+      <label htmlFor="faculty">Facultad</label>
       <Input {...register('faculty')} placeholder="Facultad..." />
       <ValidationError errorMessages={errors.faculty?.message} />
-      <Label htmlFor="course">Carrera</Label>
+      <label htmlFor="course">Carrera</label>
       <Input {...register('course')} placeholder="Carrera..." />
       <ValidationError errorMessages={errors.course?.message} />
       <section aria-label="action buttons" className="flex gap-2 w-full">
