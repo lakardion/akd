@@ -60,7 +60,7 @@ const useClassSessionForm = ({
   preloadedStudents,
 }: {
   id: string;
-  preloadedStudents?: SingleValue<{ value: string; label: string }>[];
+  preloadedStudents?: { value: string; label: string }[];
 }) => {
   const { data: classSession } = trpc.useQuery([
     'classSessions.single',
@@ -158,7 +158,7 @@ const useClassSessionForm = ({
 export const ClassSessionForm: FC<{
   id: string;
   onFinished: () => void;
-  preloadedStudents?: SingleValue<{ value: string; label: string }>[];
+  preloadedStudents?: { value: string; label: string }[];
 }> = ({ id, onFinished, preloadedStudents }) => {
   const {
     form: {

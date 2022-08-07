@@ -372,4 +372,31 @@ export const classSessionRouter = createRouter()
         where: { id },
       });
     },
+  })
+  .mutation('addStudent', {
+    input: z.object({ studentId: z.string(), classSessionId: z.string() }),
+    async resolve({ ctx, input: { studentId, classSessionId } }) {
+      const classSession = await ctx.prisma.classSession.findUnique({
+        where: { id: classSessionId },
+        include: { hour: { select: { value: true } } },
+      });
+      return ctx.prisma.$transaction([
+        ctx.prisma.classSessionStudent.create({
+          data: {
+            classSessionId,
+            studentId,
+          },
+        }),
+        ctx.prisma.student.update({
+          where: {
+            id: studentId,
+          },
+          data: {
+            hourBalance: {
+              decrement: classSession?.hour.value,
+            },
+          },
+        }),
+      ]);
+    },
   });

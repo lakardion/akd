@@ -29,21 +29,45 @@ export const Button: FC<
       type={type ?? 'button'}
       className={`${buttonClassByVariant[variant]} py-1 px-2 rounded-md  ${className}`}
     >
-      {isLoading ? <Spinner size={spinnerSize} /> : children}
+      {isLoading ? (
+        <div className="w-full flex justify-center">
+          <Spinner size={spinnerSize} />
+        </div>
+      ) : (
+        children
+      )}
     </button>
   );
 };
 
 export const PillButton: FC<
-  ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonColorVariant }
-> = ({ className, type, variant = 'primary', children, ...props }) => {
+  ButtonHTMLAttributes<HTMLButtonElement> & {
+    variant?: ButtonColorVariant;
+    isLoading?: boolean;
+    spinnerSize?: SizeVariant;
+  }
+> = ({
+  className,
+  type,
+  variant = 'primary',
+  children,
+  isLoading = false,
+  spinnerSize = 'sm',
+  ...props
+}) => {
   return (
     <button
       {...props}
       type={type ?? 'button'}
       className={`${buttonClassByVariant[variant]} rounded-lg w-full p-3 btn-disabled ${className}`}
     >
-      {children}
+      {isLoading ? (
+        <div className="w-full flex justify-center">
+          <Spinner size={spinnerSize} />
+        </div>
+      ) : (
+        children
+      )}
     </button>
   );
 };

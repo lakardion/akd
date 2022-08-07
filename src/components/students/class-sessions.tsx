@@ -40,12 +40,34 @@ type AttachToExistingClassSessionInput = z.infer<
 const ExistingAttachClassSessionForm: FC<{
   goBack: () => void;
   onFinished: () => void;
-}> = ({ goBack, onFinished }) => {
+  studentId: string;
+}> = ({ goBack, onFinished, studentId }) => {
   const [selectedDate, setSelectedDate] = useState<string>();
+  const [classSessionSelected, setClassSessionSelected] =
+    useState<SingleValue<{ value: string; label: string }>>();
   const { handleSubmit, control } = useForm<AttachToExistingClassSessionInput>({
     resolver: zodResolver(attachToExistingClassSessionZod),
   });
+  const queryClient = trpc.useContext();
+  const {
+    mutateAsync: attachToExistingClassSession,
+    isLoading: isAttachingToClass,
+  } = trpc.useMutation('classSessions.addStudent', {
+    onSuccess: () => {
+      queryClient.invalidateQueries('classSessions.all');
+      queryClient.invalidateQueries('classSessions.byDate');
+      queryClient.invalidateQueries('classSessions.byStudent');
+      queryClient.invalidateQueries('classSessions.byStudentPaginated');
+      queryClient.invalidateQueries('classSessions.single');
+      queryClient.invalidateQueries(['students.single', { id: studentId }]);
+    },
+  });
   const onSubmit = async () => {
+    if (!classSessionSelected) return;
+    await attachToExistingClassSession({
+      classSessionId: classSessionSelected.value,
+      studentId,
+    });
     onFinished();
   };
 
@@ -97,13 +119,15 @@ const ExistingAttachClassSessionForm: FC<{
         control={control}
         name="classSessionId"
         render={({ field }) => (
-          <ReactSelect
+          <ReactSelect<SingleValue<{ value: string; label: string }>>
             onBlur={field.onBlur}
             ref={field.ref}
             options={classSessionOptions}
             onChange={(option) => {
+              setClassSessionSelected(option);
               field.onChange(option?.value);
             }}
+            value={classSessionSelected}
             isLoading={isFetching || isLoading}
             placeholder={'Seleccionar clase...'}
             noOptionsMessage={({ inputValue }) => (
@@ -114,8 +138,14 @@ const ExistingAttachClassSessionForm: FC<{
         )}
       />
       <section className="flex w-full gap-3">
-        <PillButton variant="accent" type="submit" className="flex-grow">
-          Add to class
+        <PillButton
+          variant="accent"
+          type="submit"
+          className="flex-grow"
+          isLoading={isAttachingToClass}
+          spinnerSize="xs"
+        >
+          Agregar a clase
         </PillButton>
         <PillButton
           variant="accent"
@@ -195,7 +225,7 @@ type AttachToClassView = 'create' | 'existing' | 'main';
 
 export const StudentAttachToClassSessionForm: FC<{
   onFinished: () => void;
-  studentInfo: SingleValue<{ value: string; label: string }>;
+  studentInfo: { value: string; label: string };
 }> = ({ onFinished, studentInfo }) => {
   const [view, setView] = useState<AttachToClassView>('main');
   const createSwitchToViewHandler = (view: AttachToClassView) => () => {
@@ -214,7 +244,11 @@ export const StudentAttachToClassSessionForm: FC<{
   }
   if (view === 'existing') {
     return (
-      <ExistingAttachClassSessionForm goBack={goBack} onFinished={onFinished} />
+      <ExistingAttachClassSessionForm
+        goBack={goBack}
+        onFinished={onFinished}
+        studentId={studentInfo.value}
+      />
     );
   }
 
