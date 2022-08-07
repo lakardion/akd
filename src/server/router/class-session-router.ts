@@ -1,7 +1,7 @@
-import { DEFAULT_PAGE_SIZE } from "utils/pagination";
-import { identifiableZod, infiniteCursorZod } from "utils/server-zods";
-import { z } from "zod";
-import { createRouter } from "./context";
+import { DEFAULT_PAGE_SIZE } from 'utils/pagination';
+import { identifiableZod, infiniteCursorZod } from 'utils/server-zods';
+import { z } from 'zod';
+import { createRouter } from './context';
 
 const diffStrArrays = (
   newValues: string[],
@@ -24,7 +24,74 @@ const diffStrArrays = (
 };
 
 export const classSessionRouter = createRouter()
-  .query("all", {
+  .query('byStudentPaginated', {
+    input: z.object({
+      studentId: z.string(),
+      page: z.number(),
+      size: z.number().optional(),
+    }),
+    async resolve({
+      ctx,
+      input: { page, size = DEFAULT_PAGE_SIZE, studentId },
+    }) {
+      const totalRecords = await ctx.prisma.classSession.count({
+        where: {
+          classSessionStudent: {
+            some: {
+              studentId,
+            },
+          },
+        },
+        orderBy: {
+          date: 'desc',
+        },
+      });
+
+      const results = await ctx.prisma.classSession.findMany({
+        where: {
+          classSessionStudent: {
+            some: {
+              studentId,
+            },
+          },
+        },
+        orderBy: {
+          date: 'desc',
+        },
+        skip: (page - 1) * size,
+        take: size,
+        include: {
+          _count: {
+            select: { classSessionStudent: true },
+          },
+          teacher: {
+            select: {
+              name: true,
+              lastName: true,
+            },
+          },
+          hour: {
+            select: {
+              value: true,
+            },
+          },
+        },
+      });
+
+      return {
+        page,
+        count: totalRecords,
+        totalPages: Math.ceil(totalRecords / size),
+        nextPage: (page + 1) * size > totalRecords ? null : page + 1,
+        previousPage: page - 1 === 0 ? null : page - 1,
+        results: results.map((r) => ({
+          ...r,
+          hour: { value: r.hour.value.toNumber() },
+        })),
+      };
+    },
+  })
+  .query('all', {
     input: z.object({
       cursor: infiniteCursorZod,
     }),
@@ -36,7 +103,7 @@ export const classSessionRouter = createRouter()
     }) {
       const classSessions = await ctx.prisma.classSession.findMany({
         orderBy: {
-          date: "desc",
+          date: 'desc',
         },
         skip: (page - 1) * size,
         take: size,
@@ -55,7 +122,7 @@ export const classSessionRouter = createRouter()
       };
     },
   })
-  .query("single", {
+  .query('single', {
     input: identifiableZod,
     async resolve({ ctx, input: { id } }) {
       const classSession = await ctx.prisma.classSession.findUnique({
@@ -78,16 +145,16 @@ export const classSessionRouter = createRouter()
         id: classSession?.id,
         teacherOption: classSession?.teacher
           ? {
-            value: classSession?.teacher.id,
-            label: `${classSession?.teacher?.name} ${classSession?.teacher?.lastName}`,
-          }
+              value: classSession?.teacher.id,
+              label: `${classSession?.teacher?.name} ${classSession?.teacher?.lastName}`,
+            }
           : undefined,
         date: classSession?.date,
         teacherHourRateOption: classSession?.teacherHourRate
           ? {
-            value: classSession?.teacherHourRate.id,
-            label: `${classSession?.teacherHourRate.description} (${classSession?.teacherHourRate.rate})`,
-          }
+              value: classSession?.teacherHourRate.id,
+              label: `${classSession?.teacherHourRate.description} (${classSession?.teacherHourRate.rate})`,
+            }
           : undefined,
         hour: classSession?.hour?.value.toNumber(),
         studentOptions: classSession?.classSessionStudent?.map((css) => ({
@@ -97,7 +164,7 @@ export const classSessionRouter = createRouter()
       };
     },
   })
-  .query("byStudent", {
+  .query('byStudent', {
     input: identifiableZod,
     async resolve({ ctx, input: { id } }) {
       const classSessions = await ctx.prisma.classSession.findMany({
@@ -116,7 +183,7 @@ export const classSessionRouter = createRouter()
       return classSessions;
     },
   })
-  .mutation("update", {
+  .mutation('update', {
     input: identifiableZod.merge(
       z.object({
         oldStudentIds: z.array(z.string()),
@@ -125,72 +192,105 @@ export const classSessionRouter = createRouter()
         teacherId: z.string(),
         teacherHourRateId: z.string(),
         hours: z.number(),
-        oldHours: z.number()
+        oldHours: z.number(),
       })
     ),
     async resolve({
       ctx,
-      input: { id, studentIds, date, teacherId, teacherHourRateId, hours, oldHours, oldStudentIds },
+      input: {
+        id,
+        studentIds,
+        date,
+        teacherId,
+        teacherHourRateId,
+        hours,
+        oldHours,
+        oldStudentIds,
+      },
     }) {
-      const { created, removed, untouched } = diffStrArrays(studentIds, oldStudentIds)
-      const hourUpdate = hours !== oldHours ? {
-        update: {
-          value: hours
-        }
-      } : undefined
+      const { created, removed, untouched } = diffStrArrays(
+        studentIds,
+        oldStudentIds
+      );
+      const hourUpdate =
+        hours !== oldHours
+          ? {
+              update: {
+                value: hours,
+              },
+            }
+          : undefined;
       const updatedClassSessionsPromise = ctx.prisma.classSession.update({
         where: {
-          id
+          id,
         },
         data: {
           hour: hourUpdate,
           classSessionStudent: {
-            createMany: created.length ? { data: created.map(id => ({ studentId: id })) } : undefined,
-            deleteMany: removed.length ? removed.map(id => ({ studentId: id })) : undefined
-          }
-        }
+            createMany: created.length
+              ? { data: created.map((id) => ({ studentId: id })) }
+              : undefined,
+            deleteMany: removed.length
+              ? removed.map((id) => ({ studentId: id }))
+              : undefined,
+          },
+        },
       });
       //update existing
-      const updateUntouchedStudentsPromise = hours !== oldHours ? ctx.prisma.student.updateMany({
-        where: {
-          id: {
-            in: untouched
-          }
-        },
-        data: {
-          hourBalance: {
-            increment: oldHours - hours,
-          }
-        }
-      }) : undefined;
+      const updateUntouchedStudentsPromise =
+        hours !== oldHours
+          ? ctx.prisma.student.updateMany({
+              where: {
+                id: {
+                  in: untouched,
+                },
+              },
+              data: {
+                hourBalance: {
+                  increment: oldHours - hours,
+                },
+              },
+            })
+          : undefined;
       //update created
       //
       const updateCreatedPromise = ctx.prisma.student.updateMany({
         where: {
           id: {
-            in: created
-          }
+            in: created,
+          },
         },
         data: {
-          hourBalance: { decrement: hours }
-        }
-      })
+          hourBalance: { decrement: hours },
+        },
+      });
       //update removed
       const updateRemovedPromise = ctx.prisma.student.updateMany({
         where: {
           id: {
-            in: removed
+            in: removed,
           },
         },
         data: {
-          hourBalance: { increment: hours }
-        }
-      })
-      const commitables = updateUntouchedStudentsPromise ? [updatedClassSessionsPromise, updateUntouchedStudentsPromise, updateCreatedPromise, updateRemovedPromise] : [updatedClassSessionsPromise, updateCreatedPromise, updateRemovedPromise]
-      await ctx.prisma.$transaction(commitables)
-    }
+          hourBalance: { increment: hours },
+        },
+      });
+      const commitables = updateUntouchedStudentsPromise
+        ? [
+            updatedClassSessionsPromise,
+            updateUntouchedStudentsPromise,
+            updateCreatedPromise,
+            updateRemovedPromise,
+          ]
+        : [
+            updatedClassSessionsPromise,
+            updateCreatedPromise,
+            updateRemovedPromise,
+          ];
+      await ctx.prisma.$transaction(commitables);
+    },
   })
-  .mutation("create", {
+  .mutation('create', {
     input: z.object({
       studentIds: z.array(z.string()),
       teacherId: z.string(),
@@ -208,10 +308,10 @@ export const classSessionRouter = createRouter()
       });
       const classSessionStudent = studentIds.length
         ? {
-          createMany: {
-            data: studentIds.map((sids) => ({ studentId: sids })),
-          },
-        }
+            createMany: {
+              data: studentIds.map((sids) => ({ studentId: sids })),
+            },
+          }
         : undefined;
       //2 Create class sesssion
       const newClassSession = await ctx.prisma.classSession.create({
@@ -241,7 +341,7 @@ export const classSessionRouter = createRouter()
       return newClassSession;
     },
   })
-  .mutation("delete", {
+  .mutation('delete', {
     input: identifiableZod,
     async resolve({ ctx, input: { id } }) {
       return ctx.prisma.classSession.delete({
