@@ -42,7 +42,9 @@ const ExistingAttachClassSessionForm: FC<{
   onFinished: () => void;
   studentId: string;
 }> = ({ goBack, onFinished, studentId }) => {
-  const [selectedDate, setSelectedDate] = useState<string>();
+  const [selectedDate, setSelectedDate] = useState<string>(
+    format(new Date(), 'yyyy-MM-dd')
+  );
   const [classSessionSelected, setClassSessionSelected] =
     useState<SingleValue<{ value: string; label: string }>>();
   const { handleSubmit, control } = useForm<AttachToExistingClassSessionInput>({
