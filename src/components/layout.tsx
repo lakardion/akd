@@ -1,13 +1,13 @@
-import Link from "next/link";
-import { useRouter } from "next/router";
-import { FC, ReactNode } from "react";
-import { Button } from "./button";
+import Link from 'next/link';
+import { useRouter } from 'next/router';
+import { FC, ReactNode } from 'react';
+import { Button } from './button';
 
 const routes = [
-  { href: "/alumnos", label: "alumnos" },
-  { href: "/profesores", label: "profesores" },
-  { href: "/precios", label: "precios" },
-  { href: "/clases", label: "Clases" },
+  { href: '/alumnos', label: 'alumnos' },
+  { href: '/profesores', label: 'profesores' },
+  { href: '/precios', label: 'precios' },
+  { href: '/clases', label: 'Clases' },
 ];
 
 export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
@@ -37,7 +37,7 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
                 <button
                   type="button"
                   className={`hover:text-primary-500/75 capitalize ${
-                    isCurrentRoute ? "text-primary-500" : ""
+                    isCurrentRoute ? 'text-primary-500' : ''
                   }`}
                 >
                   {r.label}

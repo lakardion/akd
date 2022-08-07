@@ -1,7 +1,7 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useMemo } from "react";
-import { DeepPartial, useForm } from "react-hook-form";
-import { Schema } from "zod";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect, useMemo } from 'react';
+import { DeepPartial, useForm } from 'react-hook-form';
+import { Schema } from 'zod';
 
 export const useEntityAwareForm = <T>(
   formDefaults: DeepPartial<T>,

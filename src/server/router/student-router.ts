@@ -1,15 +1,16 @@
-import { Prisma } from "@prisma/client";
-import { includeInactiveFlagZod, studentFormZod } from "common";
+import { Prisma } from '@prisma/client';
+import { includeInactiveFlagZod, studentFormZod } from 'common';
 import {
   DEFAULT_PAGE_SIZE,
   getPagination,
   paginationZod,
-} from "utils/pagination";
-import { z } from "zod";
-import { createRouter } from "./context";
+} from 'utils/pagination';
+import { infiniteCursorZod } from 'utils/server-zods';
+import { z } from 'zod';
+import { createRouter } from './context';
 
 export const studentRouter = createRouter()
-  .query("single", {
+  .query('single', {
     input: z.object({
       id: z.string(),
     }),
@@ -20,13 +21,10 @@ export const studentRouter = createRouter()
       return { ...student, hourBalance: student?.hourBalance.toNumber() };
     },
   })
-  .query("allSearch", {
+  .query('allSearch', {
     input: z.object({
       query: z.string().optional(),
-      cursor: z
-        .object({ page: z.number().optional(), size: z.number().optional() })
-        .optional()
-        .default({}),
+      cursor: infiniteCursorZod,
     }),
     async resolve({
       ctx,
@@ -41,13 +39,13 @@ export const studentRouter = createRouter()
               {
                 name: {
                   contains: query,
-                  mode: "insensitive",
+                  mode: 'insensitive',
                 },
               },
               {
                 lastName: {
                   contains: query,
-                  mode: "insensitive",
+                  mode: 'insensitive',
                 },
               },
             ],
@@ -57,6 +55,7 @@ export const studentRouter = createRouter()
         where: whereClause,
         skip: (page - 1) * size,
         take: size,
+        orderBy: { lastName: 'asc' },
       });
       return {
         nextCursor: studentsResult.length === size ? page + 1 : null,
@@ -67,7 +66,7 @@ export const studentRouter = createRouter()
       };
     },
   })
-  .query("all", {
+  .query('all', {
     input: includeInactiveFlagZod.merge(paginationZod).default({}),
     async resolve({
       ctx,
@@ -80,7 +79,7 @@ export const studentRouter = createRouter()
         page,
       });
       const students = await ctx.prisma.student.findMany({
-        orderBy: { lastName: "asc" },
+        orderBy: { lastName: 'asc' },
         take: size,
         skip: (page - 1) * size,
         where: includeInactive
@@ -100,7 +99,7 @@ export const studentRouter = createRouter()
       };
     },
   })
-  .mutation("create", {
+  .mutation('create', {
     input: studentFormZod,
     async resolve({
       ctx,
@@ -118,7 +117,7 @@ export const studentRouter = createRouter()
       return newStudent;
     },
   })
-  .mutation("delete", {
+  .mutation('delete', {
     input: z.object({
       id: z.string(),
     }),
@@ -146,7 +145,7 @@ export const studentRouter = createRouter()
       return ctx.prisma.student.delete({ where: { id } });
     },
   })
-  .mutation("edit", {
+  .mutation('edit', {
     input: z
       .object({
         id: z.string(),

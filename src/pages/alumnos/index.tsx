@@ -1,2 +1,2 @@
-import Students from "./alumnos";
+import Students from './alumnos';
 export default Students;

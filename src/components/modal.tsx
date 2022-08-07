@@ -1,17 +1,17 @@
-import { FC, ReactNode, useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
+import { FC, ReactNode, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 const useBrowserAwareBackdrop = () => {
-  const [blurOrBackdrop, setBlurOrBackdrop] = useState("");
+  const [blurOrBackdrop, setBlurOrBackdrop] = useState('');
 
   useEffect(() => {
     // for some reason firefox does not support backdrop blur
     //needed to do this within client else window is possibly undefined
     const agent = window.navigator.userAgent;
-    const isFirefox = agent.indexOf("Firefox") !== -1;
+    const isFirefox = agent.indexOf('Firefox') !== -1;
     const blurOrBackdrop = isFirefox
-      ? "bg-gray-300/50"
-      : "bg-transparent backdrop-blur-sm";
+      ? 'bg-gray-300/50'
+      : 'bg-transparent backdrop-blur-sm';
     setBlurOrBackdrop(blurOrBackdrop);
   }, []);
 
@@ -29,7 +29,7 @@ const useFadeAfterRender = () => {
   }, []);
 
   const stableOpacity = useMemo(
-    () => (hasFaded ? "opacity-100" : "opacity-0"),
+    () => (hasFaded ? 'opacity-100' : 'opacity-0'),
     [hasFaded]
   );
 
@@ -43,7 +43,7 @@ export const Modal: FC<{
   onBackdropClick: () => void;
   children: ReactNode;
   className?: string;
-}> = ({ onBackdropClick, className = "", children }) => {
+}> = ({ onBackdropClick, className = '', children }) => {
   const blurOrBackdrop = useBrowserAwareBackdrop();
   const opacityValue = useFadeAfterRender();
 

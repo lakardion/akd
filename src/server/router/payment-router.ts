@@ -1,16 +1,16 @@
-import { PaymentMethodType } from "@prisma/client";
-import { paginationZod } from "utils/pagination";
-import { identifiableZod } from "utils/server-zods";
-import { z } from "zod";
-import { createRouter } from "./context";
+import { PaymentMethodType } from '@prisma/client';
+import { paginationZod } from 'utils/pagination';
+import { identifiableZod } from 'utils/server-zods';
+import { z } from 'zod';
+import { createRouter } from './context';
 
 export const paymentRouter = createRouter()
-  .query("byStudent", {
+  .query('byStudent', {
     input: paginationZod.merge(identifiableZod),
     async resolve({ ctx, input: { page, size, id } }) {
       const paymentsByStudent = await ctx.prisma.payment.findMany({
         orderBy: {
-          date: "desc",
+          date: 'desc',
         },
         where: {
           studentId: id,
@@ -27,20 +27,20 @@ export const paymentRouter = createRouter()
       }));
     },
   })
-  .mutation("create", {
+  .mutation('create', {
     input: z.object({
       date: z.date(),
       studentId: z.string(),
       hours: z.number(),
       value: z.number(),
       paymentMethod: z.enum([
-        PaymentMethodType.DEBIT,
+        PaymentMethodType.CASH,
         PaymentMethodType.TRANSFER,
       ]),
     }),
     async resolve({
       ctx,
-      input: { date, studentId, hours, value, paymentMethodType },
+      input: { date, studentId, hours, value, paymentMethod },
     }) {
       //! this is not fully transactional. But I don't seem to be able to do the creating on the fly rather than do it sequentially
       const createdHour = await ctx.prisma.hour.create({
@@ -55,7 +55,7 @@ export const paymentRouter = createRouter()
             value,
             studentId,
             hourId: createdHour.id,
-            paymentMethod: paymentMethodType,
+            paymentMethod: paymentMethod,
           },
         }),
         ctx.prisma.student.update({

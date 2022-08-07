@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 /**
  * Use when you have a rapidly changing value that you want to wait a certain amount of time before you get a value from it

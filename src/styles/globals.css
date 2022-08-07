@@ -21,3 +21,7 @@ input::-webkit-inner-spin-button {
 .akd__control.akd__control--is-focused {
   @apply shadow-none outline-none ring-2 ring-blackish-900;
 }
+
+.btn-disabled {
+  @apply disabled:hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed;
+}

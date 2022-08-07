@@ -1,6 +1,6 @@
-import type { NextPage } from "next";
-import Head from "next/head";
-import Link from "next/link";
+import type { NextPage } from 'next';
+import Head from 'next/head';
+import Link from 'next/link';
 
 type TechnologyCardProps = {
   name: string;
@@ -9,11 +9,11 @@ type TechnologyCardProps = {
 };
 
 const routes = [
-  { href: "/alumnos", label: "Alumnos" },
-  { href: "/profesores", label: "Profesores" },
-  { href: "/precios", label: "Precios" },
-  { href: "#", label: "Gastos [Coming soon!]" },
-  { href: "#", label: "Reportes [Coming soon!]" },
+  { href: '/alumnos', label: 'Alumnos' },
+  { href: '/profesores', label: 'Profesores' },
+  { href: '/precios', label: 'Precios' },
+  { href: '#', label: 'Gastos [Coming soon!]' },
+  { href: '#', label: 'Reportes [Coming soon!]' },
 ];
 
 const Home: NextPage = () => {
@@ -25,7 +25,7 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className="container mx-auto flex flex-col items-center justify-center h-screen p-4">
+      <section className="container mx-auto flex flex-col items-center justify-center md:h-[calc(100vh-94px)] p-4">
         <ul>
           {routes.map((r) => (
             <li key={r.href}>
@@ -35,7 +35,7 @@ const Home: NextPage = () => {
             </li>
           ))}
         </ul>
-      </main>
+      </section>
     </>
   );
 };

@@ -1,15 +1,15 @@
-import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { StudentFormInput, studentFormZod } from "common";
-import { Button } from "components/button";
-import { ConfirmForm } from "components/confirm-form";
-import { Input } from "components/form/input";
-import { Label } from "components/form/label";
-import { ValidationError } from "components/form/validation-error";
-import { Modal } from "components/modal";
-import { Spinner } from "components/spinner";
-import Link from "next/link";
-import { useRouter } from "next/router";
+import { useAutoAnimate } from '@formkit/auto-animate/react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { StudentFormInput, studentFormZod } from 'common';
+import { Button } from 'components/button';
+import { ConfirmForm } from 'components/confirm-form';
+import { Input } from 'components/form/input';
+import { ValidationError } from 'components/form/validation-error';
+import { Modal } from 'components/modal';
+import { Spinner } from 'components/spinner';
+import { useCRUDState } from 'hooks';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 import {
   ChangeEvent,
   FC,
@@ -20,12 +20,12 @@ import {
   useMemo,
   useRef,
   useState,
-} from "react";
-import { useForm } from "react-hook-form";
-import { MdDelete, MdEdit } from "react-icons/md";
-import { getFakeStudents } from "utils/fakes";
-import { trpc } from "utils/trpc";
-import { useDebouncedValue } from "utils/use-debounce";
+} from 'react';
+import { useForm } from 'react-hook-form';
+import { MdDelete, MdEdit } from 'react-icons/md';
+import { getFakeStudents } from 'utils/fakes';
+import { trpc } from 'utils/trpc';
+import { useDebouncedValue } from 'utils/use-debounce';
 
 const StudentForm: FC<{ onFinished: () => void; studentId: string }> = ({
   studentId,
@@ -33,23 +33,23 @@ const StudentForm: FC<{ onFinished: () => void; studentId: string }> = ({
 }) => {
   const queryClient = trpc.useContext();
   const { data: student } = trpc.useQuery(
-    ["students.single", { id: studentId }],
+    ['students.single', { id: studentId }],
     {
       enabled: Boolean(studentId),
     }
   );
   const { mutateAsync: createStudent, isLoading: isCreating } =
-    trpc.useMutation("students.create", {
+    trpc.useMutation('students.create', {
       onSuccess: () => {
-        queryClient.invalidateQueries("students.allSearch");
+        queryClient.invalidateQueries('students.allSearch');
       },
     });
   const { mutateAsync: editStudent, isLoading: isEditing } = trpc.useMutation(
-    "students.edit",
+    'students.edit',
     {
       onSuccess: () => {
-        queryClient.invalidateQueries("students.allSearch");
-        queryClient.invalidateQueries(["students.single", { id: studentId }]);
+        queryClient.invalidateQueries('students.allSearch');
+        queryClient.invalidateQueries(['students.single', { id: studentId }]);
       },
     }
   );
@@ -63,11 +63,11 @@ const StudentForm: FC<{ onFinished: () => void; studentId: string }> = ({
 
   const defaultValues: StudentFormInput = useMemo(
     () => ({
-      course: student?.course ?? "",
-      faculty: student?.faculty ?? "",
-      lastName: student?.lastName ?? "",
-      name: student?.name ?? "",
-      university: student?.university ?? "",
+      course: student?.course ?? '',
+      faculty: student?.faculty ?? '',
+      lastName: student?.lastName ?? '',
+      name: student?.name ?? '',
+      university: student?.university ?? '',
     }),
     [student]
   );
@@ -91,31 +91,26 @@ const StudentForm: FC<{ onFinished: () => void; studentId: string }> = ({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-2">
       <h1 className="text-3xl text-center">
-        {studentId ? "Editar alumno" : "Agregar alumno"}
+        {studentId ? 'Editar alumno' : 'Agregar alumno'}
       </h1>
-      <Label
-        className="border border-solid border-b-blackish-600/30"
-        htmlFor="lastName"
-      >
-        Apellido
-      </Label>
-      <Input {...register("lastName")} placeholder="Last name..." />
-      <ValidationError error={errors.name} />
-      <Label htmlFor="name">Nombre</Label>
-      <Input {...register("name")} placeholder="Name..." />
-      <ValidationError error={errors.name} />
-      <Label htmlFor="university">Universidad</Label>
-      <Input {...register("university")} placeholder="University..." />
-      <ValidationError error={errors.university} />
-      <Label htmlFor="faculty">Facultad</Label>
-      <Input {...register("faculty")} placeholder="Facultad..." />
-      <ValidationError error={errors.faculty} />
-      <Label htmlFor="course">Carrera</Label>
-      <Input {...register("course")} placeholder="Carrera..." />
-      <ValidationError error={errors.course} />
+      <label htmlFor="lastName">Apellido</label>
+      <Input {...register('lastName')} placeholder="Last name..." />
+      <ValidationError errorMessages={errors.lastName?.message} />
+      <label htmlFor="name">Nombre</label>
+      <Input {...register('name')} placeholder="Name..." />
+      <ValidationError errorMessages={errors.name?.message} />
+      <label htmlFor="university">Universidad</label>
+      <Input {...register('university')} placeholder="University..." />
+      <ValidationError errorMessages={errors.university?.message} />
+      <label htmlFor="faculty">Facultad</label>
+      <Input {...register('faculty')} placeholder="Facultad..." />
+      <ValidationError errorMessages={errors.faculty?.message} />
+      <label htmlFor="course">Carrera</label>
+      <Input {...register('course')} placeholder="Carrera..." />
+      <ValidationError errorMessages={errors.course?.message} />
       <section aria-label="action buttons" className="flex gap-2 w-full">
         <Button className="flex-grow" type="submit">
-          {studentId ? "Editar" : "Agregar"}
+          {studentId ? 'Editar' : 'Agregar'}
         </Button>
         <Button className="flex-grow" onClick={onFinished}>
           Cancelar
@@ -129,7 +124,7 @@ const StudentList: FC<{
   handleDelete: (id: string) => void;
   handleEdit: (id: string) => void;
 }> = ({ handleDelete, handleEdit }) => {
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 500);
   const {
     data: paginatedStudents,
@@ -138,7 +133,7 @@ const StudentList: FC<{
     isLoading: studentsLoading,
     isFetching: studentsFetching,
   } = trpc.useInfiniteQuery(
-    ["students.allSearch", { query: debouncedSearch }],
+    ['students.allSearch', { query: debouncedSearch }],
     {
       getNextPageParam: (lastPage) => {
         return lastPage.nextCursor ? { page: lastPage.nextCursor } : null;
@@ -210,16 +205,16 @@ const StudentList: FC<{
           flatStudents.map((s) => {
             const status =
               s.hourBalance < 0
-                ? "bg-red-500"
+                ? 'bg-red-500'
                 : s.hourBalance === 0
-                ? "bg-gray-500"
-                : "bg-green-500";
+                ? 'bg-gray-500'
+                : 'bg-green-500';
             const statusTitle =
               s.hourBalance < 0
-                ? "El alumno debe horas"
+                ? 'El alumno debe horas'
                 : s.hourBalance === 0
-                ? "El alumno no tiene horas"
-                : "El alumno tiene horas sin usar";
+                ? 'El alumno no tiene horas'
+                : 'El alumno tiene horas sin usar';
             return (
               <Link href={`${asPath}/${s.id}`} key={s.id}>
                 <li
@@ -270,7 +265,7 @@ const useRunOnce = (fn: () => void) => {
 };
 
 const useAddFakeData = () => {
-  const { mutateAsync } = trpc.useMutation(["students.create"]);
+  const { mutateAsync } = trpc.useMutation(['students.create']);
 
   useRunOnce(() => {
     getFakeStudents(25).forEach((fs) => {
@@ -281,56 +276,43 @@ const useAddFakeData = () => {
 
 const Students = () => {
   // useAddFakeData();
-  const [currentStudentId, setCurrentStudentId] = useState("");
-  const [showCreateEditStudent, setShowCreateEditStudent] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const queryClient = trpc.useContext();
   const { isLoading: isDeleting, mutateAsync: deleteStudent } =
-    trpc.useMutation("students.delete", {
+    trpc.useMutation('students.delete', {
       onSuccess: () => {
-        queryClient.invalidateQueries("students.allSearch");
+        queryClient.invalidateQueries('students.allSearch');
       },
     });
-  const handleAddStudent = () => {
-    setShowCreateEditStudent(true);
-  };
-  const handleFinished = () => {
-    setCurrentStudentId("");
-    setShowCreateEditStudent(false);
-    setShowDeleteConfirm(false);
-  };
+  const {
+    handleFinished,
+    handleDelete,
+    handleEdit,
+    handleCreate,
+    currentId,
+    showCreateEdit,
+    showDeleteConfirm,
+  } = useCRUDState();
 
-  const handleDelete = (id: string) => {
-    setShowDeleteConfirm(true);
-    setCurrentStudentId(id);
-  };
   const handleSubmitDelete = async () => {
-    await deleteStudent({ id: currentStudentId });
+    await deleteStudent({ id: currentId });
     handleFinished();
-  };
-  const handleEdit = (id: string) => {
-    setCurrentStudentId(id);
-    setShowCreateEditStudent(true);
   };
 
   return (
     <section className="p-4 rounded-lg w-11/12 sm:max-w-2xl flex flex-col gap-3 items-center">
       <button
-        onClick={handleAddStudent}
+        onClick={handleCreate}
         type="button"
         className="rounded-lg bg-primary-800 w-full p-3 text-white hover:bg-primary-400"
       >
         Agregar alumno
       </button>
-      {showCreateEditStudent ? (
+      {showCreateEdit ? (
         <Modal
           onBackdropClick={handleFinished}
           className="w-full md:w-auto bg-white drop-shadow-2xl"
         >
-          <StudentForm
-            onFinished={handleFinished}
-            studentId={currentStudentId}
-          />
+          <StudentForm onFinished={handleFinished} studentId={currentId} />
         </Modal>
       ) : null}
       <StudentList handleDelete={handleDelete} handleEdit={handleEdit} />

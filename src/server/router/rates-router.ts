@@ -3,22 +3,22 @@ import {
   addHourRateZod,
   hourRateTypeZod,
   includeInactiveFlagZod,
-} from "common";
-import { z } from "zod";
-import { createRouter } from "./context";
+} from 'common';
+import { z } from 'zod';
+import { createRouter } from './context';
 
 export const ratesRouter = createRouter()
-  .query("hourRate", {
+  .query('hourRate', {
     input: z.object({ id: z.string() }),
     async resolve({ ctx, input: { id } }) {
       const hourRate = await ctx.prisma.hourRate.findUnique({ where: { id } });
       if (!hourRate) {
-        return ctx.res?.status(404).json({ message: "Not found" });
+        return ctx.res?.status(404).json({ message: 'Not found' });
       }
       return { ...hourRate, rate: hourRate.rate.toNumber() };
     },
   })
-  .query("hourRates", {
+  .query('hourRates', {
     input: hourRateTypeZod.merge(includeInactiveFlagZod),
     async resolve({ ctx, input: { type, includeInactive = false } }) {
       const prices = await ctx.prisma.hourRate.findMany({
@@ -31,19 +31,19 @@ export const ratesRouter = createRouter()
       return prices.map((p) => ({ ...p, rate: p.rate.toNumber() }));
     },
   })
-  .query("hourPackage", {
+  .query('hourPackage', {
     input: z.object({ id: z.string() }),
     async resolve({ ctx, input: { id } }) {
       const hourPackage = await ctx.prisma.hourPackage.findUnique({
         where: { id },
       });
       if (!hourPackage) {
-        return ctx.res?.status(404).json({ message: "Not found" });
+        return ctx.res?.status(404).json({ message: 'Not found' });
       }
       return { ...hourPackage, totalValue: hourPackage.totalValue.toNumber() };
     },
   })
-  .query("hourPackages", {
+  .query('hourPackages', {
     input: includeInactiveFlagZod.default({}),
     async resolve({ ctx, input: { includeInactive = false } }) {
       const packages = await ctx.prisma.hourPackage.findMany({
@@ -56,7 +56,7 @@ export const ratesRouter = createRouter()
       }));
     },
   })
-  .mutation("createHourRate", {
+  .mutation('createHourRate', {
     input: hourRateTypeZod.extend(addHourRateZod.shape),
     async resolve({ ctx, input: { type, description, rate } }) {
       const createdHourRate = await ctx.prisma.hourRate.create({
@@ -70,7 +70,7 @@ export const ratesRouter = createRouter()
       return createdHourRate;
     },
   })
-  .mutation("deleteHourRate", {
+  .mutation('deleteHourRate', {
     input: z.object({ id: z.string() }),
     async resolve({ ctx, input: { id } }) {
       const currentHourRate = await ctx.prisma.hourRate.findUnique({
@@ -102,7 +102,7 @@ export const ratesRouter = createRouter()
       });
     },
   })
-  .mutation("editHourRate", {
+  .mutation('editHourRate', {
     input: z
       .object({ id: z.string() })
       .merge(addHourRateZod)
@@ -118,7 +118,7 @@ export const ratesRouter = createRouter()
       });
     },
   })
-  .mutation("createHourPackage", {
+  .mutation('createHourPackage', {
     input: addHourPackageZod,
     async resolve({ ctx, input: { description, packHours, totalValue } }) {
       const newHourPackage = await ctx.prisma.hourPackage.create({
@@ -132,7 +132,7 @@ export const ratesRouter = createRouter()
       return newHourPackage;
     },
   })
-  .mutation("editHourPackage", {
+  .mutation('editHourPackage', {
     input: z.object({ id: z.string() }).merge(addHourPackageZod),
     async resolve({ ctx, input: { id, description, packHours, totalValue } }) {
       const updated = await ctx.prisma.hourPackage.update({
@@ -142,7 +142,7 @@ export const ratesRouter = createRouter()
       return updated;
     },
   })
-  .mutation("deleteHourPackage", {
+  .mutation('deleteHourPackage', {
     input: z.object({ id: z.string() }),
     async resolve({ ctx, input: { id } }) {
       //! no relations mean we can safely delete this field.
