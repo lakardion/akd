@@ -87,8 +87,10 @@ model Payment {
 
 model TeacherPayment {
     id            String            @id @default(cuid())
+    publicId      Int               @unique @default(autoincrement())
     teacherId     String
     value         Decimal
+    date          DateTime
     paymentMethod PaymentMethodType
 
     teacher Teacher @relation(fields: [teacherId], references: [id])
