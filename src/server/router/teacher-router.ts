@@ -1,9 +1,11 @@
+import { Prisma } from '@prisma/client';
 import { includeInactiveFlagZod, teacherFormZod } from 'common';
 import {
   DEFAULT_PAGE_SIZE,
   getPagination,
   paginationZod,
 } from 'utils/pagination';
+import { identifiableZod, infiniteCursorZod } from 'utils/server-zods';
 import { z } from 'zod';
 import { createRouter } from './context';
 
@@ -81,6 +83,57 @@ export const teacherRouter = createRouter()
       };
     },
   })
+  .query('allSearch', {
+    input: z.object({
+      query: z.string().optional(),
+      cursor: infiniteCursorZod,
+      size: z.number().optional(),
+    }),
+    async resolve({
+      ctx,
+      input: {
+        cursor: { page = 1, size },
+        query,
+        size: clientSize = DEFAULT_PAGE_SIZE,
+      },
+    }) {
+      const limit = size ? size : clientSize;
+      const whereClause: Prisma.TeacherWhereInput | undefined = query
+        ? {
+            OR: [
+              {
+                name: {
+                  contains: query,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                lastName: {
+                  contains: query,
+                  mode: 'insensitive',
+                },
+              },
+            ],
+          }
+        : undefined;
+      const teachersResult = await ctx.prisma.teacher.findMany({
+        where: whereClause,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { lastName: 'asc' },
+      });
+      return {
+        nextCursor: {
+          page: teachersResult.length === size ? page + 1 : null,
+          size,
+        },
+        students: teachersResult.map((t) => ({
+          ...t,
+          balance: t.balance.toNumber(),
+        })),
+      };
+    },
+  })
   .query('teacher', {
     input: z.object({ id: z.string() }),
     async resolve({ ctx, input: { id } }) {
@@ -101,6 +154,20 @@ export const teacherRouter = createRouter()
         },
       });
       return updatedTeacher;
+    },
+  })
+  .mutation('active', {
+    input: z.object({ isActive: z.boolean() }).merge(identifiableZod),
+    async resolve({ ctx, input: { isActive, id } }) {
+      console.log('calling active \n\n\n\n');
+      return ctx.prisma.teacher.update({
+        where: {
+          id,
+        },
+        data: {
+          isActive,
+        },
+      });
     },
   })
   .mutation('delete', {
