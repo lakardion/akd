@@ -134,7 +134,6 @@ model Teacher {
     id       String  @id @default(cuid())
     name     String
     lastName String
-    balance  Decimal @default(0)
     isActive Boolean @default(true)
 
     classSessions  ClassSession[]
