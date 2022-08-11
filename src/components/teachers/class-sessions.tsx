@@ -8,6 +8,7 @@ import { Spinner } from 'components/spinner';
 import { Table } from 'components/table';
 import { format } from 'date-fns';
 import { FC, useEffect, useMemo, useState } from 'react';
+import { usePaginationHandlers } from 'utils/pagination';
 import { trpc } from 'utils/trpc';
 
 type ClassSessionRow = {
@@ -49,9 +50,18 @@ export const ClassSessionTable: FC<{ teacherId: string }> = ({ teacherId }) => {
     { page, teacherId },
   ]);
 
-  useEffect(() => {
-    console.log('data', data);
-  }, [data]);
+  const { goFirstPage, goLastPage, goNextPage, goPreviousPage } =
+    usePaginationHandlers(
+      useMemo(
+        () => ({
+          nextPage: data?.nextPage,
+          previousPage: data?.previousPage,
+          setPage,
+          totalPages: data?.totalPages ?? 0,
+        }),
+        [data?.nextPage, data?.previousPage, data?.totalPages]
+      )
+    );
 
   const dataRows: ClassSessionRow[] = useMemo(() => {
     return (
@@ -82,18 +92,6 @@ export const ClassSessionTable: FC<{ teacherId: string }> = ({ teacherId }) => {
         <p className="italic">No hay clases disponibles</p>
       </section>
     );
-  const goFirstPage = () => {
-    setPage(1);
-  };
-  const goPreviousPage = () => {
-    data?.nextPage && setPage(data.nextPage);
-  };
-  const goNextPage = () => {
-    data?.nextPage && setPage(data.nextPage);
-  };
-  const goLastPage = () => {
-    setPage(data.totalPages);
-  };
 
   return (
     <section>

@@ -14,6 +14,11 @@ export const teacherPaymentRouter = createRouter()
       ctx,
       input: { page, size = DEFAULT_PAGE_SIZE, teacherId },
     }) {
+      const totalRecords = await ctx.prisma.teacherPayment.count({
+        where: {
+          teacherId,
+        },
+      });
       const payments = await ctx.prisma.teacherPayment.findMany({
         where: teacherId
           ? {
@@ -34,13 +39,20 @@ export const teacherPaymentRouter = createRouter()
         },
       });
 
-      return payments.map((p) => ({
-        id: p.publicId,
-        paymentMethod: p.paymentMethod,
-        date: p.date,
-        teacher: p.teacher,
-        value: p.value.toNumber(),
-      }));
+      return {
+        page,
+        count: totalRecords,
+        totalPages: Math.ceil(totalRecords / size),
+        nextPage: (page + 1) * size > totalRecords ? null : page + 1,
+        previousPage: page - 1 === 0 ? null : page - 1,
+        results: payments.map((p) => ({
+          id: p.publicId,
+          paymentMethod: p.paymentMethod,
+          date: p.date,
+          teacher: p.teacher,
+          value: p.value.toNumber(),
+        })),
+      };
     },
   })
   .mutation('create', {

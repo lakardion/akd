@@ -15,6 +15,7 @@ import { Decimal } from 'decimal.js';
 import { ChangeEvent, FC, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import ReactSelect, { SingleValue } from 'react-select';
+import { mapPaymentTypeToLabel } from 'utils/adapters';
 import { trpc } from 'utils/trpc';
 import { z } from 'zod';
 
@@ -217,7 +218,9 @@ export const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
       <label htmlFor="paymentMethod">Medio de pago</label>
       <div className="flex items-center">
         <div className="flex-grow flex justify-center gap-3 items-center">
-          <label htmlFor="cash">Efectivo</label>
+          <label htmlFor="cash">
+            {mapPaymentTypeToLabel[PaymentMethodType.CASH]}
+          </label>
           <Input
             type="radio"
             id="cash"
@@ -227,7 +230,9 @@ export const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
           />
         </div>
         <div className="flex-grow flex justify-center gap-3 items-center">
-          <label htmlFor="transfer">Transferencia</label>
+          <label htmlFor="transfer">
+            {mapPaymentTypeToLabel[PaymentMethodType.TRANSFER]}
+          </label>
           <Input
             type="radio"
             id="transfer"

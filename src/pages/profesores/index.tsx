@@ -190,7 +190,11 @@ const TeachersList: FC<{
   }, [data?.pages]);
 
   if (isLoading) {
-    return <Spinner size="sm" />;
+    return (
+      <div className="w-full justify-center">
+        <Spinner size="sm" />
+      </div>
+    );
   }
   if (!flatData.length) {
     return <p>No hay profesores para mostrar</p>;
@@ -262,7 +266,7 @@ const Teachers = () => {
   };
 
   return (
-    <section className="flex flex-col gap-3 w-[90%] max-w-[500px]">
+    <section className="flex flex-col gap-3 w-[90%] max-w-2xl p-4">
       <PillButton onClick={handleAdd} type="button">
         Agregar profesor
       </PillButton>

@@ -108,7 +108,7 @@ const TeacherDetail = () => {
           </div>
         </header>
         {activeView === 'payments' ? (
-          <PaymentTable studentId={stableId} />
+          <PaymentTable teacherId={stableId} />
         ) : (
           <ClassSessionTable teacherId={stableId} />
         )}

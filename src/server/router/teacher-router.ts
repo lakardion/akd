@@ -186,7 +186,6 @@ export const teacherRouter = createRouter()
   .mutation('active', {
     input: z.object({ isActive: z.boolean() }).merge(identifiableZod),
     async resolve({ ctx, input: { isActive, id } }) {
-      console.log('calling active \n\n\n\n');
       return ctx.prisma.teacher.update({
         where: {
           id,

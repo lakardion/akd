@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { PaymentMethodType } from '@prisma/client';
+import { PaymentMethodType, TeacherPayment } from '@prisma/client';
 import {
   ColumnDef,
   getCoreRowModel,
@@ -12,8 +12,9 @@ import { PillButton } from 'components/button';
 import { Input } from 'components/form/input';
 import { ValidationError } from 'components/form/validation-error';
 import { IndeterminateCheckbox } from 'components/indeterminate-checkbox';
+import { Spinner } from 'components/spinner';
 import { Table } from 'components/table';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import {
   ChangeEvent,
   FC,
@@ -23,8 +24,11 @@ import {
   useState,
 } from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
+import { usePaginationHandlers } from 'utils/pagination';
+import { PaginationControls } from 'components/pagination-controls';
 import { trpc } from 'utils/trpc';
 import { z } from 'zod';
+import { mapPaymentTypeToLabel } from 'utils/adapters';
 
 const paymentFormZod = z.object({
   date: datePickerZod,
@@ -142,9 +146,11 @@ export const TeacherPaymentForm: FC<{
     state: {
       rowSelection,
     },
+    //! Although this is an `onChange`, it does not receive the "new" value, instead it receives a function
     onRowSelectionChange: setRowSelection,
   });
 
+  //! if only tanstack table allowed me to do this in the change handler rather than having to listen to the rowSelection. I don't like this much...
   useEffect(() => {
     const rows = Object.keys(rowSelection).map((k) => {
       const row = table.getRow(k);
@@ -157,14 +163,13 @@ export const TeacherPaymentForm: FC<{
   }, [rowSelection, setValue, table]);
 
   const onSubmit = async (data: PaymentFormInput) => {
-    // await create({
-    //   studentId: teacherId,
-    //   date: parse(data.date, 'yyyy-MM-dd', new Date()),
-    //   hours: parseFloat(data.hours),
-    //   value: parseFloat(data.value),
-    //   paymentMethod: data.paymentMethod,
-    // });
-    console.log(data);
+    await create({
+      teacherId,
+      date: parse(data.date, 'yyyy-MM-dd', new Date()),
+      value: parseFloat(data.value),
+      paymentMethod: data.paymentMethod,
+      classSessionIds: data.classSessions.map((cs) => cs.id),
+    });
     onFinished();
   };
 
@@ -236,12 +241,14 @@ export const TeacherPaymentForm: FC<{
   );
 };
 
-const paymentColumns: ColumnDef<{
+type TeacherPaymentColumn = {
   value: number;
-  hourValue: number;
   date: Date;
   publicId: number;
-}>[] = [
+  paymentMethod: PaymentMethodType;
+};
+
+const paymentColumns: ColumnDef<TeacherPaymentColumn>[] = [
   {
     id: 'publicId',
     accessorKey: 'publicId',
@@ -253,9 +260,9 @@ const paymentColumns: ColumnDef<{
     accessorFn: (vals) => format(vals.date, 'dd-MM-yyyy'),
   },
   {
-    id: 'hourValue',
-    accessorKey: 'hourValue',
-    header: 'Horas',
+    id: 'paymentMethod',
+    accessorFn: (vals) => `${mapPaymentTypeToLabel[vals.paymentMethod]}`,
+    header: 'Método de pago',
   },
   {
     id: 'value',
@@ -264,40 +271,77 @@ const paymentColumns: ColumnDef<{
   },
 ];
 
-export const PaymentTable: FC<{ studentId: string }> = ({ studentId }) => {
-  //TODO: change to teacher
-  const { data } = trpc.useQuery(['payments.byStudent', { id: studentId }], {
-    enabled: Boolean(studentId),
-  });
+export const PaymentTable: FC<{ teacherId: string }> = ({ teacherId }) => {
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = trpc.useQuery(
+    ['teacherPayments.all', { teacherId, page }],
+    {
+      enabled: Boolean(teacherId),
+    }
+  );
 
+  const teacherPaymentRows: TeacherPaymentColumn[] = useMemo(() => {
+    return (
+      data?.results.map((tp) => ({
+        date: tp.date,
+        publicId: tp.id,
+        value: tp.value,
+        paymentMethod: tp.paymentMethod,
+      })) ?? []
+    );
+  }, [data?.results]);
   const table = useReactTable({
-    data: data ?? [],
+    data: teacherPaymentRows,
     columns: paymentColumns,
     getCoreRowModel: getCoreRowModel(),
   });
 
-  if (!data?.length)
+  const { goFirstPage, goLastPage, goNextPage, goPreviousPage } =
+    usePaginationHandlers(
+      useMemo(
+        () => ({
+          nextPage: data?.nextPage,
+          previousPage: data?.previousPage,
+          setPage,
+          totalPages: data?.totalPages ?? 0,
+        }),
+        [data?.nextPage, data?.previousPage, data?.totalPages]
+      )
+    );
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center">
+        <Spinner size="sm" />
+      </div>
+    );
+  }
+  if (!data?.results?.length)
     return (
       <section className="flex justify-center w-full items-center italic font-medium">
         <p>No hay pagos para mostrar</p>
       </section>
     );
 
-  return <Table table={table} />;
-};
-
-export const PaymentsList: FC<{ studentId: string }> = ({ studentId }) => {
-  const { data } = trpc.useQuery(['payments.byStudent', { id: studentId }], {
-    enabled: Boolean(studentId),
-  });
-
   return (
-    <ul>
-      {data?.map((p) => (
-        <li key={p.id}>
-          <p>$ {p.value}</p>
-        </li>
-      ))}
-    </ul>
+    <section>
+      <PaginationControls
+        pageHandlers={{
+          goFirst: goFirstPage,
+          goLast: goLastPage,
+          goNext: goNextPage,
+          goPrevious: goPreviousPage,
+        }}
+        pageInfo={{
+          page: data.page,
+          nextPage: data.nextPage,
+          previousPage: data.previousPage,
+          totalPages: data.totalPages,
+        }}
+      />
+      <section aria-label="items">
+        <Table table={table} />
+      </section>
+    </section>
   );
 };

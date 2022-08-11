@@ -35,17 +35,20 @@ export const classSessionRouter = createRouter()
       ctx,
       input: { page, size = DEFAULT_PAGE_SIZE, studentId, teacherId },
     }) {
+      const classSessionSubQuery = teacherId
+        ? {
+            teacherId,
+          }
+        : undefined;
       const classSessionStudentQuery = {
-        some: teacherId
-          ? {
-              classSession: {
-                teacherId,
-              },
-            }
-          : undefined,
-        studentId,
+        some:
+          teacherId || studentId
+            ? {
+                classSession: classSessionSubQuery,
+                studentId,
+              }
+            : undefined,
       };
-      console.log(JSON.stringify(classSessionStudentQuery, undefined, 2));
       const totalRecords = await ctx.prisma.classSession.count({
         where: {
           classSessionStudent: classSessionStudentQuery,
