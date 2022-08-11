@@ -4,31 +4,21 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { PillButton, Button } from 'components/button';
+import { Button, PillButton } from 'components/button';
 import { ClassSessionForm } from 'components/class-sessions/form';
-import { Input, ValidationError } from 'components/form';
+import { Input } from 'components/form';
 import { PaginationControls } from 'components/pagination-controls';
 import { Spinner } from 'components/spinner';
 import { Table } from 'components/table';
 import { WarningMessage } from 'components/warning-message';
-import { addDays, format, isMatch, parse } from 'date-fns';
+import { addDays, format, parse } from 'date-fns';
 import { ChangeEvent, FC, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { MdClose } from 'react-icons/md';
 import ReactSelect, { SingleValue } from 'react-select';
-import AsyncReactSelect from 'react-select/async';
-import { debouncedSearchTeachers } from 'utils/client-search-utils';
+import { usePaginationHandlers } from 'utils/pagination';
 import { trpc } from 'utils/trpc';
 import { z } from 'zod';
-
-const classSessionFormZod = z.object({
-  date: z.string().refine((value) => {
-    if (!isMatch(value, 'yyyy-MM-dd')) return false;
-    return true;
-  }, 'Invalid date, should be yyyy-mm-dd'),
-  teacherId: z.string().min(1, 'Requerido'),
-});
-type ClassSessionFormInput = z.infer<typeof classSessionFormZod>;
 
 const attachToExistingClassSessionZod = z.object({
   classSessionId: z.string(),
@@ -59,7 +49,7 @@ const ExistingAttachClassSessionForm: FC<{
       queryClient.invalidateQueries('classSessions.all');
       queryClient.invalidateQueries('classSessions.byDate');
       queryClient.invalidateQueries('classSessions.byStudent');
-      queryClient.invalidateQueries('classSessions.byStudentPaginated');
+      queryClient.invalidateQueries('classSessions.paginated');
       queryClient.invalidateQueries('classSessions.single');
       queryClient.invalidateQueries(['students.single', { id: studentId }]);
     },
@@ -156,67 +146,6 @@ const ExistingAttachClassSessionForm: FC<{
           onClick={goBack}
         >
           Cancel
-        </PillButton>
-      </section>
-    </form>
-  );
-};
-
-const NewAttachClassSessionForm: FC<{
-  goBack: () => void;
-  onFinished: () => void;
-}> = ({ goBack, onFinished }) => {
-  const {
-    handleSubmit,
-    register,
-    formState: { errors },
-    control,
-  } = useForm<ClassSessionFormInput>({
-    resolver: zodResolver(classSessionFormZod),
-  });
-  const [selectedTeacher, setSelectedTeacher] =
-    useState<SingleValue<{ value: string; label: string }>>();
-  const onSubmit = async () => {
-    onFinished();
-  };
-
-  return (
-    <form
-      name="create-from-scratch"
-      onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-col gap-3"
-    >
-      <label>Profesor</label>
-      <Controller
-        name="teacherId"
-        control={control}
-        render={({ field }) => (
-          <AsyncReactSelect
-            loadOptions={debouncedSearchTeachers}
-            defaultOptions
-            onBlur={field.onBlur}
-            ref={field.ref}
-            className="text-black akd-container"
-            classNamePrefix="akd"
-            onChange={(value) => {
-              field.onChange(value?.value ?? '');
-              setSelectedTeacher(value);
-            }}
-            value={selectedTeacher}
-            placeholder="Seleccionar profesor"
-          />
-        )}
-      />
-      <ValidationError errorMessages={errors.teacherId?.message} />
-      <label htmlFor="date">Fecha</label>
-      <Input type="date" {...register('date')} />
-      <ValidationError errorMessages={errors.date?.message} />
-      <section aria-label="action buttons" className="flex w-full">
-        <PillButton variant="accent" type="submit" className="flex-grow">
-          Crear clase y agregar alumno
-        </PillButton>
-        <PillButton variant="accent" onClick={goBack} className="flex-grow">
-          Cancelar
         </PillButton>
       </section>
     </form>
@@ -324,10 +253,21 @@ const defaultColumns: ColumnDef<ClassSessionRow>[] = [
 export const ClassSessionTable: FC<{ studentId: string }> = ({ studentId }) => {
   const [page, setPage] = useState(1);
   const { data, isFetching, isLoading, isPreviousData } = trpc.useQuery([
-    'classSessions.byStudentPaginated',
+    'classSessions.paginated',
     { page, studentId },
   ]);
-
+  const { goFirstPage, goLastPage, goNextPage, goPreviousPage } =
+    usePaginationHandlers(
+      useMemo(
+        () => ({
+          nextPage: data?.nextPage,
+          previousPage: data?.previousPage,
+          setPage,
+          totalPages: data?.totalPages ?? 0,
+        }),
+        [data?.nextPage, data?.previousPage, data?.totalPages]
+      )
+    );
   const dataRows: ClassSessionRow[] = useMemo(() => {
     return (
       data?.results.map((r) => ({
@@ -357,18 +297,6 @@ export const ClassSessionTable: FC<{ studentId: string }> = ({ studentId }) => {
         <p className="italic">No hay clases disponibles</p>
       </section>
     );
-  const goFirstPage = () => {
-    setPage(1);
-  };
-  const goPreviousPage = () => {
-    data?.nextPage && setPage(data.nextPage);
-  };
-  const goNextPage = () => {
-    data?.nextPage && setPage(data.nextPage);
-  };
-  const goLastPage = () => {
-    setPage(data.totalPages);
-  };
 
   return (
     <section>

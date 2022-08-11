@@ -58,9 +58,11 @@ const getClassSessionFormDefaultValues = (
 const useClassSessionForm = ({
   id,
   preloadedStudents,
+  preloadTeacher,
 }: {
   id: string;
   preloadedStudents?: { value: string; label: string }[];
+  preloadTeacher?: { value: string; label: string };
 }) => {
   const { data: classSession } = trpc.useQuery([
     'classSessions.single',
@@ -101,8 +103,9 @@ const useClassSessionForm = ({
     },
     [form.setValue]
   );
-  const [selectedTeacher, setSelectedTeacher] =
-    useState<SingleValue<{ value: string; label: string }>>(null);
+  const [selectedTeacher, setSelectedTeacher] = useState<
+    SingleValue<{ value: string; label: string }>
+  >(preloadTeacher ?? null);
   const [selectedStudents, setSelectedStudents] = useState<
     MultiValue<SingleValue<{ value: string; label: string }>>
   >(preloadedStudents ?? []);
@@ -159,7 +162,8 @@ export const ClassSessionForm: FC<{
   id: string;
   onFinished: () => void;
   preloadedStudents?: { value: string; label: string }[];
-}> = ({ id, onFinished, preloadedStudents }) => {
+  preloadTeacher?: { value: string; label: string };
+}> = ({ id, onFinished, preloadedStudents, preloadTeacher }) => {
   const {
     form: {
       handleSubmit,
@@ -179,7 +183,7 @@ export const ClassSessionForm: FC<{
     handleDateChange,
     oldHours,
     oldStudents,
-  } = useClassSessionForm({ id, preloadedStudents });
+  } = useClassSessionForm({ id, preloadedStudents, preloadTeacher });
 
   const queryClient = trpc.useContext();
   const { mutateAsync: create, isLoading: isCreating } = trpc.useMutation(

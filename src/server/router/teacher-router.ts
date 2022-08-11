@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime';
 import { includeInactiveFlagZod, teacherFormZod } from 'common';
 import {
   DEFAULT_PAGE_SIZE,
@@ -49,6 +50,38 @@ export const teacherRouter = createRouter()
       return foundTeachers;
     },
   })
+  .query('single', {
+    input: identifiableZod,
+    async resolve({ ctx, input: { id } }) {
+      const teacher = await ctx.prisma.teacher.findUnique({
+        where: { id },
+        include: {
+          //? not sure whether I should actually move this away to another ep and get the calculation there... doing here for now
+          classSessions: {
+            include: {
+              hour: true,
+              teacherHourRate: true,
+              _count: {
+                select: {
+                  classSessionStudent: true,
+                },
+              },
+            },
+          },
+        },
+      });
+      const currentTotal = teacher?.classSessions.reduce(
+        (sum, curr) =>
+          sum.plus(
+            curr.hour.value
+              .times(curr._count.classSessionStudent)
+              .times(curr.teacherHourRate.rate)
+          ),
+        new Decimal(0)
+      );
+      return { ...teacher, balance: currentTotal?.toNumber() };
+    },
+  })
   .query('teachers', {
     input: paginationZod.merge(includeInactiveFlagZod).default({}),
     async resolve({
@@ -76,10 +109,7 @@ export const teacherRouter = createRouter()
         count,
         next,
         previous,
-        teachers: teachers.map((t) => ({
-          ...t,
-          balance: t.balance.toNumber(),
-        })),
+        teachers,
       };
     },
   })
@@ -116,7 +146,7 @@ export const teacherRouter = createRouter()
             ],
           }
         : undefined;
-      const teachersResult = await ctx.prisma.teacher.findMany({
+      const teachers = await ctx.prisma.teacher.findMany({
         where: whereClause,
         skip: (page - 1) * limit,
         take: limit,
@@ -124,13 +154,10 @@ export const teacherRouter = createRouter()
       });
       return {
         nextCursor: {
-          page: teachersResult.length === size ? page + 1 : null,
+          page: teachers.length === size ? page + 1 : null,
           size,
         },
-        students: teachersResult.map((t) => ({
-          ...t,
-          balance: t.balance.toNumber(),
-        })),
+        teachers,
       };
     },
   })

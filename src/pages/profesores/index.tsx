@@ -10,14 +10,7 @@ import { Spinner } from 'components/spinner';
 import { SwitchFree } from 'components/switch';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import {
-  FC,
-  MouseEvent,
-  MouseEventHandler,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { FC, MouseEvent, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { MdDelete, MdEdit } from 'react-icons/md';
 import { debouncePromiseValue } from 'utils/delay';
@@ -193,7 +186,7 @@ const TeachersList: FC<{
   );
   const [parent] = useAutoAnimate<HTMLUListElement>();
   const flatData = useMemo(() => {
-    return data?.pages.flatMap((p) => p.students) ?? [];
+    return data?.pages.flatMap((p) => p.teachers) ?? [];
   }, [data?.pages]);
 
   if (isLoading) {

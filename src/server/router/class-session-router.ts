@@ -24,23 +24,31 @@ const diffStrArrays = (
 };
 
 export const classSessionRouter = createRouter()
-  .query('byStudentPaginated', {
+  .query('paginated', {
     input: z.object({
-      studentId: z.string(),
+      studentId: z.string().optional(),
+      teacherId: z.string().optional(),
       page: z.number(),
       size: z.number().optional(),
     }),
     async resolve({
       ctx,
-      input: { page, size = DEFAULT_PAGE_SIZE, studentId },
+      input: { page, size = DEFAULT_PAGE_SIZE, studentId, teacherId },
     }) {
+      const classSessionStudentQuery = {
+        some: teacherId
+          ? {
+              classSession: {
+                teacherId,
+              },
+            }
+          : undefined,
+        studentId,
+      };
+      console.log(JSON.stringify(classSessionStudentQuery, undefined, 2));
       const totalRecords = await ctx.prisma.classSession.count({
         where: {
-          classSessionStudent: {
-            some: {
-              studentId,
-            },
-          },
+          classSessionStudent: classSessionStudentQuery,
         },
         orderBy: {
           date: 'desc',
@@ -49,11 +57,7 @@ export const classSessionRouter = createRouter()
 
       const results = await ctx.prisma.classSession.findMany({
         where: {
-          classSessionStudent: {
-            some: {
-              studentId,
-            },
-          },
+          classSessionStudent: classSessionStudentQuery,
         },
         orderBy: {
           date: 'desc',
@@ -186,6 +190,49 @@ export const classSessionRouter = createRouter()
           label: `${css.student.name} ${css.student.lastName}`,
         })),
       };
+    },
+  })
+  .query('unpaid', {
+    input: z.object({ teacherId: z.string() }),
+    async resolve({ ctx, input: { teacherId } }) {
+      const unpaidClasssSession = await ctx.prisma.classSession.findMany({
+        where: {
+          teacherPaymentId: null,
+          teacherId,
+        },
+        include: {
+          teacher: {
+            select: {
+              name: true,
+              lastName: true,
+            },
+          },
+          hour: {
+            select: {
+              value: true,
+            },
+          },
+          teacherHourRate: true,
+          _count: {
+            select: {
+              classSessionStudent: true,
+            },
+          },
+        },
+      });
+
+      return unpaidClasssSession.map((ucs) => ({
+        ...ucs,
+        teacherHourRate: {
+          ...ucs.teacherHourRate,
+          rate: ucs.teacherHourRate.rate.toNumber(),
+        },
+        hour: { value: ucs.hour.value.toNumber() },
+        total: ucs.hour.value
+          .times(ucs._count.classSessionStudent)
+          .times(ucs.teacherHourRate.rate)
+          .toNumber(),
+      }));
     },
   })
   .query('byStudent', {
