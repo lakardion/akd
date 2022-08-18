@@ -212,6 +212,10 @@ export const ClassSessionForm: FC<{
       onSuccess: (data) => {
         queryClient.invalidateQueries(['classSessions.all']);
         queryClient.invalidateQueries(['classSessions.byStudent']);
+        queryClient.invalidateQueries([
+          'teachers.single',
+          { id: data.teacherId ?? '' },
+        ]);
         const month = format(data.date, 'yy-MM');
         queryClient.invalidateQueries([
           'teachers.history',

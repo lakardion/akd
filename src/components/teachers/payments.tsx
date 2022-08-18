@@ -148,7 +148,6 @@ export const TeacherPaymentForm: FC<{
   });
 
   //! if only tanstack table allowed me to do this in the change handler rather than having to listen to the rowSelection. I don't like this much...
-  //TODO: Check discord they might have suggested a better approach for this
   useEffect(() => {
     const rows = Object.keys(rowSelection).map((k) => {
       const row = table.getRow(k);
@@ -228,7 +227,12 @@ export const TeacherPaymentForm: FC<{
         </p>
       </div>
       <section aria-label="action buttons" className="flex gap-2">
-        <PillButton type="submit" className="flex-grow" variant="accent">
+        <PillButton
+          type="submit"
+          className="flex-grow"
+          variant="accent"
+          isLoading={isCreating}
+        >
           Agregar
         </PillButton>
         <PillButton className="flex-grow" onClick={onFinished} variant="accent">

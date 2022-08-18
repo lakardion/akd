@@ -157,7 +157,7 @@ const TeacherDetail = () => {
             dateFormat="MMMM-yy"
             showMonthYearPicker
             locale={es}
-            className="bg-primary-300/50 p-2 rounded-lg w-full"
+            className="bg-primary-300/50 p-2 rounded-lg w-full text-center"
             wrapperClassName="max-w-[150px] flex justify-center items-center"
           />
         </section>

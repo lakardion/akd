@@ -224,18 +224,23 @@ export const classSessionRouter = createRouter()
         },
       });
 
-      return unpaidClasssSession.map((ucs) => ({
-        ...ucs,
-        teacherHourRate: {
-          ...ucs.teacherHourRate,
-          rate: ucs.teacherHourRate.rate.toNumber(),
-        },
-        hour: { value: ucs.hour.value.toNumber() },
-        total: ucs.hour.value
-          .times(ucs._count.classSessionStudent)
-          .times(ucs.teacherHourRate.rate)
-          .toNumber(),
-      }));
+      return unpaidClasssSession.flatMap((ucs) => {
+        if (!ucs._count.classSessionStudent) return [];
+        return [
+          {
+            ...ucs,
+            teacherHourRate: {
+              ...ucs.teacherHourRate,
+              rate: ucs.teacherHourRate.rate.toNumber(),
+            },
+            hour: { value: ucs.hour.value.toNumber() },
+            total: ucs.hour.value
+              .times(ucs._count.classSessionStudent)
+              .times(ucs.teacherHourRate.rate)
+              .toNumber(),
+          },
+        ];
+      });
     },
   })
   .query('byStudent', {
