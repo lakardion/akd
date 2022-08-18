@@ -3,7 +3,7 @@ import { Button } from 'components/button';
 import { Input } from 'components/form/input';
 import { ValidationError } from 'components/form/validation-error';
 import { WarningMessage } from 'components/warning-message';
-import { setHours, setMinutes } from 'date-fns';
+import { format, setHours, setMinutes } from 'date-fns';
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import ReactDatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -44,14 +44,22 @@ const getStaticDate = () => {
 const staticDate = getStaticDate();
 
 const getClassSessionFormDefaultValues = (
-  classSession: inferQueryOutput<'classSessions.single'> | undefined
+  classSession: inferQueryOutput<'classSessions.single'> | undefined,
+  preloads: {
+    teacher?: { value: string; label: string };
+    students?: { value: string; label: string }[];
+  }
 ): ClassSessionFormInputs => {
   return {
     dateTime: classSession?.date ?? new Date(),
     hours: classSession?.hour?.toString() ?? '',
-    students: classSession?.studentOptions?.map((so) => so.value) ?? [],
+    students: preloads.students
+      ? preloads.students.map((ps) => ps.value)
+      : classSession?.studentOptions?.map((so) => so.value) ?? [],
     teacherHourRateId: classSession?.teacherHourRateOption?.value ?? '',
-    teacherId: classSession?.teacherOption?.value ?? '',
+    teacherId: preloads.teacher
+      ? preloads.teacher.value
+      : classSession?.teacherOption?.value ?? '',
   };
 };
 
@@ -73,16 +81,28 @@ const useClassSessionForm = ({
     { type: 'TEACHER' },
   ]);
 
+  const stablePreloads = useMemo(() => {
+    return {
+      teacher: preloadTeacher,
+      students: preloadedStudents,
+    };
+  }, [preloadTeacher, preloadedStudents]);
+
   const form = useForm<ClassSessionFormInputs>({
     resolver: zodResolver(classSessionFormZod),
-    defaultValues: getClassSessionFormDefaultValues(classSession),
+    defaultValues: getClassSessionFormDefaultValues(
+      classSession,
+      stablePreloads
+    ),
   });
   const stableFormReset = useMemo(() => {
     return form.reset;
   }, [form.reset]);
 
   useEffect(() => {
-    stableFormReset(getClassSessionFormDefaultValues(classSession));
+    stableFormReset(
+      getClassSessionFormDefaultValues(classSession, stablePreloads)
+    );
 
     //consistently update the react select options as well
     classSession?.studentOptions?.length &&
@@ -91,7 +111,7 @@ const useClassSessionForm = ({
       setSelectedTeacher(classSession?.teacherOption);
     classSession?.teacherHourRateOption &&
       setSelectedTeacherRate(classSession.teacherHourRateOption);
-  }, [stableFormReset, classSession]);
+  }, [stableFormReset, classSession, stablePreloads]);
 
   //select controlled values
   const [selectedDate, setSelectedDate] = useState(staticDate);
@@ -189,9 +209,15 @@ export const ClassSessionForm: FC<{
   const { mutateAsync: create, isLoading: isCreating } = trpc.useMutation(
     'classSessions.create',
     {
-      onSuccess: () => {
+      onSuccess: (data) => {
         queryClient.invalidateQueries(['classSessions.all']);
         queryClient.invalidateQueries(['classSessions.byStudent']);
+        const month = format(data.date, 'yy-MM');
+        queryClient.invalidateQueries([
+          'teachers.history',
+          //for some reason teacherId is optional in the DB, maybe I knew better, I just don't like this coalescing here
+          { teacherId: data.teacherId ?? '', month },
+        ]);
       },
     }
   );
