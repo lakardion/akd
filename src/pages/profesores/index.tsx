@@ -29,7 +29,7 @@ const TeacherForm: FC<{ onFinished: () => void; id: string }> = ({
     'teachers.create',
     {
       onSuccess: () => {
-        queryClient.invalidateQueries('teachers.teachers');
+        queryClient.invalidateQueries('teachers.allSearch');
       },
     }
   );
@@ -191,7 +191,7 @@ const TeachersList: FC<{
 
   if (isLoading) {
     return (
-      <div className="w-full justify-center">
+      <div className="w-full flex justify-center">
         <Spinner size="sm" />
       </div>
     );

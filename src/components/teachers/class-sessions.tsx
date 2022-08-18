@@ -7,7 +7,7 @@ import { PaginationControls } from 'components/pagination-controls';
 import { Spinner } from 'components/spinner';
 import { Table } from 'components/table';
 import { format } from 'date-fns';
-import { FC, useEffect, useMemo, useState } from 'react';
+import { FC, useMemo, useState } from 'react';
 import { usePaginationHandlers } from 'utils/pagination';
 import { trpc } from 'utils/trpc';
 

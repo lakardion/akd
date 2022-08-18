@@ -1,10 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { PaymentMethodType, TeacherPayment } from '@prisma/client';
+import { PaymentMethodType } from '@prisma/client';
 import {
   ColumnDef,
   getCoreRowModel,
   RowSelectionState,
-  Updater,
   useReactTable,
 } from '@tanstack/react-table';
 import { datePickerZod } from 'common';
@@ -12,23 +11,16 @@ import { PillButton } from 'components/button';
 import { Input } from 'components/form/input';
 import { ValidationError } from 'components/form/validation-error';
 import { IndeterminateCheckbox } from 'components/indeterminate-checkbox';
+import { PaginationControls } from 'components/pagination-controls';
 import { Spinner } from 'components/spinner';
 import { Table } from 'components/table';
 import { format, parse } from 'date-fns';
-import {
-  ChangeEvent,
-  FC,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
-import { useFieldArray, useForm, useWatch } from 'react-hook-form';
+import { FC, useEffect, useMemo, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
+import { mapPaymentTypeToLabel } from 'utils/adapters';
 import { usePaginationHandlers } from 'utils/pagination';
-import { PaginationControls } from 'components/pagination-controls';
 import { trpc } from 'utils/trpc';
 import { z } from 'zod';
-import { mapPaymentTypeToLabel } from 'utils/adapters';
 
 const paymentFormZod = z.object({
   date: datePickerZod,
@@ -48,7 +40,8 @@ type ClassSessionTableRow = {
 export const TeacherPaymentForm: FC<{
   teacherId: string;
   onFinished: () => void;
-}> = ({ teacherId, onFinished }) => {
+  month: string;
+}> = ({ teacherId, onFinished, month }) => {
   const { data: teacher } = trpc.useQuery([
     'teachers.single',
     { id: teacherId },
@@ -62,7 +55,11 @@ export const TeacherPaymentForm: FC<{
     'teacherPayments.create',
     {
       onSuccess: () => {
-        queryClient.invalidateQueries(['teacherPayments.all']);
+        queryClient.invalidateQueries(['teachers.single', { id: teacherId }]);
+        queryClient.invalidateQueries([
+          'teachers.history',
+          { teacherId: teacherId, month },
+        ]);
       },
     }
   );
@@ -151,6 +148,7 @@ export const TeacherPaymentForm: FC<{
   });
 
   //! if only tanstack table allowed me to do this in the change handler rather than having to listen to the rowSelection. I don't like this much...
+  //TODO: Check discord they might have suggested a better approach for this
   useEffect(() => {
     const rows = Object.keys(rowSelection).map((k) => {
       const row = table.getRow(k);

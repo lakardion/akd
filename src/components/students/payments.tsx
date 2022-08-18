@@ -67,6 +67,7 @@ export const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
           'payments.byStudent',
           { id: studentId },
         ]);
+        queryClient.invalidateQueries(['students.single', { id: studentId }]);
       },
     }
   );
