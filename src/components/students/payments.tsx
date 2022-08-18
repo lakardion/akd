@@ -2,19 +2,20 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { PaymentMethodType } from '@prisma/client';
 import {
   ColumnDef,
-  flexRender,
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
+import { datePickerZod } from 'common';
 import { PillButton } from 'components/button';
 import { Input } from 'components/form/input';
 import { ValidationError } from 'components/form/validation-error';
 import { Table } from 'components/table';
-import { format, isMatch, parse } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { Decimal } from 'decimal.js';
 import { ChangeEvent, FC, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import ReactSelect, { SingleValue } from 'react-select';
+import { mapPaymentTypeToLabel } from 'utils/adapters';
 import { trpc } from 'utils/trpc';
 import { z } from 'zod';
 
@@ -27,10 +28,7 @@ const paymentFormZod = z.object({
     .string()
     .min(1, 'Requerido')
     .refine((value) => value !== '0', 'Must be a number'),
-  date: z.string().refine((value) => {
-    if (!isMatch(value, 'yyyy-MM-dd')) return false;
-    return true;
-  }),
+  date: datePickerZod,
   paymentMethod: z.enum([PaymentMethodType.CASH, PaymentMethodType.TRANSFER]),
 });
 type PaymentFormInput = z.infer<typeof paymentFormZod>;
@@ -69,6 +67,7 @@ export const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
           'payments.byStudent',
           { id: studentId },
         ]);
+        queryClient.invalidateQueries(['students.single', { id: studentId }]);
       },
     }
   );
@@ -220,7 +219,9 @@ export const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
       <label htmlFor="paymentMethod">Medio de pago</label>
       <div className="flex items-center">
         <div className="flex-grow flex justify-center gap-3 items-center">
-          <label htmlFor="cash">Efectivo</label>
+          <label htmlFor="cash">
+            {mapPaymentTypeToLabel[PaymentMethodType.CASH]}
+          </label>
           <Input
             type="radio"
             id="cash"
@@ -230,7 +231,9 @@ export const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
           />
         </div>
         <div className="flex-grow flex justify-center gap-3 items-center">
-          <label htmlFor="transfer">Transferencia</label>
+          <label htmlFor="transfer">
+            {mapPaymentTypeToLabel[PaymentMethodType.TRANSFER]}
+          </label>
           <Input
             type="radio"
             id="transfer"

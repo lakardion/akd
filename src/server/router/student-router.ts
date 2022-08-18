@@ -35,21 +35,21 @@ export const studentRouter = createRouter()
     }) {
       const whereClause: Prisma.StudentWhereInput | undefined = query
         ? {
-            OR: [
-              {
-                name: {
-                  contains: query,
-                  mode: 'insensitive',
-                },
+          OR: [
+            {
+              name: {
+                contains: query,
+                mode: 'insensitive',
               },
-              {
-                lastName: {
-                  contains: query,
-                  mode: 'insensitive',
-                },
+            },
+            {
+              lastName: {
+                contains: query,
+                mode: 'insensitive',
               },
-            ],
-          }
+            },
+          ],
+        }
         : undefined;
       const studentsResult = await ctx.prisma.student.findMany({
         where: whereClause,
@@ -58,6 +58,7 @@ export const studentRouter = createRouter()
         orderBy: { lastName: 'asc' },
       });
       return {
+        size,
         nextCursor: studentsResult.length === size ? page + 1 : null,
         students: studentsResult.map((s) => ({
           ...s,
@@ -85,8 +86,8 @@ export const studentRouter = createRouter()
         where: includeInactive
           ? undefined
           : {
-              isActive: true,
-            },
+            isActive: true,
+          },
       });
       return {
         count,

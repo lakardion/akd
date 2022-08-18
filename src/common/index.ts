@@ -1,4 +1,5 @@
 import { HourRateType } from '@prisma/client';
+import { isMatch } from 'date-fns';
 import { z } from 'zod';
 
 const personZod = z.object({
@@ -66,3 +67,8 @@ export const hourRateTypeZod = z.object({
 export const includeInactiveFlagZod = z.object({
   includeInactive: z.boolean().optional(),
 });
+
+export const datePickerZod = z.string().refine((value) => {
+  if (!isMatch(value, 'yyyy-MM-dd')) return false;
+  return true;
+}, 'Formato incorrecto');
