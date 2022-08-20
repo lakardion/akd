@@ -1,5 +1,7 @@
-import { Prisma } from '@prisma/client';
+import { PaymentMethodType, Prisma } from '@prisma/client';
 import { includeInactiveFlagZod, studentFormZod } from 'common';
+import { isMatch } from 'date-fns';
+import { getMonthEdges } from 'utils/date';
 import {
   DEFAULT_PAGE_SIZE,
   getPagination,
@@ -10,6 +12,105 @@ import { z } from 'zod';
 import { createRouter } from './context';
 
 export const studentRouter = createRouter()
+  .query('history', {
+    input: z.object({
+      studentId: z.string(),
+      month: z.string().refine((value) => {
+        return isMatch(value, 'yy-MM');
+      }),
+    }),
+    async resolve({ ctx, input: { studentId, month } }) {
+      const [firstDayOfMonth, lastDayOfMonth] = getMonthEdges(month);
+      const classSessions = await ctx.prisma.classSession.findMany({
+        where: {
+          classSessionStudent: {
+            some: {
+              studentId,
+            },
+          },
+          date: {
+            lte: lastDayOfMonth,
+            gte: firstDayOfMonth,
+          },
+        },
+        select: {
+          id: true,
+          teacher: {
+            select: {
+              name: true,
+              lastName: true,
+            },
+          },
+
+          date: true,
+          hour: {
+            select: {
+              value: true,
+            },
+          },
+        },
+      });
+
+      type StudentHistoryEntry =
+        | {
+            date: Date;
+            payment: {
+              id: string;
+              type: PaymentMethodType;
+              amount: number;
+              hours: number;
+            };
+          }
+        | {
+            date: Date;
+
+            classSession: {
+              id: string;
+              teacherFullName: string;
+              hours: number;
+            };
+          };
+      const classSessionsMapped = classSessions.map<StudentHistoryEntry>(
+        (cs) => ({
+          date: cs.date,
+          classSession: {
+            hours: cs.hour.value.toNumber(),
+            id: cs.id,
+            teacherFullName: `${cs.teacher?.name} ${cs.teacher?.lastName}`,
+          },
+        })
+      );
+
+      const payments = await ctx.prisma.payment.findMany({
+        where: {
+          studentId,
+          date: {
+            lte: lastDayOfMonth,
+            gte: firstDayOfMonth,
+          },
+        },
+        select: {
+          date: true,
+          id: true,
+          hour: { select: { value: true } },
+          paymentMethod: true,
+          value: true,
+        },
+      });
+      const paymentsMapped = payments.map<StudentHistoryEntry>((p) => ({
+        date: p.date,
+        payment: {
+          amount: p.value.toNumber(),
+          hours: p.hour.value.toNumber(),
+          id: p.id,
+          type: p.paymentMethod,
+        },
+      }));
+      const merged = classSessionsMapped.concat(paymentsMapped);
+      merged.sort((a, b) => (a > b ? -1 : 1));
+      return merged;
+    },
+  })
   .query('single', {
     input: z.object({
       id: z.string(),
@@ -35,21 +136,21 @@ export const studentRouter = createRouter()
     }) {
       const whereClause: Prisma.StudentWhereInput | undefined = query
         ? {
-          OR: [
-            {
-              name: {
-                contains: query,
-                mode: 'insensitive',
+            OR: [
+              {
+                name: {
+                  contains: query,
+                  mode: 'insensitive',
+                },
               },
-            },
-            {
-              lastName: {
-                contains: query,
-                mode: 'insensitive',
+              {
+                lastName: {
+                  contains: query,
+                  mode: 'insensitive',
+                },
               },
-            },
-          ],
-        }
+            ],
+          }
         : undefined;
       const studentsResult = await ctx.prisma.student.findMany({
         where: whereClause,
@@ -86,8 +187,8 @@ export const studentRouter = createRouter()
         where: includeInactive
           ? undefined
           : {
-            isActive: true,
-          },
+              isActive: true,
+            },
       });
       return {
         count,

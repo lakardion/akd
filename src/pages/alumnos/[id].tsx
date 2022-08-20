@@ -1,16 +1,74 @@
 import { PillButton } from 'components/button';
 import { Modal } from 'components/modal';
 import {
-  StudentAttachToClassSessionForm,
-  ClassSessionTable,
   PaymentForm,
-  PaymentTable,
+  StudentAttachToClassSessionForm,
 } from 'components/students';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { useRouter } from 'next/router';
-import { useMemo, useState } from 'react';
+import { FC, useMemo, useState } from 'react';
+import ReactDatePicker from 'react-datepicker';
+import { iconByPaymentType } from 'utils/payments';
 import { trpc } from 'utils/trpc';
 
-const activeViewClass = 'bg-primary-700 text-white';
+const StudentHistory: FC<{ month: string; studentId: string }> = ({
+  month,
+  studentId,
+}) => {
+  const { data: history, isLoading } = trpc.useQuery([
+    'students.history',
+    { month, studentId },
+  ]);
+  return (
+    <section
+      aria-label="class and payment history"
+      className="w-full flex flex-col gap-3"
+    >
+      {!history?.length ? (
+        <p className="text-center italic">No hay registros para este mes</p>
+      ) : null}
+      {history?.map((h) => {
+        if ('payment' in h) {
+          const Icon = iconByPaymentType[h.payment.type];
+          return (
+            <section
+              className="relative w-full flex gap-3 p-2 px-6 bg-teal-100/50 text-black rounded-lg justify-between items-center"
+              key={h.payment.id}
+            >
+              <div className="flex flex-col gap-2">
+                <h1 className="font-bold">Pago</h1>
+                <p>{format(h.date, 'dd-MM-yy')}</p>
+              </div>
+              <div className="text-3xl">{h.payment.hours} hs</div>
+              <div className="text-2xl self-end">$ {h.payment.amount}</div>
+              <div className="absolute top-0 right-4 p-2">
+                <Icon size={20} />
+              </div>
+            </section>
+          );
+        } else {
+          return (
+            <section
+              className="relative w-full flex gap-3 p-2 px-6 bg-primary-100/50 text-black rounded-lg justify-between items-center"
+              key={h.classSession.id}
+            >
+              <div className="flex flex-col gap-2">
+                <h1 className="font-bold">Clase</h1>
+                <p>{format(h.date, 'dd-MM-yy')}</p>
+              </div>
+              <div className="text-xl self-center">
+                {h.classSession.teacherFullName}
+              </div>
+              <p className="text-2xl">{h.classSession.hours} hs</p>
+            </section>
+          );
+        }
+      })}
+    </section>
+  );
+};
+
 type StudentStatus = 'OWES' | 'NO_HOURS' | 'HAS_HOURS';
 
 const colorByStatus: Record<StudentStatus, string> = {
@@ -42,12 +100,13 @@ const getStatus = (hours: number) => {
 const StudentDetail = () => {
   const [showPaymentmodal, setShowPaymentmodal] = useState(false);
   const [showClassSessionModal, setShowClassSessionModal] = useState(false);
-  const [activeView, setActiveView] = useState<'payments' | 'classes'>(
-    'payments'
-  );
   const {
     query: { id },
   } = useRouter();
+  const [month, setMonth] = useState(new Date());
+  const parsedMonth = useMemo(() => {
+    return format(month, 'yy-MM');
+  }, [month]);
 
   const stableId = useMemo(() => {
     return typeof id === 'string' ? id : '';
@@ -58,12 +117,6 @@ const StudentDetail = () => {
   });
   const status = getStatus(data?.hourBalance ?? 0);
 
-  const handleSetPaymentActiveView = () => {
-    setActiveView('payments');
-  };
-  const handleSetClassesActiveView = () => {
-    setActiveView('classes');
-  };
   const handleShowPaymentModal = () => {
     setShowPaymentmodal(true);
   };
@@ -75,6 +128,10 @@ const StudentDetail = () => {
   };
   const handleShowClassSessionModal = () => {
     setShowClassSessionModal(true);
+  };
+
+  const handleMonthChange = (date: Date) => {
+    setMonth(date);
   };
 
   if (!id)
@@ -103,33 +160,21 @@ const StudentDetail = () => {
         aria-label="class and payment history"
         className="w-full flex flex-col gap-3"
       >
-        <header className="w-full flex rounded-r-full rounded-l-full border border-solid border-blackish-600 bg-blackish-300 justify-center items-center text-blackish-800/80 hover:cursor-pointer">
-          <div
-            className={`flex-grow text-center rounded-l-full transition-colors ease-in-out delay-150 ${
-              activeView === 'payments'
-                ? activeViewClass
-                : 'hover:bg-primary-400 hover:text-white'
-            }`}
-            onClick={handleSetPaymentActiveView}
-          >
-            Pagos
+        <section className="flex gap-3 py-4 items-center justify-center w-full">
+          <div>
+            <label>Mes</label>
           </div>
-          <div
-            className={`flex-grow text-center rounded-r-full transition-colors ease-in-out delay-150 ${
-              activeView === 'classes'
-                ? activeViewClass
-                : 'hover:bg-primary-400 hover:text-white'
-            }`}
-            onClick={handleSetClassesActiveView}
-          >
-            Clases
-          </div>
-        </header>
-        {activeView === 'payments' ? (
-          <PaymentTable studentId={stableId} />
-        ) : (
-          <ClassSessionTable studentId={stableId} />
-        )}
+          <ReactDatePicker
+            selected={month}
+            onChange={handleMonthChange}
+            dateFormat="MMMM-yy"
+            showMonthYearPicker
+            locale={es}
+            className="bg-primary-300/50 p-2 rounded-lg w-full text-center"
+            wrapperClassName="max-w-[150px] flex justify-center items-center"
+          />
+        </section>
+        <StudentHistory month={parsedMonth} studentId={stableId} />
       </section>
       {showPaymentmodal ? (
         <Modal
