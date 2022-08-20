@@ -1,4 +1,3 @@
-import { PaymentMethodType } from '@prisma/client';
 import { PillButton } from 'components/button';
 import { ClassSessionForm } from 'components/class-sessions/form';
 import { Modal } from 'components/modal';
@@ -8,15 +7,9 @@ import { useRouter } from 'next/router';
 import { FC, useMemo, useState } from 'react';
 import ReactDatePicker from 'react-datepicker';
 import { trpc } from 'utils/trpc';
-import { BsCash } from 'react-icons/bs';
-import { MdPayment } from 'react-icons/md';
-import { IconType } from 'react-icons';
-import { es } from 'date-fns/locale';
 
-const iconByPaymentType: Record<PaymentMethodType, IconType> = {
-  CASH: BsCash,
-  TRANSFER: MdPayment,
-};
+import { es } from 'date-fns/locale';
+import { iconByPaymentType } from 'utils/payments';
 
 const TeacherHistory: FC<{ month: string; teacherId: string }> = ({
   month,
@@ -81,6 +74,9 @@ const TeacherDetail = () => {
   const [showPaymentmodal, setShowPaymentmodal] = useState(false);
   const [showClassSessionModal, setShowClassSessionModal] = useState(false);
   const [month, setMonth] = useState(new Date());
+  const parsedMonth = useMemo(() => {
+    return format(month, 'yy-MM');
+  }, [month]);
 
   const {
     query: { id },
@@ -110,10 +106,6 @@ const TeacherDetail = () => {
   const handleMonthChange = (date: Date) => {
     setMonth(date);
   };
-
-  const parsedMonth = useMemo(() => {
-    return format(month, 'yy-MM');
-  }, [month]);
 
   if (!id)
     return (

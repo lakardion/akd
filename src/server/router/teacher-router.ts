@@ -25,7 +25,7 @@ export const teacherRouter = createRouter()
     async resolve({ ctx, input: { teacherId, month } }) {
       //get all for the month
       const [firstDayOfMonth, lastDayOfMonth] = getMonthEdges(month);
-      type HistoryEntry =
+      type TeacherHistoryEntry =
         | {
             date: Date;
             payment: {
@@ -81,16 +81,17 @@ export const teacherRouter = createRouter()
         },
       });
 
-      const classSessionsResult = classSessions.flatMap<HistoryEntry>((cs) =>
-        cs.classSessionStudent.map((css) => ({
-          date: cs.date,
-          classSession: {
-            id: cs.id,
-            hours: cs.hour.value.toNumber(),
-            studentId: css.student.id,
-            studentFullName: `${css.student.name} ${css.student.lastName}`,
-          },
-        }))
+      const classSessionsResult = classSessions.flatMap<TeacherHistoryEntry>(
+        (cs) =>
+          cs.classSessionStudent.map((css) => ({
+            date: cs.date,
+            classSession: {
+              id: cs.id,
+              hours: cs.hour.value.toNumber(),
+              studentId: css.student.id,
+              studentFullName: `${css.student.name} ${css.student.lastName}`,
+            },
+          }))
       );
 
       const payments = await ctx.prisma.teacherPayment.findMany({
@@ -108,7 +109,7 @@ export const teacherRouter = createRouter()
           date: true,
         },
       });
-      const paymentResults = payments.map<HistoryEntry>((p) => ({
+      const paymentResults = payments.map<TeacherHistoryEntry>((p) => ({
         date: p.date,
         payment: {
           id: p.id,
@@ -194,37 +195,6 @@ export const teacherRouter = createRouter()
         new Decimal(0)
       );
       return { ...teacher, balance: currentTotal?.toNumber() };
-    },
-  })
-  .query('teachers', {
-    input: paginationZod.merge(includeInactiveFlagZod).default({}),
-    async resolve({
-      ctx,
-      input: { page = 1, size = DEFAULT_PAGE_SIZE, includeInactive = false },
-    }) {
-      const totalCount = await ctx.prisma.teacher.count({
-        where: includeInactive ? undefined : { isActive: true },
-      });
-      const { count, next, previous } = getPagination({
-        count: totalCount,
-        page,
-        size,
-      });
-      const teachers = await ctx.prisma.teacher.findMany({
-        take: size,
-        where: includeInactive ? undefined : { isActive: true },
-        orderBy: {
-          lastName: 'asc',
-        },
-        skip: (page - 1) * size,
-      });
-
-      return {
-        count,
-        next,
-        previous,
-        teachers,
-      };
     },
   })
   .query('allSearch', {

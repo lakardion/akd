@@ -37,7 +37,7 @@ const TeacherForm: FC<{ onFinished: () => void; id: string }> = ({
     'teachers.edit',
     {
       onSuccess: () => {
-        queryClient.invalidateQueries('teachers.teachers');
+        queryClient.invalidateQueries('teachers.allSearch');
         queryClient.invalidateQueries(['teachers.teacher', { id }]);
       },
     }
@@ -81,7 +81,11 @@ const TeacherForm: FC<{ onFinished: () => void; id: string }> = ({
       <Input {...register('name')} placeholder="Name..." />
       <ValidationError errorMessages={errors.name?.message} />
       <section className="flex gap-3 w-full pt-2">
-        <Button type="submit" className="flex-grow">
+        <Button
+          type="submit"
+          className="flex-grow"
+          isLoading={isCreating || isEditing}
+        >
           {id ? 'Editar' : 'Agregar'}
         </Button>
         <Button onClick={onFinished} className="flex-grow">
@@ -239,7 +243,7 @@ const Teachers = () => {
     'teachers.delete',
     {
       onSuccess: () => {
-        queryClient.invalidateQueries('teachers.teachers');
+        queryClient.invalidateQueries('teachers.allSearch');
       },
     }
   );
