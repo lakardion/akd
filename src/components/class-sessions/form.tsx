@@ -4,10 +4,18 @@ import { Input } from 'components/form/input';
 import { ValidationError } from 'components/form/validation-error';
 import { WarningMessage } from 'components/warning-message';
 import { format, setHours, setMinutes } from 'date-fns';
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { es } from 'date-fns/locale';
+import {
+  ChangeEvent,
+  FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import ReactDatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { Controller, useForm } from 'react-hook-form';
+import { ChangeHandler, Controller, useForm } from 'react-hook-form';
 import ReactSelect, { MultiValue, SingleValue } from 'react-select';
 import AsyncReactSelect from 'react-select/async';
 import {
@@ -15,7 +23,42 @@ import {
   debouncedSearchTeachers,
 } from 'utils/client-search-utils';
 import { inferQueryOutput, trpc } from 'utils/trpc';
+import { useDebouncedValue } from 'utils/use-debounce';
 import { z } from 'zod';
+
+const useStudentDebtors = (
+  studentIds: string[],
+  hourOnChange: ChangeHandler
+) => {
+  const [hoursForm, setHoursForm] = useState(0);
+  const debouncedHours = useDebouncedValue(hoursForm, 500);
+  const debouncedStudents = useDebouncedValue(studentIds, 500);
+  const { data: debtors } = trpc.useQuery(
+    ['students.checkDebtors', { hours: debouncedHours, students: studentIds }],
+    {
+      enabled: Boolean(debouncedHours && debouncedStudents),
+      keepPreviousData: true,
+    }
+  );
+
+  const customHourChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      setHoursForm(e.target.value ? parseFloat(e.target.value) : 0);
+      hourOnChange(e);
+    },
+    [hourOnChange]
+  );
+
+  const areThereDebtors = useMemo(
+    () => Boolean(hoursForm !== 0 && debtors?.length),
+    [debtors?.length, hoursForm]
+  );
+
+  return useMemo(
+    () => ({ debtors, customHourChange, areThereDebtors }),
+    [areThereDebtors, customHourChange, debtors]
+  );
+};
 
 const classSessionFormZod = z.object({
   teacherId: z.string({ required_error: 'Requerido' }).min(1, 'Requerido'),
@@ -28,6 +71,13 @@ const classSessionFormZod = z.object({
     .refine((value) => {
       return !isNaN(parseInt(value));
     }, 'Must be a number'),
+  debts: z.map(
+    z.string(),
+    z.object({
+      hours: z.number(),
+      rate: z.number(),
+    })
+  ),
 });
 type ClassSessionFormInputs = z.infer<typeof classSessionFormZod>;
 
@@ -60,6 +110,7 @@ const getClassSessionFormDefaultValues = (
     teacherId: preloads.teacher
       ? preloads.teacher.value
       : classSession?.teacherOption?.value ?? '',
+    debts: new Map(),
   };
 };
 
@@ -255,6 +306,19 @@ export const ClassSessionForm: FC<{
         });
     onFinished();
   };
+  const { onChange: hourOnChange, ...restRegisterHours } = useMemo(() => {
+    return register('hours');
+  }, [register]);
+
+  const studentIds = useMemo(() => {
+    return selectedStudents.flatMap((s) => (s ? [s.value] : []));
+  }, [selectedStudents]);
+
+  //Not okay with this solution, might want to do something better some other time if I ever come up with a better way of performing this validation
+  const { customHourChange, debtors, areThereDebtors } = useStudentDebtors(
+    studentIds,
+    hourOnChange
+  );
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
@@ -273,7 +337,7 @@ export const ClassSessionForm: FC<{
             showTimeSelect
             dateFormat={'Pp'}
             timeFormat={'p'}
-            locale="es"
+            locale={es}
             className="bg-secondary-100 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blackish-900 placeholder:text-slate-500 text-black"
             minTime={setMinutes(setHours(new Date(), 8), 0)}
             maxTime={setMinutes(setHours(new Date(), 19), 0)}
@@ -332,7 +396,8 @@ export const ClassSessionForm: FC<{
       <Input
         type="number"
         placeholder="Agregar horas..."
-        {...register('hours')}
+        onChange={customHourChange}
+        {...restRegisterHours}
       />
       <ValidationError errorMessages={errors.hours?.message} />
       <label htmlFor="students">Alumnos</label>
@@ -359,11 +424,20 @@ export const ClassSessionForm: FC<{
         )}
       />
       <ValidationError errorMessages={parsedStudentsError} />
-      {selectedStudents?.length ? (
-        <WarningMessage>
-          A los alumnos seleccionados se les reducirá el balance de horas aun si
-          no tienen horas disponibles
-        </WarningMessage>
+      {areThereDebtors ? (
+        <button
+          type="button"
+          className="transition-transform transform hover:scale-95"
+          onClick={() => {
+            //TODO: handle debtors
+          }}
+        >
+          <WarningMessage>
+            Algunos alumnos no tienen la suficiente cantidad de horas para
+            adherirse a esta clase, por favor resuelve cómo se deberían cargar
+            sus deudas
+          </WarningMessage>
+        </button>
       ) : null}
       <section aria-label="action buttons" className="flex gap-2">
         <Button
@@ -371,6 +445,7 @@ export const ClassSessionForm: FC<{
           type="submit"
           className="capitalize flex-grow"
           isLoading={isCreating || isEditing}
+          disabled={areThereDebtors}
         >
           {id ? 'Editar clase' : 'Crear clase'}
         </Button>

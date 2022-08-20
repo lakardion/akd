@@ -27,7 +27,7 @@ export const Button: FC<
     <button
       {...props}
       type={type ?? 'button'}
-      className={`${buttonClassByVariant[variant]} py-1 px-2 rounded-md  ${className}`}
+      className={`${buttonClassByVariant[variant]} py-1 px-2 rounded-md btn-disabled  ${className}`}
     >
       {isLoading ? (
         <div className="w-full flex justify-center">

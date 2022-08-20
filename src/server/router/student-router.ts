@@ -12,6 +12,36 @@ import { z } from 'zod';
 import { createRouter } from './context';
 
 export const studentRouter = createRouter()
+  .query('checkDebtors', {
+    input: z.object({
+      students: z.array(z.string()),
+      hours: z.number(),
+    }),
+    async resolve({ ctx, input: { hours, students } }) {
+      // should I check each student individually?.
+      const debtors = ctx.prisma.student.findMany({
+        where: {
+          AND: [
+            {
+              id: {
+                in: students,
+              },
+            },
+            {
+              hourBalance: {
+                lt: hours,
+              },
+            },
+          ],
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      return debtors;
+    },
+  })
   .query('history', {
     input: z.object({
       studentId: z.string(),

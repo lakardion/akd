@@ -376,11 +376,21 @@ export const classSessionRouter = createRouter()
       teacherHourRateId: z.string(),
       date: z.date(),
       hours: z.number(),
+      debts: z
+        .array(
+          z.object({
+            studentId: z.string(),
+            hours: z.number(),
+            rate: z.number(),
+          })
+        )
+        .optional(),
     }),
     async resolve({
       ctx,
-      input: { studentIds, teacherId, teacherHourRateId, date, hours },
+      input: { studentIds, teacherId, teacherHourRateId, date, hours, debts },
     }) {
+      //TODO: make this a transaction. Double validate debtors in case someone tried to skip FE validation
       //1- Create hour
       const hour = await ctx.prisma.hour.create({
         data: { value: hours },
