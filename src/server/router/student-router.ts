@@ -1,4 +1,5 @@
 import { PaymentMethodType, Prisma } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime';
 import { includeInactiveFlagZod, studentFormZod } from 'common';
 import { isMatch } from 'date-fns';
 import { getMonthEdges } from 'utils/date';
@@ -19,7 +20,7 @@ export const studentRouter = createRouter()
     }),
     async resolve({ ctx, input: { hours, students } }) {
       // should I check each student individually?.
-      const debtors = ctx.prisma.student.findMany({
+      const debtors = await ctx.prisma.student.findMany({
         where: {
           AND: [
             {
@@ -36,10 +37,19 @@ export const studentRouter = createRouter()
         },
         select: {
           id: true,
+          name: true,
+          lastName: true,
+          hourBalance: true,
         },
       });
 
-      return debtors;
+      const decimalHours = new Decimal(hours);
+
+      return debtors.map((d) => ({
+        id: d.id,
+        studentFullName: `${d.name} ${d.lastName}`,
+        hours: decimalHours.minus(d.hourBalance).toNumber(),
+      }));
     },
   })
   .query('history', {

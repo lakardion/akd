@@ -2,9 +2,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from 'components/button';
 import { Input } from 'components/form/input';
 import { ValidationError } from 'components/form/validation-error';
+import { Modal } from 'components/modal';
 import { WarningMessage } from 'components/warning-message';
 import { format, setHours, setMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
+import Decimal from 'decimal.js';
 import {
   ChangeEvent,
   FC,
@@ -15,7 +17,12 @@ import {
 } from 'react';
 import ReactDatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { ChangeHandler, Controller, useForm } from 'react-hook-form';
+import {
+  ChangeHandler,
+  Controller,
+  useFieldArray,
+  useForm,
+} from 'react-hook-form';
 import ReactSelect, { MultiValue, SingleValue } from 'react-select';
 import AsyncReactSelect from 'react-select/async';
 import {
@@ -25,6 +32,101 @@ import {
 import { inferQueryOutput, trpc } from 'utils/trpc';
 import { useDebouncedValue } from 'utils/use-debounce';
 import { z } from 'zod';
+
+const debtorZod = z.object({
+  studentId: z.string(),
+  hours: z.number(),
+  rate: z.number(),
+});
+
+const debtorsFormZod = z.object({
+  debtors: z.array(debtorZod),
+});
+
+type DebtorsFormInput = z.infer<typeof debtorsFormZod>;
+const headers = ['Name', 'Horas', 'Ratio', 'Total'];
+const DebtorsForm: FC<{
+  onFinished: () => void;
+  onSubmit: (debtors: FormDebtor[]) => void;
+  debtorsFeed: (FormDebtor & { studentFullName: string })[];
+}> = ({ onFinished, onSubmit, debtorsFeed }) => {
+  const { control, register, watch } = useForm<DebtorsFormInput>({
+    resolver: zodResolver(debtorsFormZod),
+    defaultValues: { debtors: debtorsFeed },
+  });
+
+  const { fields } = useFieldArray({ control, name: 'debtors' });
+
+  return (
+    <form>
+      <section className="w-full px-3">
+        <table className="w-full">
+          <thead>
+            <tr>
+              {headers.map((h, idx) => (
+                <th key={idx} className="">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {fields.map((debtor, index) => {
+              // aparently to do this sort of composite values we have to use watch. I'm pretty sure watch is a sort of hook, but they did not name it that bc it would lint error
+              const [hours, rate] = watch([
+                `debtors.${index}.hours`,
+                `debtors.${index}.rate`,
+              ]);
+              const safeHour = hours ? hours : 0;
+              const safeRate = rate ? rate : 0;
+              const hourDec = new Decimal(safeHour);
+              const rateDec = new Decimal(safeRate);
+              const total = hourDec.times(rateDec);
+              return (
+                <tr key={debtor.id}>
+                  <td>
+                    <p className="text-sm text-center whitespace-nowrap">
+                      {debtorsFeed[index]?.studentFullName}
+                    </p>
+                  </td>
+                  <td className="px-1">
+                    <div className="flex justify-center w-full">
+                      {debtorsFeed[index]?.hours}
+                    </div>
+                  </td>
+                  <td className="px-1">
+                    <div className="flex justify-center w-full">
+                      {/*
+                        TODO:
+                        I would like this to be a react-select that could also swap to be a readonly field. I know that's kind of crazy but would do a pretty cool UX
+                        This way we would be able to allow the user to either input a total value or pick an existing rate.
+                        We would not supoprt setting the rate on our own maybe
+                       */}
+                      <Input
+                        key={debtor.id}
+                        {...register(`debtors.${index}.rate`)}
+                        className="w-20 text-center m-auto"
+                      />
+                    </div>
+                  </td>
+                  <td className="text-center px-1">
+                    <div className="flex justify-between w-full">
+                      <div>$</div>
+                      <p className="text-center flex-grow">
+                        {' '}
+                        {total.toNumber()}
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </section>
+    </form>
+  );
+};
 
 const useStudentDebtors = (
   studentIds: string[],
@@ -40,7 +142,6 @@ const useStudentDebtors = (
       keepPreviousData: true,
     }
   );
-
   const customHourChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
       setHoursForm(e.target.value ? parseFloat(e.target.value) : 0);
@@ -48,7 +149,6 @@ const useStudentDebtors = (
     },
     [hourOnChange]
   );
-
   const areThereDebtors = useMemo(
     () => Boolean(hoursForm !== 0 && debtors?.length),
     [debtors?.length, hoursForm]
@@ -59,6 +159,8 @@ const useStudentDebtors = (
     [areThereDebtors, customHourChange, debtors]
   );
 };
+
+type FormDebtor = z.infer<typeof debtorZod>;
 
 const classSessionFormZod = z.object({
   teacherId: z.string({ required_error: 'Requerido' }).min(1, 'Requerido'),
@@ -71,13 +173,7 @@ const classSessionFormZod = z.object({
     .refine((value) => {
       return !isNaN(parseInt(value));
     }, 'Must be a number'),
-  debts: z.map(
-    z.string(),
-    z.object({
-      hours: z.number(),
-      rate: z.number(),
-    })
-  ),
+  debtors: z.array(debtorZod),
 });
 type ClassSessionFormInputs = z.infer<typeof classSessionFormZod>;
 
@@ -110,7 +206,7 @@ const getClassSessionFormDefaultValues = (
     teacherId: preloads.teacher
       ? preloads.teacher.value
       : classSession?.teacherOption?.value ?? '',
-    debts: new Map(),
+    debtors: [],
   };
 };
 
@@ -241,6 +337,7 @@ export const ClassSessionForm: FC<{
       formState: { errors },
       control,
       register,
+      setValue,
     },
     parsedStudentsError,
     selectedDate,
@@ -320,143 +417,177 @@ export const ClassSessionForm: FC<{
     hourOnChange
   );
 
+  const [showDebtorsForm, setShowDebtorsForm] = useState(false);
+  const handleDebtorsFormOpen = () => {
+    setShowDebtorsForm(true);
+  };
+  const handleDebtorsFormFinished = () => {
+    setShowDebtorsForm(false);
+  };
+  const handleSetDebtors = (debtors: FormDebtor[]) => {
+    setValue('debtors', debtors);
+  };
+
+  const debtorsFeed = useMemo(() => {
+    return (
+      debtors?.map((d) => ({
+        studentId: d.id,
+        studentFullName: d.studentFullName,
+        rate: 0,
+        hours: d.hours,
+      })) ?? []
+    );
+  }, [debtors]);
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
-      <h1 className="text-3xl text-center">
-        {id ? 'Editar clase' : 'Agregar clase'}
-      </h1>
-      <label htmlFor="dateTime">Fecha</label>
-      <Controller
-        name="dateTime"
-        control={control}
-        defaultValue={staticDate}
-        render={() => (
-          <ReactDatePicker
-            selected={selectedDate}
-            onChange={handleDateChange}
-            showTimeSelect
-            dateFormat={'Pp'}
-            timeFormat={'p'}
-            locale={es}
-            className="bg-secondary-100 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blackish-900 placeholder:text-slate-500 text-black"
-            minTime={setMinutes(setHours(new Date(), 8), 0)}
-            maxTime={setMinutes(setHours(new Date(), 19), 0)}
+    <>
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
+        <h1 className="text-3xl text-center">
+          {id ? 'Editar clase' : 'Agregar clase'}
+        </h1>
+        <label htmlFor="dateTime">Fecha</label>
+        <Controller
+          name="dateTime"
+          control={control}
+          defaultValue={staticDate}
+          render={() => (
+            <ReactDatePicker
+              selected={selectedDate}
+              onChange={handleDateChange}
+              showTimeSelect
+              dateFormat={'Pp'}
+              timeFormat={'p'}
+              locale={es}
+              className="bg-secondary-100 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blackish-900 placeholder:text-slate-500 text-black"
+              minTime={setMinutes(setHours(new Date(), 8), 0)}
+              maxTime={setMinutes(setHours(new Date(), 19), 0)}
+            />
+          )}
+        />
+        {errors.dateTime ? (
+          <p className="font-medium text-red-500">{errors.dateTime.message}</p>
+        ) : null}
+        <label htmlFor="teacherId">Profesor</label>
+        <Controller
+          name="teacherId"
+          control={control}
+          defaultValue=""
+          render={({ field }) => (
+            <AsyncReactSelect
+              loadOptions={debouncedSearchTeachers}
+              defaultOptions
+              onBlur={field.onBlur}
+              ref={field.ref}
+              className="text-black akd-container"
+              classNamePrefix="akd"
+              onChange={(value) => {
+                field.onChange(value?.value ?? '');
+                setSelectedTeacher(value);
+              }}
+              value={selectedTeacher}
+              placeholder="Seleccionar profesor"
+            />
+          )}
+        />
+        <ValidationError errorMessages={errors.teacherId?.message} />
+        <label htmlFor="teacherHourRateId">Ratio del profesor</label>
+        <Controller
+          name="teacherHourRateId"
+          control={control}
+          defaultValue=""
+          render={({ field }) => (
+            <ReactSelect
+              onBlur={field.onBlur}
+              ref={field.ref}
+              className="text-black akd-container"
+              classNamePrefix="akd"
+              onChange={(value) => {
+                field.onChange(value?.value ?? '');
+                setSelectedTeacherRateId(value);
+              }}
+              value={selectedTeacherRateId}
+              placeholder="Seleccionar ratio de hora"
+              options={teacherRateOptions}
+            />
+          )}
+        />
+        <ValidationError errorMessages={errors.teacherHourRateId?.message} />
+        <label htmlFor="hours">Horas</label>
+        <Input
+          type="number"
+          placeholder="Agregar horas..."
+          onChange={customHourChange}
+          {...restRegisterHours}
+        />
+        <ValidationError errorMessages={errors.hours?.message} />
+        <label htmlFor="students">Alumnos</label>
+        <Controller
+          name="students"
+          control={control}
+          defaultValue={[]}
+          render={({ field }) => (
+            <AsyncReactSelect
+              loadOptions={debouncedSearchStudents}
+              isMulti
+              defaultOptions
+              onBlur={field.onBlur}
+              ref={field.ref}
+              className="text-black akd-container"
+              classNamePrefix="akd"
+              onChange={(value) => {
+                field.onChange(value.map((v) => v?.value));
+                setSelectedStudents(value);
+              }}
+              value={selectedStudents}
+              placeholder="Buscar alumnos..."
+            />
+          )}
+        />
+        <ValidationError errorMessages={parsedStudentsError} />
+        {areThereDebtors ? (
+          <button
+            type="button"
+            className="transition-transform transform hover:scale-95"
+            onClick={handleDebtorsFormOpen}
+          >
+            <WarningMessage>
+              Algunos alumnos no tienen la suficiente cantidad de horas para
+              adherirse a esta clase, por favor resuelve cómo se deberían cargar
+              sus deudas
+            </WarningMessage>
+          </button>
+        ) : null}
+        <section aria-label="action buttons" className="flex gap-2">
+          <Button
+            variant="primary"
+            type="submit"
+            className="capitalize flex-grow"
+            isLoading={isCreating || isEditing}
+            disabled={areThereDebtors}
+          >
+            {id ? 'Editar clase' : 'Crear clase'}
+          </Button>
+          <Button
+            variant="primary"
+            onClick={onFinished}
+            className="capitalize flex-grow"
+          >
+            cancelar
+          </Button>
+        </section>
+      </form>
+      {showDebtorsForm ? (
+        <Modal
+          onBackdropClick={handleDebtorsFormFinished}
+          className="w-[90%] md:w-[60%] max-w-[500px] bg-white drop-shadow-2xl"
+        >
+          <DebtorsForm
+            onFinished={handleDebtorsFormFinished}
+            onSubmit={handleSetDebtors}
+            debtorsFeed={debtorsFeed}
           />
-        )}
-      />
-      {errors.dateTime ? (
-        <p className="font-medium text-red-500">{errors.dateTime.message}</p>
+        </Modal>
       ) : null}
-      <label htmlFor="teacherId">Profesor</label>
-      <Controller
-        name="teacherId"
-        control={control}
-        defaultValue=""
-        render={({ field }) => (
-          <AsyncReactSelect
-            loadOptions={debouncedSearchTeachers}
-            defaultOptions
-            onBlur={field.onBlur}
-            ref={field.ref}
-            className="text-black akd-container"
-            classNamePrefix="akd"
-            onChange={(value) => {
-              field.onChange(value?.value ?? '');
-              setSelectedTeacher(value);
-            }}
-            value={selectedTeacher}
-            placeholder="Seleccionar profesor"
-          />
-        )}
-      />
-      <ValidationError errorMessages={errors.teacherId?.message} />
-      <label htmlFor="teacherHourRateId">Ratio del profesor</label>
-      <Controller
-        name="teacherHourRateId"
-        control={control}
-        defaultValue=""
-        render={({ field }) => (
-          <ReactSelect
-            onBlur={field.onBlur}
-            ref={field.ref}
-            className="text-black akd-container"
-            classNamePrefix="akd"
-            onChange={(value) => {
-              field.onChange(value?.value ?? '');
-              setSelectedTeacherRateId(value);
-            }}
-            value={selectedTeacherRateId}
-            placeholder="Seleccionar ratio de hora"
-            options={teacherRateOptions}
-          />
-        )}
-      />
-      <ValidationError errorMessages={errors.teacherHourRateId?.message} />
-      <label htmlFor="hours">Horas</label>
-      <Input
-        type="number"
-        placeholder="Agregar horas..."
-        onChange={customHourChange}
-        {...restRegisterHours}
-      />
-      <ValidationError errorMessages={errors.hours?.message} />
-      <label htmlFor="students">Alumnos</label>
-      <Controller
-        name="students"
-        control={control}
-        defaultValue={[]}
-        render={({ field }) => (
-          <AsyncReactSelect
-            loadOptions={debouncedSearchStudents}
-            isMulti
-            defaultOptions
-            onBlur={field.onBlur}
-            ref={field.ref}
-            className="text-black akd-container"
-            classNamePrefix="akd"
-            onChange={(value) => {
-              field.onChange(value.map((v) => v?.value));
-              setSelectedStudents(value);
-            }}
-            value={selectedStudents}
-            placeholder="Buscar alumnos..."
-          />
-        )}
-      />
-      <ValidationError errorMessages={parsedStudentsError} />
-      {areThereDebtors ? (
-        <button
-          type="button"
-          className="transition-transform transform hover:scale-95"
-          onClick={() => {
-            //TODO: handle debtors
-          }}
-        >
-          <WarningMessage>
-            Algunos alumnos no tienen la suficiente cantidad de horas para
-            adherirse a esta clase, por favor resuelve cómo se deberían cargar
-            sus deudas
-          </WarningMessage>
-        </button>
-      ) : null}
-      <section aria-label="action buttons" className="flex gap-2">
-        <Button
-          variant="primary"
-          type="submit"
-          className="capitalize flex-grow"
-          isLoading={isCreating || isEditing}
-          disabled={areThereDebtors}
-        >
-          {id ? 'Editar clase' : 'Crear clase'}
-        </Button>
-        <Button
-          variant="primary"
-          onClick={onFinished}
-          className="capitalize flex-grow"
-        >
-          cancelar
-        </Button>
-      </section>
-    </form>
+    </>
   );
 };
