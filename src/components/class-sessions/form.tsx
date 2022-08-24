@@ -222,6 +222,7 @@ export const ClassSessionForm: FC<{
   const formDebtors = watch('debtors');
 
   const queryClient = trpc.useContext();
+  //TODO: Test whether the creation creates studentDebt properly. Might be already working but I am not sure at all whether this is all hooked up
   const { mutateAsync: create, isLoading: isCreating } = trpc.useMutation(
     'classSessions.create',
     {
@@ -268,6 +269,8 @@ export const ClassSessionForm: FC<{
           studentIds: data.students,
           teacherId: data.teacherId,
           teacherHourRateId: data.teacherHourRateId,
+          //TODO: check this works
+          debts:data.debtors.map(d=>({hours:parseFloat(d.hours),rate:parseFloat(d.rate), studentId:d.studentId}))
         });
     onFinished();
   };
