@@ -6,161 +6,26 @@ import { Modal } from 'components/modal';
 import { WarningMessage } from 'components/warning-message';
 import { format, setHours, setMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
-import Decimal from 'decimal.js';
-import {
-  ChangeEvent,
-  FC,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import ReactDatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import {
-  ChangeHandler,
-  Controller,
-  useFieldArray,
-  useForm,
-} from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import ReactSelect, { MultiValue, SingleValue } from 'react-select';
 import AsyncReactSelect from 'react-select/async';
+import { diffStrArrays } from 'utils';
 import {
   debouncedSearchStudents,
   debouncedSearchTeachers,
 } from 'utils/client-search-utils';
 import { inferQueryOutput, trpc } from 'utils/trpc';
-import { useDebouncedValue } from 'utils/use-debounce';
 import { z } from 'zod';
-
-const debtorZod = z.object({
-  studentId: z.string(),
-  hours: z.number(),
-  rate: z.number(),
-});
-
-const debtorsFormZod = z.object({
-  debtors: z.array(debtorZod),
-});
-
-type DebtorsFormInput = z.infer<typeof debtorsFormZod>;
-const headers = ['Name', 'Horas', 'Ratio', 'Total'];
-const DebtorsForm: FC<{
-  onFinished: () => void;
-  onSubmit: (debtors: FormDebtor[]) => void;
-  debtorsFeed: (FormDebtor & { studentFullName: string })[];
-}> = ({ onFinished, onSubmit, debtorsFeed }) => {
-  const { control, register, watch } = useForm<DebtorsFormInput>({
-    resolver: zodResolver(debtorsFormZod),
-    defaultValues: { debtors: debtorsFeed },
-  });
-
-  const { fields } = useFieldArray({ control, name: 'debtors' });
-
-  return (
-    <form>
-      <section className="w-full px-3">
-        <table className="w-full">
-          <thead>
-            <tr>
-              {headers.map((h, idx) => (
-                <th key={idx} className="">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {fields.map((debtor, index) => {
-              // aparently to do this sort of composite values we have to use watch. I'm pretty sure watch is a sort of hook, but they did not name it that bc it would lint error
-              const [hours, rate] = watch([
-                `debtors.${index}.hours`,
-                `debtors.${index}.rate`,
-              ]);
-              const safeHour = hours ? hours : 0;
-              const safeRate = rate ? rate : 0;
-              const hourDec = new Decimal(safeHour);
-              const rateDec = new Decimal(safeRate);
-              const total = hourDec.times(rateDec);
-              return (
-                <tr key={debtor.id}>
-                  <td>
-                    <p className="text-sm text-center whitespace-nowrap">
-                      {debtorsFeed[index]?.studentFullName}
-                    </p>
-                  </td>
-                  <td className="px-1">
-                    <div className="flex justify-center w-full">
-                      {debtorsFeed[index]?.hours}
-                    </div>
-                  </td>
-                  <td className="px-1">
-                    <div className="flex justify-center w-full">
-                      {/*
-                        TODO:
-                        I would like this to be a react-select that could also swap to be a readonly field. I know that's kind of crazy but would do a pretty cool UX
-                        This way we would be able to allow the user to either input a total value or pick an existing rate.
-                        We would not supoprt setting the rate on our own maybe
-                       */}
-                      <Input
-                        key={debtor.id}
-                        {...register(`debtors.${index}.rate`)}
-                        className="w-20 text-center m-auto"
-                      />
-                    </div>
-                  </td>
-                  <td className="text-center px-1">
-                    <div className="flex justify-between w-full">
-                      <div>$</div>
-                      <p className="text-center flex-grow">
-                        {' '}
-                        {total.toNumber()}
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </section>
-    </form>
-  );
-};
-
-const useStudentDebtors = (
-  studentIds: string[],
-  hourOnChange: ChangeHandler
-) => {
-  const [hoursForm, setHoursForm] = useState(0);
-  const debouncedHours = useDebouncedValue(hoursForm, 500);
-  const debouncedStudents = useDebouncedValue(studentIds, 500);
-  const { data: debtors } = trpc.useQuery(
-    ['students.checkDebtors', { hours: debouncedHours, students: studentIds }],
-    {
-      enabled: Boolean(debouncedHours && debouncedStudents),
-      keepPreviousData: true,
-    }
-  );
-  const customHourChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      setHoursForm(e.target.value ? parseFloat(e.target.value) : 0);
-      hourOnChange(e);
-    },
-    [hourOnChange]
-  );
-  const areThereDebtors = useMemo(
-    () => Boolean(hoursForm !== 0 && debtors?.length),
-    [debtors?.length, hoursForm]
-  );
-
-  return useMemo(
-    () => ({ debtors, customHourChange, areThereDebtors }),
-    [areThereDebtors, customHourChange, debtors]
-  );
-};
-
-type FormDebtor = z.infer<typeof debtorZod>;
+import {
+  DebtorsForm,
+  DebtorsFormInput,
+  debtorZod,
+  FormDebtor,
+  useStudentDebtors,
+} from './debtors';
 
 const classSessionFormZod = z.object({
   teacherId: z.string({ required_error: 'Requerido' }).min(1, 'Requerido'),
@@ -338,6 +203,7 @@ export const ClassSessionForm: FC<{
       control,
       register,
       setValue,
+      watch,
     },
     parsedStudentsError,
     selectedDate,
@@ -352,6 +218,8 @@ export const ClassSessionForm: FC<{
     oldHours,
     oldStudents,
   } = useClassSessionForm({ id, preloadedStudents, preloadTeacher });
+
+  const formDebtors = watch('debtors');
 
   const queryClient = trpc.useContext();
   const { mutateAsync: create, isLoading: isCreating } = trpc.useMutation(
@@ -424,20 +292,49 @@ export const ClassSessionForm: FC<{
   const handleDebtorsFormFinished = () => {
     setShowDebtorsForm(false);
   };
-  const handleSetDebtors = (debtors: FormDebtor[]) => {
-    setValue('debtors', debtors);
+
+  const handleSetDebtors = (formValues: DebtorsFormInput) => {
+    setValue('debtors', formValues.debtors);
   };
 
   const debtorsFeed = useMemo(() => {
-    return (
-      debtors?.map((d) => ({
-        studentId: d.id,
-        studentFullName: d.studentFullName,
-        rate: 0,
-        hours: d.hours,
-      })) ?? []
-    );
-  }, [debtors]);
+    const debtorsMappedToForm =       debtors?.map((d) => ({
+      studentId: d.studentId,
+      studentFullName: d.studentFullName,
+      rate: '0',
+      hours: d.hours.toString(),
+    })) ?? []
+    if(!formDebtors.length)   return debtorsMappedToForm
+    //iterate once to get a map off of them and make checking against these easier. otherwise we would have to do includes on each loop
+    const formDebtorsMap = formDebtors.reduce<Record<string,FormDebtor>>((res,curr)=>{
+      res[curr.studentId] = curr
+      return res
+    },{})
+    return debtorsMappedToForm?.map(d=>({...d,rate:formDebtorsMap[d.studentId]?.rate ?? d.rate.toString()})) ?? [];
+  }, [debtors,formDebtors]);
+
+  const handleDebtors = (
+    students: MultiValue<SingleValue<{ label: string; value: string }>>
+  ) => {
+    const studentDebtorIds = formDebtors.map((d) => d.studentId);
+    const studentIds = students.flatMap((s) => (s ? [s.value] : []));
+    const removed = diffStrArrays(studentIds, studentDebtorIds)[1];
+    //if removed, we want to remove it as well from the debtors array
+    if (removed.length) {
+      setValue(
+        'debtors',
+        formDebtors.filter((d) => !removed.includes(d.studentId))
+      );
+      return;
+    }
+    //if added, we don't need to do anything, this is already handled by the areDebtorsInSync
+  };
+
+  const areDebtorsInSync = useMemo(() => {
+    return debtors?.length === formDebtors.length;
+  }, [debtors, formDebtors]);
+
+  const showDebtorsWarning = !areDebtorsInSync && areThereDebtors;
 
   return (
     <>
@@ -535,6 +432,7 @@ export const ClassSessionForm: FC<{
               className="text-black akd-container"
               classNamePrefix="akd"
               onChange={(value) => {
+                handleDebtors(value);
                 field.onChange(value.map((v) => v?.value));
                 setSelectedStudents(value);
               }}
@@ -544,7 +442,7 @@ export const ClassSessionForm: FC<{
           )}
         />
         <ValidationError errorMessages={parsedStudentsError} />
-        {areThereDebtors ? (
+        {showDebtorsWarning ? (
           <button
             type="button"
             className="transition-transform transform hover:scale-95"
@@ -557,13 +455,22 @@ export const ClassSessionForm: FC<{
             </WarningMessage>
           </button>
         ) : null}
+        {areDebtorsInSync && formDebtors.length ? (
+          <button
+            type="button"
+            className="text-blue-500 text-sm hover:underline self-start"
+            onClick={handleDebtorsFormOpen}
+          >
+            Editar valores/h
+          </button>
+        ) : null}
         <section aria-label="action buttons" className="flex gap-2">
           <Button
             variant="primary"
             type="submit"
             className="capitalize flex-grow"
             isLoading={isCreating || isEditing}
-            disabled={areThereDebtors}
+            disabled={showDebtorsWarning}
           >
             {id ? 'Editar clase' : 'Crear clase'}
           </Button>

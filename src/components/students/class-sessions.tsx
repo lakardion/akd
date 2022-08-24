@@ -71,8 +71,8 @@ const ExistingAttachClassSessionForm: FC<{
     [
       'classSessions.byDate',
       {
-        from: parse(selectedDate!, 'yyyy-MM-dd', new Date()),
-        to: addDays(parse(selectedDate!, 'yyyy-MM-dd', new Date()), 1),
+        from: parse(selectedDate, 'yyyy-MM-dd', new Date()),
+        to: addDays(parse(selectedDate, 'yyyy-MM-dd', new Date()), 1),
       },
     ],
     {

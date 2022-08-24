@@ -46,7 +46,7 @@ export const studentRouter = createRouter()
       const decimalHours = new Decimal(hours);
 
       return debtors.map((d) => ({
-        id: d.id,
+        studentId: d.id,
         studentFullName: `${d.name} ${d.lastName}`,
         hours: decimalHours.minus(d.hourBalance).toNumber(),
       }));
@@ -158,8 +158,21 @@ export const studentRouter = createRouter()
     async resolve({ ctx, input: { id } }) {
       const student = await ctx.prisma.student.findUnique({
         where: { id },
+        include:{
+          debts:{
+            where:{
+              payment:{
+                is:null
+              }
+            }
+          }
+        }
       });
-      return { ...student, hourBalance: student?.hourBalance.toNumber() };
+      const totalDebt = student?.debts.reduce<Decimal>((res,curr)=>{
+        res.plus(curr.hours.times(curr.rate))
+        return res
+      },new Decimal(0))
+      return { ...student,debts:totalDebt?.toNumber() ,hourBalance: student?.hourBalance.toNumber() };
     },
   })
   .query('allSearch', {
@@ -309,4 +322,4 @@ export const studentRouter = createRouter()
       });
       return editedUser;
     },
-  });
+  })

@@ -62,12 +62,13 @@ export const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
   const { mutateAsync: create, isLoading: isCreating } = trpc.useMutation(
     'payments.create',
     {
-      onSuccess: () => {
+      onSuccess: (data) => {
         queryClient.invalidateQueries([
           'payments.byStudent',
           { id: studentId },
         ]);
         queryClient.invalidateQueries(['students.single', { id: studentId }]);
+        queryClient.invalidateQueries(['students.history',{month:format(data.date,'yy-MM'),studentId}])
       },
     }
   );
