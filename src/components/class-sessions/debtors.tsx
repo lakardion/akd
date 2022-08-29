@@ -2,7 +2,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from 'components/button';
 import { Input } from 'components/form/input';
 import Decimal from 'decimal.js';
-import { ChangeEvent, FC, useCallback, useMemo, useState } from 'react';
+import {
+  ChangeEvent,
+  FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import 'react-datepicker/dist/react-datepicker.css';
 import { ChangeHandler, useFieldArray, useForm } from 'react-hook-form';
 import { trpc } from 'utils/trpc';
@@ -24,13 +31,18 @@ export type DebtorsFormInput = z.infer<typeof debtorsFormZod>;
 
 export const useStudentDebtors = (
   studentIds: string[],
-  hourOnChange: ChangeHandler
+  hourOnChange: (hour: string) => void,
+  classSessionId?: string
 ) => {
   const [hoursForm, setHoursForm] = useState(0);
   const debouncedHours = useDebouncedValue(hoursForm, 500);
   const debouncedStudents = useDebouncedValue(studentIds, 500);
+  //TODO: check whether this works properly when doing updates.
   const { data: debtors } = trpc.useQuery(
-    ['students.checkDebtors', { hours: debouncedHours, students: studentIds }],
+    [
+      'students.checkDebtors',
+      { hours: debouncedHours, studentIds: debouncedStudents, classSessionId },
+    ],
     {
       enabled: Boolean(debouncedHours && debouncedStudents),
       keepPreviousData: true,
@@ -38,10 +50,11 @@ export const useStudentDebtors = (
       refetchOnWindowFocus: false,
     }
   );
+
   const customHourChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
       setHoursForm(e.target.value ? parseFloat(e.target.value) : 0);
-      hourOnChange(e);
+      hourOnChange(e.target.value);
     },
     [hourOnChange]
   );
@@ -64,7 +77,7 @@ export const DebtorsForm: FC<{
   onFinished: () => void;
   onSubmit: (data: { debtors: FormDebtor[] }) => void;
   debtorsFeed: (FormDebtor & { studentFullName: string })[];
-}> = ({ onFinished, onSubmit, debtorsFeed}) => {
+}> = ({ onFinished, onSubmit, debtorsFeed }) => {
   const {
     control,
     register,

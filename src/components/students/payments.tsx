@@ -68,7 +68,10 @@ export const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
           { id: studentId },
         ]);
         queryClient.invalidateQueries(['students.single', { id: studentId }]);
-        queryClient.invalidateQueries(['students.history',{month:format(data.date,'yy-MM'),studentId}])
+        queryClient.invalidateQueries([
+          'students.history',
+          { month: format(data.date, 'yy-MM'), studentId },
+        ]);
       },
     }
   );
@@ -87,7 +90,15 @@ export const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
     setValue,
     getValues,
     control,
-  } = useForm<PaymentFormInput>({ resolver: zodResolver(paymentFormZod) });
+  } = useForm<PaymentFormInput>({
+    resolver: zodResolver(paymentFormZod),
+    defaultValues: {
+      date: format(new Date(), 'yyyy-MM-dd'),
+      hours: '',
+      paymentMethod: 'CASH',
+      value: '',
+    },
+  });
   const value = useWatch<PaymentFormInput>({ name: 'value', control });
 
   const packageOptions: HourPackageSelectOption[] = useMemo(
@@ -161,6 +172,7 @@ export const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
     >
       <h1 className="text-3xl text-center">Agregar pago</h1>
       <label htmlFor="date">Fecha</label>
+      {/* TODO: swap this with a controller-rhf so that we don't have to deal with localization issues */}
       <Input {...register('date')} type="date" />
       <ValidationError errorMessages={errors.date?.message} />
       <label>Tipo de hora</label>

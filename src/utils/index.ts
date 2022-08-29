@@ -17,3 +17,27 @@ export const diffStrArrays = (
 
   return [toCreate, toRemove];
 };
+
+export const removeFromArray = <
+  TOriginal extends { id: string },
+  TRemove extends { id: string }
+>(
+  a: TOriginal[],
+  b: TRemove[]
+): TOriginal[] => {
+  const mapped = b.reduce<Record<string, TRemove>>((res, curr) => {
+    res[curr.id] = curr;
+    return res;
+  }, {});
+
+  return a.flatMap((el) => (mapped[el.id] ? [] : el));
+};
+
+export const removeFromArrayStr = (a: string[], b: string[]): string[] => {
+  const mapped = b.reduce<Record<string, string>>((res, curr) => {
+    res[curr] = curr;
+    return res;
+  }, {});
+
+  return a.flatMap((el) => (mapped[el] ? [] : [el]));
+};

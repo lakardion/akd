@@ -42,18 +42,6 @@ const classSessionFormZod = z.object({
 });
 type ClassSessionFormInputs = z.infer<typeof classSessionFormZod>;
 
-const getStaticDate = () => {
-  const date = new Date();
-  date.setHours(8);
-  date.setMinutes(0);
-  date.setSeconds(0);
-  date.setMilliseconds(0);
-
-  return date;
-};
-
-const staticDate = getStaticDate();
-
 const getClassSessionFormDefaultValues = (
   classSession: inferQueryOutput<'classSessions.single'> | undefined,
   preloads: {
@@ -75,6 +63,16 @@ const getClassSessionFormDefaultValues = (
   };
 };
 
+const getStaticDate = () => {
+  const date = new Date();
+  date.setHours(8);
+  date.setMinutes(0);
+  date.setSeconds(0);
+  date.setMilliseconds(0);
+
+  return date;
+};
+
 const useClassSessionForm = ({
   id,
   preloadedStudents,
@@ -84,10 +82,10 @@ const useClassSessionForm = ({
   preloadedStudents?: { value: string; label: string }[];
   preloadTeacher?: { value: string; label: string };
 }) => {
-  const { data: classSession } = trpc.useQuery([
-    'classSessions.single',
-    { id },
-  ]);
+  const { data: classSession } = trpc.useQuery(
+    ['classSessions.single', { id }],
+    { refetchOnWindowFocus: false }
+  );
   const { data: teacherHourRates } = trpc.useQuery([
     'rates.hourRates',
     { type: 'TEACHER' },
@@ -126,7 +124,14 @@ const useClassSessionForm = ({
   }, [stableFormReset, classSession, stablePreloads]);
 
   //select controlled values
-  const [selectedDate, setSelectedDate] = useState(staticDate);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+
+  //! this is not meant to be I must remove this and find a better way to solve this issue. I so... hate this..
+  useEffect(() => {
+    //TODO: see if we can adjust the time better so that we get 00's and 30's rather than any time in between
+    setSelectedDate(classSession ? classSession.date : getStaticDate());
+  }, [classSession]);
+
   const handleDateChange = useCallback(
     (date: Date) => {
       const setValue = form.setValue;
@@ -193,9 +198,10 @@ const useClassSessionForm = ({
 export const ClassSessionForm: FC<{
   id: string;
   onFinished: () => void;
+  fromStudent?: string;
   preloadedStudents?: { value: string; label: string }[];
   preloadTeacher?: { value: string; label: string };
-}> = ({ id, onFinished, preloadedStudents, preloadTeacher }) => {
+}> = ({ id, onFinished, preloadedStudents, preloadTeacher, fromStudent }) => {
   const {
     form: {
       handleSubmit,
@@ -234,11 +240,17 @@ export const ClassSessionForm: FC<{
           { id: data.teacherId ?? '' },
         ]);
         const month = format(data.date, 'yy-MM');
-        queryClient.invalidateQueries([
-          'teachers.history',
-          //for some reason teacherId is optional in the DB, maybe I knew better, I just don't like this coalescing here
-          { teacherId: data.teacherId ?? '', month },
-        ]);
+        data.teacherId &&
+          queryClient.invalidateQueries([
+            'teachers.history',
+            //for some reason teacherId is optional in the DB, maybe I knew better, I just don't like this coalescing here
+            { teacherId: data.teacherId, month },
+          ]);
+        fromStudent &&
+          queryClient.invalidateQueries([
+            'students.history',
+            { month, studentId: fromStudent },
+          ]);
       },
     }
   );
@@ -253,7 +265,8 @@ export const ClassSessionForm: FC<{
 
   const onSubmit = async (data: ClassSessionFormInputs) => {
     id
-      ? await edit({
+      ? //TODO: add debtors here as well. Editing can cause new debtors
+        await edit({
           date: data.dateTime,
           hours: parseFloat(data.hours),
           studentIds: data.students ?? [],
@@ -270,22 +283,27 @@ export const ClassSessionForm: FC<{
           teacherId: data.teacherId,
           teacherHourRateId: data.teacherHourRateId,
           //TODO: check this works
-          debts:data.debtors.map(d=>({hours:parseFloat(d.hours),rate:parseFloat(d.rate), studentId:d.studentId}))
+          debts: data.debtors.map((d) => ({
+            hours: parseFloat(d.hours),
+            rate: parseFloat(d.rate),
+            studentId: d.studentId,
+          })),
         });
     onFinished();
   };
-  const { onChange: hourOnChange, ...restRegisterHours } = useMemo(() => {
-    return register('hours');
-  }, [register]);
 
   const studentIds = useMemo(() => {
     return selectedStudents.flatMap((s) => (s ? [s.value] : []));
   }, [selectedStudents]);
 
+  const handleHourChange = (hour: string) => {
+    setValue('hours', hour);
+  };
   //Not okay with this solution, might want to do something better some other time if I ever come up with a better way of performing this validation
   const { customHourChange, debtors, areThereDebtors } = useStudentDebtors(
     studentIds,
-    hourOnChange
+    handleHourChange,
+    id
   );
 
   const [showDebtorsForm, setShowDebtorsForm] = useState(false);
@@ -301,20 +319,29 @@ export const ClassSessionForm: FC<{
   };
 
   const debtorsFeed = useMemo(() => {
-    const debtorsMappedToForm =       debtors?.map((d) => ({
-      studentId: d.studentId,
-      studentFullName: d.studentFullName,
-      rate: '0',
-      hours: d.hours.toString(),
-    })) ?? []
-    if(!formDebtors.length)   return debtorsMappedToForm
+    const debtorsMappedToForm =
+      debtors?.map((d) => ({
+        studentId: d.studentId,
+        studentFullName: d.studentFullName,
+        rate: '0',
+        hours: d.hours.toString(),
+      })) ?? [];
+    if (!formDebtors.length) return debtorsMappedToForm;
     //iterate once to get a map off of them and make checking against these easier. otherwise we would have to do includes on each loop
-    const formDebtorsMap = formDebtors.reduce<Record<string,FormDebtor>>((res,curr)=>{
-      res[curr.studentId] = curr
-      return res
-    },{})
-    return debtorsMappedToForm?.map(d=>({...d,rate:formDebtorsMap[d.studentId]?.rate ?? d.rate.toString()})) ?? [];
-  }, [debtors,formDebtors]);
+    const formDebtorsMap = formDebtors.reduce<Record<string, FormDebtor>>(
+      (res, curr) => {
+        res[curr.studentId] = curr;
+        return res;
+      },
+      {}
+    );
+    return (
+      debtorsMappedToForm?.map((d) => ({
+        ...d,
+        rate: formDebtorsMap[d.studentId]?.rate ?? d.rate.toString(),
+      })) ?? []
+    );
+  }, [debtors, formDebtors]);
 
   const handleDebtors = (
     students: MultiValue<SingleValue<{ label: string; value: string }>>
@@ -349,7 +376,6 @@ export const ClassSessionForm: FC<{
         <Controller
           name="dateTime"
           control={control}
-          defaultValue={staticDate}
           render={() => (
             <ReactDatePicker
               selected={selectedDate}
@@ -416,8 +442,8 @@ export const ClassSessionForm: FC<{
         <Input
           type="number"
           placeholder="Agregar horas..."
+          {...register('hours')}
           onChange={customHourChange}
-          {...restRegisterHours}
         />
         <ValidationError errorMessages={errors.hours?.message} />
         <label htmlFor="students">Alumnos</label>

@@ -27,6 +27,7 @@ type AttachToExistingClassSessionInput = z.infer<
   typeof attachToExistingClassSessionZod
 >;
 
+//TODO: add debtors logic here as well. And debtors' form
 const ExistingAttachClassSessionForm: FC<{
   goBack: () => void;
   onFinished: () => void;
@@ -170,6 +171,7 @@ export const StudentAttachToClassSessionForm: FC<{
         id=""
         onFinished={onFinished}
         preloadedStudents={[studentInfo]}
+        fromStudent={studentInfo.value}
       />
     );
   }
