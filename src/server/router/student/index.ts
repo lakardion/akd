@@ -2,6 +2,7 @@ import { PaymentMethodType, Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime';
 import { includeInactiveFlagZod, studentFormZod } from 'common';
 import { isMatch } from 'date-fns';
+import { removeFromArray, removeFromArrayStr } from 'utils';
 import { getMonthEdges } from 'utils/date';
 import {
   DEFAULT_PAGE_SIZE,
@@ -10,40 +11,82 @@ import {
 } from 'utils/pagination';
 import { infiniteCursorZod } from 'utils/server-zods';
 import { z } from 'zod';
-import { createRouter } from './context';
+import { createRouter } from '../context';
+import { getDebtorsStudents } from './helpers';
 
 export const studentRouter = createRouter()
   .query('checkDebtors', {
     input: z.object({
-      students: z.array(z.string()),
+      studentIds: z.array(z.string()),
       hours: z.number(),
+      classSessionId: z.string().optional(),
     }),
-    async resolve({ ctx, input: { hours, students } }) {
-      // should I check each student individually?.
-      const debtors = await ctx.prisma.student.findMany({
-        where: {
-          AND: [
-            {
-              id: {
-                in: students,
-              },
-            },
-            {
-              hourBalance: {
-                lt: hours,
-              },
-            },
-          ],
-        },
-        select: {
-          id: true,
-          name: true,
-          lastName: true,
-          hourBalance: true,
-        },
-      });
-
+    async resolve({ ctx, input: { hours, studentIds, classSessionId } }) {
       const decimalHours = new Decimal(hours);
+      if (classSessionId) {
+        //get classSession
+        const classSession = await ctx.prisma.classSession.findUnique({
+          where: { id: classSessionId },
+          include: {
+            hour: { select: { value: true } },
+            studentDebts: {
+              include: {
+                student: {
+                  select: {
+                    id: true,
+                    name: true,
+                    lastName: true,
+                    hourBalance: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+        const studentIdsLookup = studentIds.reduce<Record<string, string>>(
+          (res, curr) => {
+            res[curr] = curr;
+            return res;
+          },
+          {}
+        );
+        const realHours = classSession?.hour?.value?.toNumber() ?? 0;
+        if (realHours !== hours) {
+          //reevaluate with new hours whether they'll still be debtors or not
+          const stillDebtors =
+            classSession?.studentDebts.flatMap((sd) => {
+              //not interested in the previous debtors from class, only the ones we're asking for
+              if (!studentIdsLookup[sd.studentId]) return [sd.student];
+              const previousHourBalance = classSession.hour.value.minus(
+                sd.hours
+              );
+
+              if (
+                sd.hours.greaterThan(hours) &&
+                previousHourBalance.lessThan(hours)
+              )
+                //remap the hourBalance so we properly report of how much the debt is going to be for the student
+                return [{ ...sd.student, hourBalance: previousHourBalance }];
+              return [];
+            }) ?? [];
+          const newStudents = removeFromArrayStr(
+            studentIds,
+            classSession?.studentDebts.map((sd) => sd.studentId) ?? []
+          );
+          const newStudentDebtors = await getDebtorsStudents(ctx)({
+            studentIds: newStudents,
+            hours,
+          });
+          const merged = [...stillDebtors, ...newStudentDebtors];
+          return merged.map((d) => ({
+            studentId: d.id,
+            studentFullName: `${d.name} ${d.lastName}`,
+            hours: decimalHours.minus(d.hourBalance),
+          }));
+        }
+      }
+      // should I check each student individually?.
+      const debtors = await getDebtorsStudents(ctx)({ studentIds, hours });
 
       return debtors.map((d) => ({
         studentId: d.id,
@@ -158,21 +201,26 @@ export const studentRouter = createRouter()
     async resolve({ ctx, input: { id } }) {
       const student = await ctx.prisma.student.findUnique({
         where: { id },
-        include:{
-          debts:{
-            where:{
-              payment:{
-                is:null
-              }
-            }
-          }
-        }
+        include: {
+          debts: {
+            where: {
+              payment: {
+                is: null,
+              },
+            },
+          },
+        },
       });
-      const totalDebt = student?.debts.reduce<Decimal>((res,curr)=>{
-        res.plus(curr.hours.times(curr.rate))
-        return res
-      },new Decimal(0))
-      return { ...student,debts:totalDebt?.toNumber() ,hourBalance: student?.hourBalance.toNumber() };
+      const totalDebt = student?.debts.reduce<Decimal>((res, curr) => {
+        res = res.plus(curr.hours.times(curr.rate));
+        return res;
+      }, new Decimal(0));
+
+      return {
+        ...student,
+        debts: totalDebt?.toNumber(),
+        hourBalance: student?.hourBalance.toNumber(),
+      };
     },
   })
   .query('allSearch', {
@@ -210,12 +258,26 @@ export const studentRouter = createRouter()
         skip: (page - 1) * size,
         take: size,
         orderBy: { lastName: 'asc' },
+        include: {
+          debts: {
+            select: {
+              hours: true,
+              rate: true,
+            },
+          },
+        },
       });
       return {
         size,
         nextCursor: studentsResult.length === size ? page + 1 : null,
         students: studentsResult.map((s) => ({
           ...s,
+          totalDebt: s.debts
+            .reduce((res, curr) => {
+              res = res.plus(curr.hours.times(curr.rate));
+              return res;
+            }, new Decimal(0))
+            .toNumber(),
           hourBalance: s.hourBalance.toNumber(),
         })),
       };
@@ -322,4 +384,4 @@ export const studentRouter = createRouter()
       });
       return editedUser;
     },
-  })
+  });

@@ -9,3 +9,11 @@ export const getFakeStudents = (count) => {
     course: faker.vehicle.fuel(),
   }));
 };
+
+export const getFakeHourPackages = (count) => {
+  return [...Array(count).keys()].map(() => ({
+    description: faker.commerce.product(),
+    packHours: faker.datatype.number({ min: 10, max: 20 }),
+    totalValue: faker.datatype.number(),
+  }));
+};

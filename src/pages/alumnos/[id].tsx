@@ -2,7 +2,7 @@ import { PillButton } from 'components/button';
 import { Modal } from 'components/modal';
 import {
   PaymentForm,
-  StudentAttachToClassSessionForm
+  StudentAttachToClassSessionForm,
 } from 'components/students';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -77,7 +77,11 @@ const colorByStatus: Record<StudentStatus, string> = {
   OWES: 'red-500',
 };
 
-const getPhraseByStatus = (hours: number, debt:number,status: StudentStatus) => {
+const getPhraseByStatus = (
+  hours: number,
+  debt: number,
+  status: StudentStatus
+) => {
   const plural = hours === 1 ? '' : 's';
   switch (status) {
     case 'HAS_HOURS':
@@ -85,15 +89,15 @@ const getPhraseByStatus = (hours: number, debt:number,status: StudentStatus) => 
     case 'NO_HOURS':
       return '( No tiene horas disponibles )';
     case 'OWES':
-      return `( Debe ${-hours} hora${plural} 🡢 $${debt} )`;
+      return `( Debe $${debt} )`;
   }
 };
 
-const getStatus = (hours: number,debt:number) => {
+const getStatus = (hours: number, debt: number) => {
   const value: StudentStatus =
-    hours < 0 ? 'OWES' : hours === 0 ? 'NO_HOURS' : 'HAS_HOURS';
+    debt > 0 ? 'OWES' : hours === 0 ? 'NO_HOURS' : 'HAS_HOURS';
   const color = colorByStatus[value];
-  const statusMessage = getPhraseByStatus(hours, debt,value);
+  const statusMessage = getPhraseByStatus(hours, debt, value);
   return { value, color, statusMessage };
 };
 
@@ -115,7 +119,7 @@ const StudentDetail = () => {
   const { data } = trpc.useQuery(['students.single', { id: stableId }], {
     enabled: Boolean(id),
   });
-  const status = getStatus(data?.hourBalance ?? 0,data?.debts ?? 0);
+  const status = getStatus(data?.hourBalance ?? 0, data?.debts ?? 0);
 
   const handleShowPaymentModal = () => {
     setShowPaymentmodal(true);

@@ -22,7 +22,7 @@ import {
 } from 'react';
 import { useForm } from 'react-hook-form';
 import { MdDelete, MdEdit } from 'react-icons/md';
-import { getFakeStudents } from 'utils/fakes';
+import { usePopulateFakeStudents } from 'utils/fake-hooks';
 import { trpc } from 'utils/trpc';
 import { useDebouncedValue } from 'utils/use-debounce';
 
@@ -157,12 +157,7 @@ const StudentList: FC<{
       e?.stopPropagation();
       handleDelete(id);
     };
-  const stableFetchNextPage = useCallback(
-    (page: number) => {
-      fetchNextPage({ pageParam: page });
-    },
-    [fetchNextPage]
-  );
+
   const flatStudents = useMemo(() => {
     return paginatedStudents?.pages.flatMap((p) => p.students) ?? [];
   }, [paginatedStudents?.pages]);
@@ -203,7 +198,7 @@ const StudentList: FC<{
         ) : (
           flatStudents.map((s) => {
             const status =
-              s.hourBalance < 0
+              s.totalDebt > 0
                 ? 'bg-red-500'
                 : s.hourBalance === 0
                 ? 'bg-gray-500'
@@ -253,28 +248,8 @@ const StudentList: FC<{
   );
 };
 
-const useRunOnce = (fn: () => void) => {
-  const hasRunRef = useRef(false);
-  useEffect(() => {
-    if (!hasRunRef.current) {
-      fn();
-      hasRunRef.current = true;
-    }
-  }, [fn]);
-};
-
-const useAddFakeData = () => {
-  const { mutateAsync } = trpc.useMutation(['students.create']);
-
-  useRunOnce(() => {
-    getFakeStudents(25).forEach((fs) => {
-      mutateAsync(fs);
-    });
-  });
-};
-
 const Students = () => {
-  // useAddFakeData();
+  // usePopulateFakeStudents(100);
   const queryClient = trpc.useContext();
   const { isLoading: isDeleting, mutateAsync: deleteStudent } =
     trpc.useMutation('students.delete', {
