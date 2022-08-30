@@ -1,4 +1,4 @@
-import { PaymentMethodType, Prisma } from '@prisma/client';
+import { PaymentMethodType, Student, Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime';
 import { includeInactiveFlagZod, studentFormZod } from 'common';
 import { isMatch } from 'date-fns';
@@ -29,59 +29,100 @@ export const studentRouter = createRouter()
           where: { id: classSessionId },
           include: {
             hour: { select: { value: true } },
-            studentDebts: {
-              include: {
-                student: {
-                  select: {
-                    id: true,
-                    name: true,
-                    lastName: true,
-                    hourBalance: true,
-                  },
-                },
+            classSessionStudent: {
+              select: {
+                student: true,
               },
             },
+            studentDebts: true,
           },
         });
-        const studentIdsLookup = studentIds.reduce<Record<string, string>>(
-          (res, curr) => {
-            res[curr] = curr;
-            return res;
-          },
-          {}
-        );
+        const previousStudentsLookup =
+          classSession?.classSessionStudent?.reduce<Record<string, Student>>(
+            (res, curr) => {
+              res[curr.student.id] = curr.student;
+              return res;
+            },
+            {}
+          );
+
         const realHours = classSession?.hour?.value?.toNumber() ?? 0;
         if (realHours !== hours) {
           //reevaluate with new hours whether they'll still be debtors or not
           const stillDebtors =
             classSession?.studentDebts.flatMap((sd) => {
               //not interested in the previous debtors from class, only the ones we're asking for
-              if (!studentIdsLookup[sd.studentId]) return [sd.student];
-              const previousHourBalance = classSession.hour.value.minus(
+              const student = previousStudentsLookup?.[sd.studentId];
+              if (!student) return [];
+              // this is not precisely the hour balance but instead how many hours can be restored if this debt were to be nullified
+              const previousExceedingBalance = classSession.hour.value.minus(
                 sd.hours
               );
-
-              if (
-                sd.hours.greaterThan(hours) &&
-                previousHourBalance.lessThan(hours)
-              )
+              const buffedHourBalance = student.hourBalance.plus(
+                previousExceedingBalance
+              );
+              if (buffedHourBalance.lessThan(hours)) {
                 //remap the hourBalance so we properly report of how much the debt is going to be for the student
-                return [{ ...sd.student, hourBalance: previousHourBalance }];
+                return [
+                  {
+                    ...student,
+                    hourBalance: buffedHourBalance,
+                    previousRate: sd.rate,
+                  },
+                ];
+              }
               return [];
             }) ?? [];
-          const newStudents = removeFromArrayStr(
-            studentIds,
-            classSession?.studentDebts.map((sd) => sd.studentId) ?? []
-          );
+          const previousDebtors =
+            classSession?.studentDebts.map((sd) => sd.studentId) ?? [];
+          const previousStudents =
+            classSession?.classSessionStudent.map((css) => css.student.id) ??
+            [];
+          const studentsThatUsedHours = removeFromArrayStr(
+            previousStudents,
+            previousDebtors
+          ).flatMap((s) => {
+            //we know for sure that it has to exist bc we took it from there
+            const student = previousStudentsLookup?.[s];
+            if (!student) return [];
+            const buffedHourBalance = student?.hourBalance.plus(
+              classSession?.hour.value ?? 0
+            );
+
+            return buffedHourBalance?.lessThan(hours)
+              ? [
+                  {
+                    ...student,
+                    hourBalance: buffedHourBalance,
+                  },
+                ]
+              : [];
+          });
+          const newStudents = removeFromArrayStr(studentIds, [
+            ...previousDebtors,
+            ...previousStudents,
+          ]);
           const newStudentDebtors = await getDebtorsStudents(ctx)({
             studentIds: newStudents,
             hours,
           });
-          const merged = [...stillDebtors, ...newStudentDebtors];
+          const merged: {
+            id: string;
+            name: string;
+            lastName: string;
+            hourBalance: Decimal;
+            previousRate?: Decimal;
+          }[] = [
+            ...stillDebtors,
+            ...newStudentDebtors,
+            ...studentsThatUsedHours,
+          ];
+
           return merged.map((d) => ({
             studentId: d.id,
             studentFullName: `${d.name} ${d.lastName}`,
             hours: decimalHours.minus(d.hourBalance),
+            previousRate: d?.previousRate?.toNumber(),
           }));
         }
       }
@@ -92,6 +133,7 @@ export const studentRouter = createRouter()
         studentId: d.id,
         studentFullName: `${d.name} ${d.lastName}`,
         hours: decimalHours.minus(d.hourBalance).toNumber(),
+        previousRate: undefined,
       }));
     },
   })

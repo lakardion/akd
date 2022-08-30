@@ -82,14 +82,17 @@ const useClassSessionForm = ({
   preloadedStudents?: { value: string; label: string }[];
   preloadTeacher?: { value: string; label: string };
 }) => {
+  //! this is refetching constantly and I have no clue why is that
   const { data: classSession } = trpc.useQuery(
     ['classSessions.single', { id }],
+    {
+      refetchOnWindowFocus: false,
+    }
+  );
+  const { data: teacherHourRates } = trpc.useQuery(
+    ['rates.hourRates', { type: 'TEACHER' }],
     { refetchOnWindowFocus: false }
   );
-  const { data: teacherHourRates } = trpc.useQuery([
-    'rates.hourRates',
-    { type: 'TEACHER' },
-  ]);
 
   const stablePreloads = useMemo(() => {
     return {
@@ -320,12 +323,17 @@ export const ClassSessionForm: FC<{
 
   const debtorsFeed = useMemo(() => {
     const debtorsMappedToForm =
-      debtors?.map((d) => ({
-        studentId: d.studentId,
-        studentFullName: d.studentFullName,
-        rate: '0',
-        hours: d.hours.toString(),
-      })) ?? [];
+      debtors?.map((d) => {
+        return {
+          studentId: d.studentId,
+          studentFullName: d.studentFullName,
+          rate:
+            'previousRate' in d && d.previousRate
+              ? d.previousRate.toString()
+              : '0',
+          hours: d.hours.toString(),
+        };
+      }) ?? [];
     if (!formDebtors.length) return debtorsMappedToForm;
     //iterate once to get a map off of them and make checking against these easier. otherwise we would have to do includes on each loop
     const formDebtorsMap = formDebtors.reduce<Record<string, FormDebtor>>(
@@ -338,7 +346,7 @@ export const ClassSessionForm: FC<{
     return (
       debtorsMappedToForm?.map((d) => ({
         ...d,
-        rate: formDebtorsMap[d.studentId]?.rate ?? d.rate.toString(),
+        rate: formDebtorsMap[d.studentId]?.rate ?? d?.rate?.toString(),
       })) ?? []
     );
   }, [debtors, formDebtors]);

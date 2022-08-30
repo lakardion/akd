@@ -128,10 +128,6 @@ const ClassSessions = () => {
     'rates.hourRates',
     { type: 'TEACHER' },
   ]);
-  const { isLoading: isClassSessionLoading } = trpc.useQuery(
-    ['classSessions.single', { id: currentId }],
-    { enabled: Boolean(currentId) }
-  );
   const { isLoading } = trpc.useInfiniteQuery(['classSessions.all', {}], {
     getNextPageParam: (lastPage) => {
       return lastPage.nextCursor ? { page: lastPage.nextCursor } : null;
