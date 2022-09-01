@@ -165,12 +165,14 @@ export const StudentAttachToClassSessionForm: FC<{
   };
   const goBack = createSwitchToViewHandler('main');
 
+  const preloadedStudents = useMemo(() => [studentInfo], [studentInfo]);
+
   if (view === 'create') {
     return (
       <ClassSessionForm
         id=""
         onFinished={onFinished}
-        preloadedStudents={[studentInfo]}
+        preloadedStudents={preloadedStudents}
         fromStudent={studentInfo.value}
       />
     );

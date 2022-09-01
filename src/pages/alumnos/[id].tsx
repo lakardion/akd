@@ -138,6 +138,15 @@ const StudentDetail = () => {
     setMonth(date);
   };
 
+  // Had to memoize this because it was causing some crazy rerenders on the preloaded student in form
+  const currentStudentInfo = useMemo(
+    () => ({
+      value: data?.id ?? '',
+      label: `${data?.name} ${data?.lastName}`,
+    }),
+    []
+  );
+
   if (!id)
     return (
       <section>
@@ -198,10 +207,7 @@ const StudentDetail = () => {
         >
           {data ? (
             <StudentAttachToClassSessionForm
-              studentInfo={{
-                value: data.id ?? '',
-                label: `${data.name} ${data.lastName}`,
-              }}
+              studentInfo={currentStudentInfo}
               onFinished={handleCloseClassSessionModal}
             />
           ) : null}
