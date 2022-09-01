@@ -95,7 +95,7 @@ model StudentDebt {
     classSessionId String
     rate           Decimal
 
-    classSession ClassSession @relation(fields: [classSessionId], references: [id])
+    classSession ClassSession @relation(fields: [classSessionId], references: [id], onDelete: Cascade)
     payment      Payment?     @relation(fields: [paymentId], references: [id])
     student      Student      @relation(fields: [studentId], references: [id])
 }
@@ -126,6 +126,7 @@ model ClassSession {
     id                String   @id @default(cuid())
     date              DateTime
     hourId            String   @unique
+    isActive          Boolean  @default(true)
     teacherId         String?
     teacherHourRateId String
     teacherPaymentId  String?
