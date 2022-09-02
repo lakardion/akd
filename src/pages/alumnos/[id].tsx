@@ -119,6 +119,7 @@ const StudentDetail = () => {
   const { data } = trpc.useQuery(['students.single', { id: stableId }], {
     enabled: Boolean(id),
   });
+
   const status = getStatus(data?.hourBalance ?? 0, data?.debts ?? 0);
 
   const handleShowPaymentModal = () => {
@@ -144,7 +145,7 @@ const StudentDetail = () => {
       value: data?.id ?? '',
       label: `${data?.name} ${data?.lastName}`,
     }),
-    []
+    [data]
   );
 
   if (!id)

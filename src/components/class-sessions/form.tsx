@@ -131,7 +131,6 @@ const useClassSessionForm = ({
 
   //! this is not meant to be I must remove this and find a better way to solve this issue. I so... hate this..
   useEffect(() => {
-    //TODO: see if we can adjust the time better so that we get 00's and 30's rather than any time in between
     setSelectedDate(classSession ? classSession.date : getStaticDate());
   }, [classSession]);
 
@@ -231,7 +230,7 @@ export const ClassSessionForm: FC<{
   const formDebtors = watch('debtors');
 
   const queryClient = trpc.useContext();
-  //TODO: Test whether the creation creates studentDebt properly. Might be already working but I am not sure at all whether this is all hooked up
+
   const { mutateAsync: create, isLoading: isCreating } = trpc.useMutation(
     'classSessions.create',
     {
@@ -249,11 +248,17 @@ export const ClassSessionForm: FC<{
             //for some reason teacherId is optional in the DB, maybe I knew better, I just don't like this coalescing here
             { teacherId: data.teacherId, month },
           ]);
-        fromStudent &&
+
+        if (fromStudent) {
           queryClient.invalidateQueries([
             'students.history',
             { month, studentId: fromStudent },
           ]);
+          queryClient.invalidateQueries([
+            'students.single',
+            { id: fromStudent },
+          ]);
+        }
       },
     }
   );
@@ -405,7 +410,6 @@ export const ClassSessionForm: FC<{
         <Controller
           name="teacherId"
           control={control}
-          defaultValue=""
           render={({ field }) => (
             <AsyncReactSelect
               loadOptions={debouncedSearchTeachers}
@@ -428,7 +432,6 @@ export const ClassSessionForm: FC<{
         <Controller
           name="teacherHourRateId"
           control={control}
-          defaultValue=""
           render={({ field }) => (
             <ReactSelect
               onBlur={field.onBlur}
@@ -458,7 +461,6 @@ export const ClassSessionForm: FC<{
         <Controller
           name="students"
           control={control}
-          defaultValue={[]}
           render={({ field }) => (
             <AsyncReactSelect
               loadOptions={debouncedSearchStudents}

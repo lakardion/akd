@@ -1,10 +1,12 @@
+import { StudentDebt } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime';
 import { TRPCError } from '@trpc/server';
-import { removeFromArray, removeFromArrayStr } from 'utils';
+import { removeFromArrayStr } from 'utils';
 import { DEFAULT_PAGE_SIZE } from 'utils/pagination';
 import { identifiableZod, infiniteCursorZod } from 'utils/server-zods';
 import { z } from 'zod';
 import { createRouter } from '../context';
-import { debtsZod, validateDebtors } from './helpers';
+import { debtsZod, updateDebtorsHourBalance, validateDebtors } from './helpers';
 
 const diffStrArrays = (
   newValues: string[],
@@ -494,12 +496,24 @@ export const classSessionRouter = createRouter()
   .mutation('delete', {
     input: identifiableZod,
     async resolve({ ctx, input: { id } }) {
-      const classSessionStudent = await ctx.prisma.classSessionStudent.findMany(
-        {
+      // this must restore hours and remove unpaid debts
+      const classSessionStudent =
+        (await ctx.prisma.classSessionStudent.findMany({
           where: {
             classSessionId: id,
           },
           include: {
+            student: {
+              select: {
+                id: true,
+                //? not sure whether I want to do this here actually...
+                debts: {
+                  where: {
+                    classSessionId: id,
+                  },
+                },
+              },
+            },
             classSession: {
               include: {
                 hour: {
@@ -508,25 +522,77 @@ export const classSessionRouter = createRouter()
               },
             },
           },
-        }
+        })) ?? [];
+      const [first] = classSessionStudent;
+      const hours = first ? first.classSession.hour.value : new Decimal(0);
+      const paidDebtIds: string[] = [];
+      const studentsInfo = classSessionStudent.reduce<{
+        fresh: string[];
+        debtors: { id: string; debt: StudentDebt }[];
+      }>(
+        (res, curr) => {
+          const [debt] = curr.student.debts;
+          if (debt) {
+            if (debt.paymentId) paidDebtIds.push(debt.id);
+            res.debtors.push({ id: curr.studentId, debt });
+          } else {
+            res.fresh.push(curr.student.id);
+          }
+          return res;
+        },
+        { fresh: [], debtors: [] }
       );
-      return ctx.prisma.$transaction([
-        ctx.prisma.student.updateMany({
+      // debtors should be treated the same way.
+      const tx = await ctx.prisma.$transaction(async (tsx) => {
+        await ctx.prisma.student.updateMany({
           where: {
             id: {
-              in: classSessionStudent.map((cst) => cst.studentId),
+              in: studentsInfo.fresh,
             },
           },
           data: {
             hourBalance: {
-              increment: classSessionStudent[0]?.classSession.hour.value,
+              increment: hours,
             },
           },
-        }),
-        ctx.prisma.classSession.delete({
-          where: { id },
-        }),
-      ]);
+        });
+        //address debt transactions
+        const updateStudents = await Promise.all(
+          updateDebtorsHourBalance(ctx)(studentsInfo.debtors, hours)
+        );
+
+        if (paidDebtIds.length) {
+          // when there are paid debts, we want to have a registry of them so we should keep the classSession entity
+          const updates = await ctx.prisma.classSession.update({
+            where: { id },
+            data: {
+              isActive: false,
+              // must also remove the relations so that we don't leave students with this hanging around
+              classSessionStudent: {
+                disconnect: classSessionStudent.map((css) => ({
+                  classSessionId_studentId: {
+                    classSessionId: id,
+                    studentId: css.studentId,
+                  },
+                })),
+              },
+              teacherId: null,
+            },
+          });
+          // unpaid debts have no reason to exist
+          const deleteUnpaidDebts = await ctx.prisma.studentDebt.deleteMany({
+            where: {
+              id: {
+                notIn: paidDebtIds,
+              },
+            },
+          });
+        } else {
+          await ctx.prisma.classSession.delete({
+            where: { id },
+          });
+        }
+      });
     },
   })
   .mutation('addStudent', {
