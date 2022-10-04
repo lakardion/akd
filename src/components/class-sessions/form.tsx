@@ -22,7 +22,7 @@ import { z } from 'zod';
 import {
   DebtorsForm,
   DebtorsFormInput,
-  debtorZod,
+  formDebtorZod,
   FormDebtor,
   useStudentDebtors,
 } from './debtors';
@@ -38,7 +38,7 @@ const classSessionFormZod = z.object({
     .refine((value) => {
       return !isNaN(parseInt(value));
     }, 'Must be a number'),
-  debtors: z.array(debtorZod),
+  debtors: z.array(formDebtorZod),
 });
 type ClassSessionFormInputs = z.infer<typeof classSessionFormZod>;
 

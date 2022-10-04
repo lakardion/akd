@@ -2,21 +2,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from 'components/button';
 import { Input } from 'components/form/input';
 import Decimal from 'decimal.js';
-import {
-  ChangeEvent,
-  FC,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { ChangeEvent, FC, useCallback, useMemo, useState } from 'react';
 import 'react-datepicker/dist/react-datepicker.css';
-import { ChangeHandler, useFieldArray, useForm } from 'react-hook-form';
+import { useFieldArray, useForm } from 'react-hook-form';
 import { trpc } from 'utils/trpc';
 import { useDebouncedValue } from 'utils/use-debounce';
 import { z } from 'zod';
 
-export const debtorZod = z.object({
+export const formDebtorZod = z.object({
   studentId: z.string(),
   hours: z.string(),
   rate: z.string().refine((value) => {
@@ -25,7 +18,7 @@ export const debtorZod = z.object({
 });
 
 const debtorsFormZod = z.object({
-  debtors: z.array(debtorZod),
+  debtors: z.array(formDebtorZod),
 });
 export type DebtorsFormInput = z.infer<typeof debtorsFormZod>;
 
@@ -69,7 +62,7 @@ export const useStudentDebtors = (
   );
 };
 
-export type FormDebtor = z.infer<typeof debtorZod>;
+export type FormDebtor = z.infer<typeof formDebtorZod>;
 
 const headers = ['Alumno', 'Horas', 'Valor/h', 'Total'];
 
