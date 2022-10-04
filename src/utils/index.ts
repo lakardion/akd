@@ -18,6 +18,26 @@ export const diffStrArrays = (
   return [toCreate, toRemove];
 };
 
+export const diffStrArraysImproved = (
+  newValues: string[],
+  oldValues: string[]
+): { added: string[]; removed: string[]; untouched: string[] } => {
+  const oldIdsSet = new Set(oldValues);
+  const idsSet = new Set(newValues);
+  const testSet = new Set([...oldValues, ...newValues]);
+
+  const removed: string[] = [];
+  const added: string[] = [];
+  const untouched: string[] = [];
+  testSet.forEach((id) => {
+    if (!oldIdsSet.has(id)) added.push(id);
+    else if (!idsSet.has(id)) removed.push(id);
+    else untouched.push(id);
+  });
+
+  return { added, removed, untouched };
+};
+
 export const removeFromArray = <
   TOriginal extends { id: string },
   TRemove extends { id: string }
