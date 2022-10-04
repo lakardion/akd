@@ -95,6 +95,7 @@ model StudentDebt {
     paymentId      String? @unique
     classSessionId String
     rate           Decimal
+    restored       Boolean @default(false)
 
     classSession ClassSession @relation(fields: [classSessionId], references: [id], onDelete: Cascade)
     payment      Payment?     @relation(fields: [paymentId], references: [id])
