@@ -1,16 +1,58 @@
-import { StudentDebt } from '@prisma/client';
+import { Prisma, StudentDebt } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { Context } from '../context';
 
-export const debtsZod = z.array(
-  z.object({
-    studentId: z.string(),
-    hours: z.number(),
-    rate: z.number(),
+const zodNumberOrDecimal = z.number().or(z.instanceof(Decimal));
+
+const studentBalanceActionZod = z
+  .object({ increment: zodNumberOrDecimal })
+  .or(z.object({ decrement: zodNumberOrDecimal }))
+  .or(z.object({ set: zodNumberOrDecimal }))
+  .optional();
+
+const debtActionZod = z
+  .object({
+    id: z.string(),
   })
-);
+  .and(
+    z
+      .object({ action: z.literal('keep') })
+      .or(z.object({ action: z.literal('remove') }))
+      .or(
+        z.object({
+          action: z.literal('update'),
+          hours: zodNumberOrDecimal,
+          rate: zodNumberOrDecimal,
+        })
+      )
+  )
+  .or(
+    z.object({
+      action: z.literal('create'),
+      hours: zodNumberOrDecimal,
+      rate: zodNumberOrDecimal.optional(),
+    })
+  );
+export const calculatedDebtZod = z.object({
+  studentId: z.string(),
+  studentFullName: z.string(),
+  studentBalanceAction: studentBalanceActionZod,
+  debt: debtActionZod.optional(),
+});
+
+export type StudentBalanceAction = z.infer<typeof studentBalanceActionZod>;
+export type DebtAction = z.infer<typeof debtActionZod>;
+export type CalculatedDebt = z.infer<typeof calculatedDebtZod>;
+
+export const debtorZod = z.object({
+  studentId: z.string(),
+  hours: z.number(),
+  rate: z.number(),
+});
+
+export const debtsZod = z.array(debtorZod);
 
 export const validateDebtors =
   (ctx: Context) =>
@@ -21,18 +63,18 @@ export const validateDebtors =
     debts?: z.infer<typeof debtsZod>;
     hours: number;
   }) => {
-    const debtorStudents = debts?.map((d) => d.studentId) ?? [];
+    const debtorStudentIds = debts?.map((d) => d.studentId) ?? [];
     const debtCheckedStudents = await ctx.prisma.student.findMany({
       where: {
         id: {
-          in: debtorStudents,
+          in: debtorStudentIds,
         },
         hourBalance: {
           gte: hours,
         },
       },
     });
-    if (debtorStudents.length !== 0 && debtCheckedStudents.length !== 0)
+    if (debtorStudentIds.length !== 0 && debtCheckedStudents.length !== 0)
       throw new TRPCError({
         code: 'BAD_REQUEST',
         message:
@@ -64,4 +106,66 @@ export const updateDebtorsHourBalance =
         },
       });
     });
+  };
+
+export const addressDebt =
+  (tsx: Prisma.TransactionClient) =>
+  async ({
+    debtAction,
+    classSessionId,
+    studentId,
+  }: {
+    debtAction?: DebtAction;
+    classSessionId: string;
+    studentId: string;
+  }) => {
+    if (debtAction) {
+      switch (debtAction.action) {
+        case 'create': {
+          await tsx.studentDebt.create({
+            data: {
+              hours: debtAction.hours,
+              rate: debtAction.rate ?? 0,
+              classSessionId,
+              studentId,
+            },
+          });
+          break;
+        }
+        case 'update': {
+          await tsx.studentDebt.update({
+            where: {
+              id: debtAction.id,
+            },
+            data: {
+              hours: debtAction.hours,
+              rate: debtAction.rate,
+            },
+          });
+          break;
+        }
+        case 'remove': {
+          await tsx.studentDebt.delete({
+            where: {
+              id: debtAction.id,
+            },
+          });
+          break;
+        }
+        case 'keep': {
+          await tsx.studentDebt.update({
+            where: {
+              id: debtAction.id,
+            },
+            data: {
+              restored: true,
+            },
+          });
+          break;
+        }
+        default: {
+          const neverish: never = debtAction;
+        }
+      }
+    }
   };

@@ -1,32 +1,15 @@
 import { StudentDebt } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime';
-import { TRPCError } from '@trpc/server';
-import { removeFromArrayStr } from 'utils';
+import { diffStrArraysImproved } from 'utils';
 import { DEFAULT_PAGE_SIZE } from 'utils/pagination';
 import { identifiableZod, infiniteCursorZod } from 'utils/server-zods';
 import { z } from 'zod';
 import { createRouter } from '../context';
-import { debtsZod, updateDebtorsHourBalance, validateDebtors } from './helpers';
-
-const diffStrArrays = (
-  newValues: string[],
-  oldValues: string[]
-): { created: string[]; removed: string[]; untouched: string[] } => {
-  const oldIdsSet = new Set(oldValues);
-  const idsSet = new Set(newValues);
-  const testSet = new Set([...oldValues, ...newValues]);
-
-  const removed: string[] = [];
-  const created: string[] = [];
-  const untouched: string[] = [];
-  testSet.forEach((id) => {
-    if (!oldIdsSet.has(id)) created.push(id);
-    else if (!idsSet.has(id)) removed.push(id);
-    else untouched.push(id);
-  });
-
-  return { created, removed, untouched };
-};
+import {
+  addressDebt,
+  calculatedDebtZod,
+  updateDebtorsHourBalance,
+} from './helpers';
 
 export const classSessionRouter = createRouter()
   .query('paginated', {
@@ -277,7 +260,7 @@ export const classSessionRouter = createRouter()
         teacherHourRateId: z.string(),
         hours: z.number(),
         oldHours: z.number(),
-        debts: debtsZod.optional(),
+        debts: z.array(calculatedDebtZod).optional(),
       })
     ),
     async resolve({
@@ -294,107 +277,77 @@ export const classSessionRouter = createRouter()
         debts,
       },
     }) {
-      // check debtors first
-      await validateDebtors(ctx)({
-        debts,
-        hours,
-      });
+      /**
+       TODO:do some checking here so that we don't swallow this as total truth.
+       The verification should do calculateDebts and verify everything mainly
+       */
+
       //Manage student list change
-      const { created, removed, untouched } = diffStrArrays(
+      const { added, removed } = diffStrArraysImproved(
         studentIds,
         oldStudentIds
       );
-      const hourUpdate =
-        hours !== oldHours
-          ? {
-              update: {
-                value: hours,
-              },
-            }
-          : undefined;
 
-      //? I would love an explanation of why I can't do this in a same transaction, Once I resolve #10 this will be squashed into the next statement
-      //update hour
-      const updatedClassSessionHour = ctx.prisma.classSession.update({
-        where: {
-          id,
-        },
-        data: {
-          hour: hourUpdate,
-        },
-      });
-      const updatedClassSessionsPromise = ctx.prisma.classSession.update({
-        where: {
-          id,
-        },
-        data: {
-          teacherId,
-          teacherHourRateId,
-          date,
-          classSessionStudent: {
-            createMany: created.length
-              ? { data: created.map((id) => ({ studentId: id })) }
-              : undefined,
-            deleteMany: removed.length
-              ? removed.map((id) => ({ studentId: id }))
-              : undefined,
+      //TODO: Remove hours table which does not make much sense.
+      return ctx.prisma.$transaction(async (tsx) => {
+        //update hour field
+        const haveHoursUpdated = hours !== oldHours;
+        if (haveHoursUpdated) {
+          await tsx.classSession.update({
+            where: {
+              id,
+            },
+            data: {
+              hour: {
+                update: {
+                  value: hours,
+                },
+              },
+            },
+          });
+        }
+        // update the rest of fields
+        await tsx.classSession.update({
+          where: {
+            id,
           },
-        },
-      });
-      //update existing
-      const updateUntouchedStudentsPromise =
-        hours !== oldHours
-          ? ctx.prisma.student.updateMany({
-              where: {
-                id: {
-                  in: untouched,
-                },
-              },
-              data: {
-                hourBalance: {
-                  increment: oldHours - hours,
-                },
-              },
+          data: {
+            teacherId,
+            teacherHourRateId,
+            date,
+            // connect-disconnect students to class
+            classSessionStudent: {
+              createMany: added.length
+                ? { data: added.map((id) => ({ studentId: id })) }
+                : undefined,
+              deleteMany: removed.length
+                ? removed.map((id) => ({ studentId: id }))
+                : undefined,
+            },
+          },
+        });
+
+        // Address debts.
+        debts &&
+          (await Promise.all(
+            debts.map(async (d) => {
+              d.studentBalanceAction &&
+                (await tsx.student.update({
+                  where: {
+                    id: d.studentId,
+                  },
+                  data: {
+                    hourBalance: d.studentBalanceAction,
+                  },
+                }));
+              await addressDebt(tsx)({
+                debtAction: d.debt,
+                classSessionId: id,
+                studentId: d.studentId,
+              });
             })
-          : undefined;
-      //update created
-      const updateCreatedPromise = ctx.prisma.student.updateMany({
-        where: {
-          id: {
-            in: created,
-          },
-        },
-        data: {
-          hourBalance: { decrement: hours },
-        },
+          ));
       });
-      //update removed
-      const updateRemovedPromise = ctx.prisma.student.updateMany({
-        where: {
-          id: {
-            in: removed,
-          },
-        },
-        data: {
-          hourBalance: { increment: hours },
-        },
-      });
-      //? is this okay? I am not sure whether this is a thing. Since these are promises I think these will run one way or another
-      const commitables = updateUntouchedStudentsPromise
-        ? [
-            updatedClassSessionHour,
-            updatedClassSessionsPromise,
-            updateUntouchedStudentsPromise,
-            updateCreatedPromise,
-            updateRemovedPromise,
-          ]
-        : [
-            updatedClassSessionHour,
-            updatedClassSessionsPromise,
-            updateCreatedPromise,
-            updateRemovedPromise,
-          ];
-      await ctx.prisma.$transaction(commitables);
     },
   })
   .mutation('create', {
@@ -404,93 +357,69 @@ export const classSessionRouter = createRouter()
       teacherHourRateId: z.string(),
       date: z.date(),
       hours: z.number(),
-      debts: debtsZod.optional(),
+      debts: z.array(calculatedDebtZod).optional(),
     }),
     async resolve({
       ctx,
       input: { studentIds, teacherId, teacherHourRateId, date, hours, debts },
     }) {
-      //0- check debts
-      const debtorStudents = debts?.map((d) => d.studentId) ?? [];
-      const debtCheckedStudents = await ctx.prisma.student.findMany({
-        where: {
-          id: {
-            in: debtorStudents,
-          },
-          hourBalance: {
-            gte: hours,
-          },
-        },
-      });
-      if (debtorStudents.length !== 0 && debtCheckedStudents.length !== 0)
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message:
-            'Some of the students are not debtors and would have gotten debts created',
-        });
-      //! failed to do this in transactions, can't have a conditional
-      //1- Create hour
-      const hour = await ctx.prisma.hour.create({
-        data: { value: hours },
-      });
-      const classSessionStudent = studentIds.length
-        ? {
-            createMany: {
-              data: studentIds.map((sids) => ({ studentId: sids })),
-            },
-          }
-        : undefined;
-      //2 Create class sesssion
-      const newClassSession = await ctx.prisma.classSession.create({
-        data: {
-          date,
-          classSessionStudent,
-          hourId: hour.id,
-          teacherId,
-          teacherHourRateId,
-        },
-      });
-      // 3- handle debtors
-      // 3- If students were selected in the class then substract from their hours
-      if (classSessionStudent) {
-        const debtorIds = debts?.map((d) => d.studentId) ?? [];
-        const nonDebtorIds = removeFromArrayStr(studentIds, debtorIds);
+      //TODO: check debtors somehow
+      // if (debtorStudents.length !== 0 && debtCheckedStudents.length !== 0)
+      //   throw new TRPCError({
+      //     code: 'BAD_REQUEST',
+      //     message:
+      //       'Some of the students are not debtors and would have gotten debts created',
+      //   });
 
-        await ctx.prisma.$transaction([
-          ctx.prisma.student.updateMany({
-            where: {
-              id: {
-                in: nonDebtorIds,
+      return await ctx.prisma.$transaction(async (tsx) => {
+        //1- Create hour
+        //this will luckily change after we remove th ehour entity
+        const hour = await ctx.prisma.hour.create({
+          data: { value: hours },
+        });
+        const classSessionStudent = studentIds.length
+          ? {
+              createMany: {
+                data: studentIds.map((sids) => ({ studentId: sids })),
               },
-            },
-            data: {
-              hourBalance: {
-                decrement: hours,
-              },
-            },
-          }),
-          ctx.prisma.student.updateMany({
-            where: {
-              id: {
-                in: debtorIds,
-              },
-            },
-            data: {
-              hourBalance: {
-                set: 0,
-              },
-            },
-          }),
-          ctx.prisma.studentDebt.createMany({
-            data:
-              debts?.map((d) => ({
-                ...d,
-                classSessionId: newClassSession.id,
-              })) ?? [],
-          }),
-        ]);
-      }
-      return newClassSession;
+            }
+          : undefined;
+        //2 Create class sesssion
+        const newClassSession = await ctx.prisma.classSession.create({
+          data: {
+            date,
+            classSessionStudent,
+            hourId: hour.id,
+            teacherId,
+            teacherHourRateId,
+          },
+        });
+        // 3- handle debtors
+        // 3- If students were selected in the class then substract from their hours
+        if (classSessionStudent) {
+          debts &&
+            (await Promise.all(
+              debts.map(async (d) => {
+                //TODO: On create there will only be create actions, no way to update remove or keep. How can I fence this with TS?
+                d.studentBalanceAction &&
+                  (await tsx.student.update({
+                    where: {
+                      id: d.studentId,
+                    },
+                    data: {
+                      hourBalance: d.studentBalanceAction,
+                    },
+                  }));
+                await addressDebt(tsx)({
+                  debtAction: d.debt,
+                  classSessionId: newClassSession.id,
+                  studentId: d.studentId,
+                });
+              })
+            ));
+        }
+        return newClassSession;
+      });
     },
   })
   .mutation('delete', {

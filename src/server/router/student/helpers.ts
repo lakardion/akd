@@ -2,6 +2,11 @@ import { Student, StudentDebt } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime';
 import { TRPCError } from '@trpc/server';
 import { diffStrArraysImproved } from 'utils';
+import {
+  CalculatedDebt,
+  DebtAction,
+  StudentBalanceAction,
+} from '../class-session/helpers';
 import { Context } from '../context';
 
 export const getDebtorsStudents =
@@ -30,33 +35,6 @@ export const getDebtorsStudents =
       },
     });
   };
-
-type DebtAction =
-  | (
-      | ({
-          id: string;
-        } & (
-          | { action: 'keep' }
-          | { action: 'remove' }
-          | { action: 'update'; hours: number | Decimal }
-        )) // the debt is going to be kept alive as a record that a student has paid for it. Since this is going to be restored, the corresponding StudentDebt should be marked as such
-      | {
-          action: 'create';
-          hours: number | Decimal;
-        }
-    )
-  | undefined;
-type StudentBalanceAction =
-  | { increment: number | Decimal }
-  | { decrement: number | Decimal }
-  | { set: number | Decimal }
-  | undefined;
-
-type CalculatedDebt = {
-  studentId: string;
-  debt: DebtAction;
-  studentBalanceAction: StudentBalanceAction;
-};
 
 const groupStudentDebtByPaymentStatus = (
   student: Student & { debts: StudentDebt[] }
@@ -88,7 +66,8 @@ export const calculateDebt =
     studentIds,
     hours,
     classSessionId,
-  }: {
+  }: //? maybe we need a rate map here?. But it is quite odd because this is meant to also run without the actual rates there yet.
+  {
     studentIds: string[];
     hours: number;
     classSessionId?: string;
@@ -122,6 +101,7 @@ export const calculateDebt =
                 studentBalanceAction: {
                   set: 0,
                 },
+                studentFullName: `${student.name} ${student.lastName}`,
               }
             : {
                 studentId: sId,
@@ -129,6 +109,7 @@ export const calculateDebt =
                 studentBalanceAction: {
                   decrement: newHours,
                 },
+                studentFullName: `${student.name} ${student.lastName}`,
               },
         ];
       });
@@ -199,6 +180,7 @@ export const calculateDebt =
     const createdStudents = added.flatMap<CalculatedDebt>((a) => {
       const student = studentsById[a];
       if (!student) return [];
+      const studentFullName = `${student.name} ${student.lastName}`;
       const hasEnoughHours = student.hourBalance.greaterThan(newHours);
       const studentBalanceAction: StudentBalanceAction = hasEnoughHours
         ? { decrement: hours }
@@ -214,6 +196,7 @@ export const calculateDebt =
         studentId: student.id,
         debt,
         studentBalanceAction,
+        studentFullName,
       };
       return [result];
     });
@@ -221,6 +204,7 @@ export const calculateDebt =
     const removedStudents = removed.flatMap<CalculatedDebt>((r) => {
       const student = removedStudentsById[r];
       if (!student) return [];
+      const studentFullName = `${student.name} ${student.lastName}`;
       // edge case: user adds student and gets debt, student pays debt, student decides he does not want to be part of the class, debt is kept since it was paid, maybe student wants to come back to class but it has spent its hours somewhere else, then he will have more than one debt for this classSession. We need to account for such a thing
       /**
        * There are three cases here that could happen
@@ -241,6 +225,7 @@ export const calculateDebt =
                 },
                 studentBalanceAction: { increment: classSession.hour.value },
                 studentId: r,
+                studentFullName,
               }
             : {
                 debt: {
@@ -249,6 +234,7 @@ export const calculateDebt =
                 },
                 studentBalanceAction: undefined,
                 studentId: r,
+                studentFullName,
               };
         });
       }
@@ -258,6 +244,7 @@ export const calculateDebt =
           increment: classSession.hour.value,
         },
         studentId: student.id,
+        studentFullName,
       };
       return [returnChecked];
     });
@@ -275,7 +262,7 @@ export const calculateDebt =
       }
       const haveHoursIncreased = newHours.greaterThan(classSession.hour.value);
       const { paid, unpaid } = groupStudentDebtByPaymentStatus(student);
-
+      const studentFullName = `${student.name} ${student.lastName}`;
       if (paid.length) {
         const [paidDebt] = paid;
         if (!paidDebt) return [];
@@ -295,6 +282,7 @@ export const calculateDebt =
                     increment: classSession.hour.value.minus(newHours),
                   },
                   studentId: u,
+                  studentFullName,
                 },
               ]
             : [
@@ -305,6 +293,7 @@ export const calculateDebt =
                   },
                   studentId: u,
                   studentBalanceAction: undefined,
+                  studentFullName,
                 },
                 {
                   debt: {
@@ -315,6 +304,7 @@ export const calculateDebt =
                   studentBalanceAction: {
                     set: 0,
                   },
+                  studentFullName,
                 },
               ];
         }
@@ -328,6 +318,7 @@ export const calculateDebt =
               increment: classSession.hour.value.minus(newHours),
             },
             studentId: u,
+            studentFullName,
           },
         ];
       }
@@ -349,6 +340,7 @@ export const calculateDebt =
                 studentBalanceAction: {
                   set: newBalance,
                 },
+                studentFullName,
               },
             ]
           : [
@@ -357,11 +349,13 @@ export const calculateDebt =
                   action: 'update',
                   hours: newBalance.absoluteValue(),
                   id: debt.id,
+                  rate: debt.rate,
                 },
                 studentId: u,
                 studentBalanceAction: {
                   set: 0,
                 },
+                studentFullName,
               },
             ];
       }
@@ -378,6 +372,7 @@ export const calculateDebt =
               studentBalanceAction: {
                 set: 0,
               },
+              studentFullName,
             }
           : {
               studentId: u,
@@ -385,6 +380,7 @@ export const calculateDebt =
               studentBalanceAction: {
                 decrement: newHours,
               },
+              studentFullName,
             },
       ];
     });

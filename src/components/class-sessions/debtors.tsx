@@ -2,9 +2,17 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from 'components/button';
 import { Input } from 'components/form/input';
 import Decimal from 'decimal.js';
-import { ChangeEvent, FC, useCallback, useMemo, useState } from 'react';
+import {
+  ChangeEvent,
+  FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useFieldArray, useForm } from 'react-hook-form';
+import { CalculatedDebt } from 'server/router/class-session/helpers';
 import { trpc } from 'utils/trpc';
 import { useDebouncedValue } from 'utils/use-debounce';
 import { z } from 'zod';
@@ -30,10 +38,9 @@ export const useStudentDebtors = (
   const [hoursForm, setHoursForm] = useState(0);
   const debouncedHours = useDebouncedValue(hoursForm, 500);
   const debouncedStudents = useDebouncedValue(studentIds, 500);
-  //TODO: check whether this works properly when doing updates.
-  const { data: debtors } = trpc.useQuery(
+  const { data: calculatedDebts } = trpc.useQuery(
     [
-      'students.checkDebtors',
+      'students.calculateDebts',
       { hours: debouncedHours, studentIds: debouncedStudents, classSessionId },
     ],
     {
@@ -51,14 +58,29 @@ export const useStudentDebtors = (
     },
     [hourOnChange]
   );
-  const areThereDebtors = useMemo(
-    () => Boolean(hoursForm !== 0 && debtors?.length),
-    [debtors?.length, hoursForm]
+  const areThereUnconfiguredDebtors = useMemo(
+    () =>
+      Boolean(
+        hoursForm !== 0 &&
+          calculatedDebts?.filter((d) => {
+            if (
+              !d.debt ||
+              (d.debt?.action !== 'create' && d.debt?.action !== 'update')
+            )
+              return false;
+            return !d.debt.rate;
+          }).length
+      ),
+    [calculatedDebts, hoursForm]
   );
 
   return useMemo(
-    () => ({ debtors, customHourChange, areThereDebtors }),
-    [areThereDebtors, customHourChange, debtors]
+    () => ({
+      calculatedDebts,
+      customHourChange,
+      areThereUnconfiguredDebtors,
+    }),
+    [areThereUnconfiguredDebtors, customHourChange, calculatedDebts]
   );
 };
 

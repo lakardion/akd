@@ -1,8 +1,7 @@
-import { PaymentMethodType, Student, Prisma } from '@prisma/client';
+import { PaymentMethodType, Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime';
 import { includeInactiveFlagZod, studentFormZod } from 'common';
 import { isMatch } from 'date-fns';
-import { removeFromArray, removeFromArrayStr } from 'utils';
 import { getMonthEdges } from 'utils/date';
 import {
   DEFAULT_PAGE_SIZE,
@@ -12,129 +11,17 @@ import {
 import { infiniteCursorZod } from 'utils/server-zods';
 import { z } from 'zod';
 import { createRouter } from '../context';
-import { getDebtorsStudents } from './helpers';
+import { calculateDebt } from './helpers';
 
 export const studentRouter = createRouter()
-  .query('checkDebtors', {
+  .query('calculateDebts', {
     input: z.object({
       studentIds: z.array(z.string()),
       hours: z.number(),
       classSessionId: z.string().optional(),
     }),
     async resolve({ ctx, input: { hours, studentIds, classSessionId } }) {
-      const decimalHours = new Decimal(hours);
-      if (classSessionId) {
-        //get classSession
-        const classSession = await ctx.prisma.classSession.findUnique({
-          where: { id: classSessionId },
-          include: {
-            hour: { select: { value: true } },
-            classSessionStudent: {
-              select: {
-                student: true,
-              },
-            },
-            studentDebts: true,
-          },
-        });
-        const previousStudentsLookup =
-          classSession?.classSessionStudent?.reduce<Record<string, Student>>(
-            (res, curr) => {
-              res[curr.student.id] = curr.student;
-              return res;
-            },
-            {}
-          );
-
-        const realHours = classSession?.hour?.value?.toNumber() ?? 0;
-        if (realHours !== hours) {
-          //reevaluate with new hours whether they'll still be debtors or not
-          const stillDebtors =
-            classSession?.studentDebts.flatMap((sd) => {
-              //not interested in the previous debtors from class, only the ones we're asking for
-              const student = previousStudentsLookup?.[sd.studentId];
-              if (!student) return [];
-              // this is not precisely the hour balance but instead how many hours can be restored if this debt were to be nullified
-              const previousExceedingBalance = classSession.hour.value.minus(
-                sd.hours
-              );
-              const buffedHourBalance = student.hourBalance.plus(
-                previousExceedingBalance
-              );
-              if (buffedHourBalance.lessThan(hours)) {
-                //remap the hourBalance so we properly report of how much the debt is going to be for the student
-                return [
-                  {
-                    ...student,
-                    hourBalance: buffedHourBalance,
-                    previousRate: sd.rate,
-                  },
-                ];
-              }
-              return [];
-            }) ?? [];
-          const previousDebtors =
-            classSession?.studentDebts.map((sd) => sd.studentId) ?? [];
-          const previousStudents =
-            classSession?.classSessionStudent.map((css) => css.student.id) ??
-            [];
-          const studentsThatUsedHours = removeFromArrayStr(
-            previousStudents,
-            previousDebtors
-          ).flatMap((s) => {
-            //we know for sure that it has to exist bc we took it from there
-            const student = previousStudentsLookup?.[s];
-            if (!student) return [];
-            const buffedHourBalance = student?.hourBalance.plus(
-              classSession?.hour.value ?? 0
-            );
-
-            return buffedHourBalance?.lessThan(hours)
-              ? [
-                  {
-                    ...student,
-                    hourBalance: buffedHourBalance,
-                  },
-                ]
-              : [];
-          });
-          const newStudents = removeFromArrayStr(studentIds, [
-            ...previousDebtors,
-            ...previousStudents,
-          ]);
-          const newStudentDebtors = await getDebtorsStudents(ctx)({
-            studentIds: newStudents,
-            hours,
-          });
-          const merged: {
-            id: string;
-            name: string;
-            lastName: string;
-            hourBalance: Decimal;
-            previousRate?: Decimal;
-          }[] = [
-            ...stillDebtors,
-            ...newStudentDebtors,
-            ...studentsThatUsedHours,
-          ];
-
-          return merged.map((d) => ({
-            studentId: d.id,
-            studentFullName: `${d.name} ${d.lastName}`,
-            hours: decimalHours.minus(d.hourBalance),
-            previousRate: d?.previousRate?.toNumber(),
-          }));
-        }
-      }
-      // should I check each student individually?.
-      const debtors = await getDebtorsStudents(ctx)({ studentIds, hours });
-
-      return debtors.map((d) => ({
-        studentId: d.id,
-        studentFullName: `${d.name} ${d.lastName}`,
-        hours: decimalHours.minus(d.hourBalance).toNumber(),
-        previousRate: undefined,
-      }));
+      return calculateDebt(ctx)({ hours, studentIds, classSessionId });
     },
   })
   .query('history', {

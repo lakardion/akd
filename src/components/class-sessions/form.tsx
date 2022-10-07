@@ -6,12 +6,14 @@ import { Modal } from 'components/modal';
 import { WarningMessage } from 'components/warning-message';
 import { format, setHours, setMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
+import Decimal from 'decimal.js';
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import ReactDatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { Controller, useForm } from 'react-hook-form';
 import ReactSelect, { MultiValue, SingleValue } from 'react-select';
 import AsyncReactSelect from 'react-select/async';
+import { CalculatedDebt } from 'server/router/class-session/helpers';
 import { diffStrArrays } from 'utils';
 import {
   debouncedSearchStudents,
@@ -22,8 +24,8 @@ import { z } from 'zod';
 import {
   DebtorsForm,
   DebtorsFormInput,
-  formDebtorZod,
   FormDebtor,
+  formDebtorZod,
   useStudentDebtors,
 } from './debtors';
 
@@ -272,6 +274,45 @@ export const ClassSessionForm: FC<{
   );
 
   const onSubmit = async (data: ClassSessionFormInputs) => {
+    //it would be nice if we could do something regarding this iteration. Calculated debts do not change really and we can do sort of indexation of that so that we know where each debt should go to. I'm thinking of <studentId,calculatedDebtIndex>. I don't see this as a risky operation tbh
+    const debtsByStudentId = data.debtors.reduce<
+      Record<string, typeof data['debtors'][0]>
+    >((res, d) => {
+      res[d.studentId] = d;
+      return res;
+    }, {});
+
+    const injectedDebts = calculatedDebts?.map<CalculatedDebt>((cd, idx) => {
+      const matchingIdx = originalCalculatedDebtIdxByStudentId?.[cd.studentId];
+      if (
+        !cd.debt ||
+        idx !== matchingIdx ||
+        (cd.debt.action !== 'create' && cd.debt.action !== 'update')
+      )
+        return cd;
+
+      const studentDebt = debtsByStudentId?.[cd.studentId];
+      return {
+        studentFullName: cd.studentFullName,
+        studentId: cd.studentId,
+        studentBalanceAction: cd.studentBalanceAction,
+        debt:
+          cd.debt.action === 'create'
+            ? {
+                ...cd.debt,
+                rate: studentDebt?.rate
+                  ? new Decimal(studentDebt.rate).toNumber()
+                  : undefined,
+              }
+            : {
+                ...cd.debt,
+                rate: studentDebt?.rate
+                  ? new Decimal(studentDebt.rate).toNumber()
+                  : cd.debt.rate,
+              },
+      };
+    });
+
     id
       ? //TODO: add debtors here as well. Editing can cause new debtors
         await edit({
@@ -282,6 +323,7 @@ export const ClassSessionForm: FC<{
           teacherId: data.teacherId,
           oldHours: oldHours ?? 0,
           oldStudentIds: oldStudents,
+          debts: injectedDebts,
           id,
         })
       : await create({
@@ -290,12 +332,7 @@ export const ClassSessionForm: FC<{
           studentIds: data.students,
           teacherId: data.teacherId,
           teacherHourRateId: data.teacherHourRateId,
-          //TODO: check this works
-          debts: data.debtors.map((d) => ({
-            hours: parseFloat(d.hours),
-            rate: parseFloat(d.rate),
-            studentId: d.studentId,
-          })),
+          debts: injectedDebts,
         });
     onFinished();
   };
@@ -308,11 +345,8 @@ export const ClassSessionForm: FC<{
     setValue('hours', hour);
   };
   //Not okay with this solution, might want to do something better some other time if I ever come up with a better way of performing this validation
-  const { customHourChange, debtors, areThereDebtors } = useStudentDebtors(
-    studentIds,
-    handleHourChange,
-    id
-  );
+  const { customHourChange, calculatedDebts, areThereUnconfiguredDebtors } =
+    useStudentDebtors(studentIds, handleHourChange, id);
 
   const [showDebtorsForm, setShowDebtorsForm] = useState(false);
   const handleDebtorsFormOpen = () => {
@@ -326,20 +360,39 @@ export const ClassSessionForm: FC<{
     setValue('debtors', formValues.debtors);
   };
 
-  const debtorsFeed = useMemo(() => {
-    const debtorsMappedToForm =
-      debtors?.map((d) => {
-        return {
-          studentId: d.studentId,
-          studentFullName: d.studentFullName,
-          rate:
-            'previousRate' in d && d.previousRate
-              ? d.previousRate.toString()
-              : '0',
-          hours: d.hours.toString(),
-        };
-      }) ?? [];
-    if (!formDebtors.length) return debtorsMappedToForm;
+  const [debtorsFeed, originalCalculatedDebtIdxByStudentId] = useMemo(() => {
+    const calculatedDebtsReduced = calculatedDebts?.reduce<{
+      debts: {
+        studentId: string;
+        studentFullName: string;
+        rate: string;
+        hours: string;
+      }[];
+      originalIdxByStudentId: Record<string, number>;
+    }>(
+      (res, cd, idx) => {
+        if (
+          !cd.debt ||
+          (cd.debt.action !== 'create' && cd.debt.action !== 'update')
+        )
+          return res;
+
+        res.debts.push({
+          studentId: cd.studentId,
+          studentFullName: cd.studentFullName,
+          rate: cd.debt.rate?.toString() ?? '',
+          hours: cd.debt.hours.toString(),
+        });
+        res.originalIdxByStudentId[cd.studentId] = idx;
+        return res;
+      },
+      { debts: [], originalIdxByStudentId: {} }
+    );
+    if (!formDebtors.length)
+      return [
+        calculatedDebtsReduced?.debts ?? [],
+        calculatedDebtsReduced?.originalIdxByStudentId,
+      ] as const;
     //iterate once to get a map off of them and make checking against these easier. otherwise we would have to do includes on each loop
     const formDebtorsMap = formDebtors.reduce<Record<string, FormDebtor>>(
       (res, curr) => {
@@ -348,13 +401,16 @@ export const ClassSessionForm: FC<{
       },
       {}
     );
-    return (
-      debtorsMappedToForm?.map((d) => ({
+    const mappedResult =
+      calculatedDebtsReduced?.debts.map((d) => ({
         ...d,
         rate: formDebtorsMap[d.studentId]?.rate ?? d?.rate?.toString(),
-      })) ?? []
-    );
-  }, [debtors, formDebtors]);
+      })) ?? [];
+    return [
+      mappedResult,
+      calculatedDebtsReduced?.originalIdxByStudentId,
+    ] as const;
+  }, [calculatedDebts, formDebtors]);
 
   const handleDebtors = (
     students: MultiValue<SingleValue<{ label: string; value: string }>>
@@ -374,10 +430,10 @@ export const ClassSessionForm: FC<{
   };
 
   const areDebtorsInSync = useMemo(() => {
-    return debtors?.length === formDebtors.length;
-  }, [debtors, formDebtors]);
+    return calculatedDebts?.length === formDebtors.length;
+  }, [calculatedDebts, formDebtors]);
 
-  const showDebtorsWarning = !areDebtorsInSync && areThereDebtors;
+  const showDebtorsWarning = !areDebtorsInSync && areThereUnconfiguredDebtors;
 
   return (
     <>
