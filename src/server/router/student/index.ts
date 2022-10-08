@@ -11,7 +11,7 @@ import {
 import { infiniteCursorZod } from 'utils/server-zods';
 import { z } from 'zod';
 import { createRouter } from '../context';
-import { calculateDebt } from './helpers';
+import { calculateDebt, calculateDebtNewClass } from './helpers';
 
 export const studentRouter = createRouter()
   .query('calculateDebts', {
@@ -21,7 +21,9 @@ export const studentRouter = createRouter()
       classSessionId: z.string().optional(),
     }),
     async resolve({ ctx, input: { hours, studentIds, classSessionId } }) {
-      return calculateDebt(ctx)({ hours, studentIds, classSessionId });
+      return classSessionId
+        ? calculateDebt(ctx)({ hours, studentIds, classSessionId })
+        : calculateDebtNewClass(ctx)({ hours, studentIds });
     },
   })
   .query('history', {

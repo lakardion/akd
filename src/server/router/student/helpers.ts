@@ -57,6 +57,50 @@ const groupStudentDebtByPaymentStatus = (
     { restored: [], paid: [], unpaid: [] }
   );
 
+export const calculateDebtNewClass =
+  (ctx: Context) =>
+  async ({ studentIds, hours }: { studentIds: string[]; hours: number }) => {
+    const newHours = new Decimal(hours);
+    const studentById = (
+      await ctx.prisma.student.findMany({
+        where: {
+          id: { in: studentIds },
+        },
+      })
+    ).reduce<Record<string, Student>>((res, s) => {
+      res[s.id] = s;
+      return res;
+    }, {});
+
+    return studentIds.flatMap<CalculatedDebt>((sId) => {
+      const student = studentById[sId];
+      if (!student) return [];
+      const willCreateDebt = newHours.greaterThan(student.hourBalance);
+      return [
+        willCreateDebt
+          ? {
+              studentId: sId,
+              debt: {
+                action: 'create',
+                hours: newHours.minus(student.hourBalance).toNumber(),
+              },
+              studentBalanceAction: {
+                set: 0,
+              },
+              studentFullName: `${student.name} ${student.lastName}`,
+            }
+          : {
+              studentId: sId,
+              debt: undefined,
+              studentBalanceAction: {
+                decrement: newHours.toNumber(),
+              },
+              studentFullName: `${student.name} ${student.lastName}`,
+            },
+      ];
+    });
+  };
+
 /**
  * Calculates student debt and returns a sensible representation of what the updates required are for each of them in terms of their current situtation in the classSession
  */
@@ -70,50 +114,10 @@ export const calculateDebt =
   {
     studentIds: string[];
     hours: number;
-    classSessionId?: string;
-  }): Promise<CalculatedDebt[]> => {
+    classSessionId: string;
+  }) => {
     const newHours = new Decimal(hours);
     //get all the data we need to do this calculation
-    if (!classSessionId) {
-      const studentById = (
-        await ctx.prisma.student.findMany({
-          where: {
-            id: { in: studentIds },
-          },
-        })
-      ).reduce<Record<string, Student>>((res, s) => {
-        res[s.id] = s;
-        return res;
-      }, {});
-
-      return studentIds.flatMap<CalculatedDebt>((sId) => {
-        const student = studentById[sId];
-        if (!student) return [];
-        const willCreateDebt = newHours.greaterThan(student.hourBalance);
-        return [
-          willCreateDebt
-            ? {
-                studentId: sId,
-                debt: {
-                  action: 'create',
-                  hours: newHours.minus(student.hourBalance),
-                },
-                studentBalanceAction: {
-                  set: 0,
-                },
-                studentFullName: `${student.name} ${student.lastName}`,
-              }
-            : {
-                studentId: sId,
-                debt: undefined,
-                studentBalanceAction: {
-                  decrement: newHours,
-                },
-                studentFullName: `${student.name} ${student.lastName}`,
-              },
-        ];
-      });
-    }
     const classSession = await ctx.prisma.classSession.findUnique({
       where: { id: classSessionId },
       include: { classSessionStudent: true, studentDebts: true, hour: true },
@@ -185,11 +189,11 @@ export const calculateDebt =
       const studentBalanceAction: StudentBalanceAction = hasEnoughHours
         ? { decrement: hours }
         : { set: 0 };
-      const debt: DebtAction = hasEnoughHours
+      const debt: DebtAction | undefined = hasEnoughHours
         ? undefined
         : {
             action: 'create',
-            hours: newHours.minus(student.hourBalance),
+            hours: newHours.minus(student.hourBalance).toNumber(),
           };
 
       const result: CalculatedDebt = {
@@ -223,7 +227,9 @@ export const calculateDebt =
                   action: 'keep',
                   id: d.id,
                 },
-                studentBalanceAction: { increment: classSession.hour.value },
+                studentBalanceAction: {
+                  increment: classSession.hour.value.toNumber(),
+                },
                 studentId: r,
                 studentFullName,
               }
@@ -241,7 +247,7 @@ export const calculateDebt =
       const returnChecked: CalculatedDebt = {
         debt: undefined,
         studentBalanceAction: {
-          increment: classSession.hour.value,
+          increment: classSession.hour.value.toNumber(),
         },
         studentId: student.id,
         studentFullName,
@@ -279,7 +285,9 @@ export const calculateDebt =
                     id: paidDebt.id,
                   },
                   studentBalanceAction: {
-                    increment: classSession.hour.value.minus(newHours),
+                    increment: classSession.hour.value
+                      .minus(newHours)
+                      .toNumber(),
                   },
                   studentId: u,
                   studentFullName,
@@ -298,7 +306,7 @@ export const calculateDebt =
                 {
                   debt: {
                     action: 'create',
-                    hours: newBalance.absoluteValue(),
+                    hours: newBalance.absoluteValue().toNumber(),
                   },
                   studentId: u,
                   studentBalanceAction: {
@@ -315,7 +323,7 @@ export const calculateDebt =
               id: paidDebt.id,
             },
             studentBalanceAction: {
-              increment: classSession.hour.value.minus(newHours),
+              increment: classSession.hour.value.minus(newHours).toNumber(),
             },
             studentId: u,
             studentFullName,
@@ -338,7 +346,7 @@ export const calculateDebt =
                 },
                 studentId: u,
                 studentBalanceAction: {
-                  set: newBalance,
+                  set: newBalance.toNumber(),
                 },
                 studentFullName,
               },
@@ -347,9 +355,9 @@ export const calculateDebt =
               {
                 debt: {
                   action: 'update',
-                  hours: newBalance.absoluteValue(),
+                  hours: newBalance.absoluteValue().toNumber(),
                   id: debt.id,
-                  rate: debt.rate,
+                  rate: debt.rate.toNumber(),
                 },
                 studentId: u,
                 studentBalanceAction: {
@@ -367,7 +375,7 @@ export const calculateDebt =
               studentId: u,
               debt: {
                 action: 'create',
-                hours: newHours.minus(student.hourBalance),
+                hours: newHours.minus(student.hourBalance).toNumber(),
               },
               studentBalanceAction: {
                 set: 0,
@@ -378,7 +386,7 @@ export const calculateDebt =
               studentId: u,
               debt: undefined,
               studentBalanceAction: {
-                decrement: newHours,
+                decrement: newHours.toNumber(),
               },
               studentFullName,
             },

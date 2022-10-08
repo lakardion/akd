@@ -360,8 +360,8 @@ export const ClassSessionForm: FC<{
     setValue('debtors', formValues.debtors);
   };
 
-  const [debtorsFeed, originalCalculatedDebtIdxByStudentId] = useMemo(() => {
-    const calculatedDebtsReduced = calculatedDebts?.reduce<{
+  const calculatedDebtsReduced = useMemo(() => {
+    return calculatedDebts?.reduce<{
       debts: {
         studentId: string;
         studentFullName: string;
@@ -388,6 +388,9 @@ export const ClassSessionForm: FC<{
       },
       { debts: [], originalIdxByStudentId: {} }
     );
+  }, [calculatedDebts]);
+
+  const [debtorsFeed, originalCalculatedDebtIdxByStudentId] = useMemo(() => {
     if (!formDebtors.length)
       return [
         calculatedDebtsReduced?.debts ?? [],
@@ -410,7 +413,11 @@ export const ClassSessionForm: FC<{
       mappedResult,
       calculatedDebtsReduced?.originalIdxByStudentId,
     ] as const;
-  }, [calculatedDebts, formDebtors]);
+  }, [
+    calculatedDebtsReduced?.debts,
+    calculatedDebtsReduced?.originalIdxByStudentId,
+    formDebtors,
+  ]);
 
   const handleDebtors = (
     students: MultiValue<SingleValue<{ label: string; value: string }>>
@@ -430,8 +437,8 @@ export const ClassSessionForm: FC<{
   };
 
   const areDebtorsInSync = useMemo(() => {
-    return calculatedDebts?.length === formDebtors.length;
-  }, [calculatedDebts, formDebtors]);
+    return calculatedDebtsReduced?.debts?.length === formDebtors.length;
+  }, [calculatedDebtsReduced?.debts?.length, formDebtors.length]);
 
   const showDebtorsWarning = !areDebtorsInSync && areThereUnconfiguredDebtors;
 

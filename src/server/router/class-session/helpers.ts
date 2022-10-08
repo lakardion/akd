@@ -4,36 +4,35 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { Context } from '../context';
 
-const zodNumberOrDecimal = z.number().or(z.instanceof(Decimal));
-
 const studentBalanceActionZod = z
-  .object({ increment: zodNumberOrDecimal })
-  .or(z.object({ decrement: zodNumberOrDecimal }))
-  .or(z.object({ set: zodNumberOrDecimal }))
+  .object({ increment: z.number() })
+  .or(z.object({ decrement: z.number() }))
+  .or(z.object({ set: z.number() }))
   .optional();
 
 const debtActionZod = z
   .object({
-    id: z.string(),
+    action: z.literal('create'),
+    hours: z.number(),
+    rate: z.number().optional(),
   })
-  .and(
-    z
-      .object({ action: z.literal('keep') })
-      .or(z.object({ action: z.literal('remove') }))
-      .or(
-        z.object({
-          action: z.literal('update'),
-          hours: zodNumberOrDecimal,
-          rate: zodNumberOrDecimal,
-        })
-      )
-  )
   .or(
-    z.object({
-      action: z.literal('create'),
-      hours: zodNumberOrDecimal,
-      rate: zodNumberOrDecimal.optional(),
-    })
+    z
+      .object({
+        id: z.string(),
+      })
+      .and(
+        z
+          .object({ action: z.literal('keep') })
+          .or(z.object({ action: z.literal('remove') }))
+          .or(
+            z.object({
+              action: z.literal('update'),
+              hours: z.number(),
+              rate: z.number(),
+            })
+          )
+      )
   );
 export const calculatedDebtZod = z.object({
   studentId: z.string(),

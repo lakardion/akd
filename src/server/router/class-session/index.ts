@@ -277,6 +277,7 @@ export const classSessionRouter = createRouter()
         debts,
       },
     }) {
+      //TODO: idea: remove asking for whole debt and instead request only rates, and merge those in the debts here by calculatin them
       /**
        TODO:do some checking here so that we don't swallow this as total truth.
        The verification should do calculateDebts and verify everything mainly
@@ -486,7 +487,7 @@ export const classSessionRouter = createRouter()
           },
         });
         //address debt transactions
-        const updateStudents = await Promise.all(
+        await Promise.all(
           updateDebtorsHourBalance(ctx)(studentsInfo.debtors, hours)
         );
 
