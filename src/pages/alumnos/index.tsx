@@ -14,15 +14,12 @@ import {
   FC,
   MouseEvent,
   UIEventHandler,
-  useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import { useForm } from 'react-hook-form';
 import { MdDelete, MdEdit } from 'react-icons/md';
-import { usePopulateFakeStudents } from 'utils/fake-hooks';
 import { trpc } from 'utils/trpc';
 import { useDebouncedValue } from 'utils/use-debounce';
 
@@ -197,23 +194,26 @@ const StudentList: FC<{
           <p>No hay alumnos para mostrar</p>
         ) : (
           flatStudents.map((s) => {
-            const status =
-              s.totalDebt > 0
-                ? 'bg-red-500'
-                : s.hourBalance === 0
-                ? 'bg-gray-500'
-                : 'bg-green-500';
-            const statusTitle =
-              s.hourBalance < 0
-                ? 'El alumno debe horas'
-                : s.hourBalance === 0
-                ? 'El alumno no tiene horas'
-                : 'El alumno tiene horas sin usar';
+            const inactiveClasses = !s.isActive ? 'opacity-50' : '';
+            const status = !s.isActive
+              ? 'bg-white'
+              : s.totalDebt > 0
+              ? 'bg-red-500'
+              : s.hourBalance === 0
+              ? 'bg-gray-500'
+              : 'bg-green-500';
+            const statusTitle = !s.isActive
+              ? 'El alumno está desactivado'
+              : s.hourBalance < 0
+              ? 'El alumno debe horas'
+              : s.hourBalance === 0
+              ? 'El alumno no tiene horas'
+              : 'El alumno tiene horas sin usar';
             return (
               <Link href={`${asPath}/${s.id}`} key={s.id}>
                 <li
                   key={s.id}
-                  className="bg-gray-300 w-full rounded-md py-3 px-2 sm:px-20 flex justify-between items-center transition-transform hover:scale-95 hover:text-primary-600 hover:cursor-pointer"
+                  className={`bg-gray-300 w-full rounded-md py-3 px-2 sm:px-20 flex justify-between items-center transition-transform hover:scale-95 hover:text-primary-600 hover:cursor-pointer ${inactiveClasses}`}
                 >
                   <div className="flex items-center gap-2">
                     <div

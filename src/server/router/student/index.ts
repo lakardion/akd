@@ -290,7 +290,11 @@ export const studentRouter = createRouter()
           },
         });
       }
-      return ctx.prisma.student.delete({ where: { id } });
+      const deleteOperation = await ctx.prisma.student.delete({
+        where: { id },
+      });
+
+      return deleteOperation;
     },
   })
   .mutation('edit', {
