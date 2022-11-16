@@ -86,7 +86,7 @@ const StudentForm: FC<{ onFinished: () => void; studentId: string }> = ({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-2">
-      <h1 className="text-3xl text-center">
+      <h1 className="text-center text-3xl">
         {studentId ? 'Editar alumno' : 'Agregar alumno'}
       </h1>
       <label htmlFor="lastName">Apellido</label>
@@ -104,7 +104,7 @@ const StudentForm: FC<{ onFinished: () => void; studentId: string }> = ({
       <label htmlFor="course">Carrera</label>
       <Input {...register('course')} placeholder="Carrera..." />
       <ValidationError errorMessages={errors.course?.message} />
-      <section aria-label="action buttons" className="flex gap-2 w-full">
+      <section aria-label="action buttons" className="flex w-full gap-2">
         <Button className="flex-grow" type="submit">
           {studentId ? 'Editar' : 'Agregar'}
         </Button>
@@ -177,15 +177,15 @@ const StudentList: FC<{
   };
 
   return (
-    <>
+    <div className="flex w-full flex-grow flex-col gap-3">
       <input
         value={search}
         placeholder="Buscar alumnos..."
         onChange={handleSearchChange}
-        className="bg-secondary-100 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blackish-900 placeholder:text-slate-500 text-black w-full"
+        className="w-full rounded-md bg-secondary-100 px-3 py-1 text-black placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blackish-900"
       />
       <ul
-        className="flex flex-col items-center w-full gap-3 md:max-h-[700px] overflow-auto"
+        className="flex w-full flex-grow flex-col items-center gap-3 overflow-auto"
         onScroll={watchScroll}
       >
         {studentsLoading ? (
@@ -213,18 +213,18 @@ const StudentList: FC<{
               <Link href={`${asPath}/${s.id}`} key={s.id}>
                 <li
                   key={s.id}
-                  className={`bg-gray-300 w-full rounded-md py-3 px-2 sm:px-20 flex justify-between items-center transition-transform hover:scale-95 hover:text-primary-600 hover:cursor-pointer ${inactiveClasses}`}
+                  className={`flex w-full items-center justify-between rounded-md bg-gray-300 py-3 px-2 transition-transform hover:scale-95 hover:cursor-pointer hover:text-primary-600 sm:px-20 ${inactiveClasses}`}
                 >
                   <div className="flex items-center gap-2">
                     <div
-                      className={`w-3 h-3 rounded-full ${status} cursor-help mb-0.5`}
+                      className={`h-3 w-3 rounded-full ${status} mb-0.5 cursor-help`}
                       title={statusTitle}
                     ></div>
                     <p>
                       {s.lastName} {s.name}
                     </p>
                   </div>
-                  <div className="flex gap-1 items-center">
+                  <div className="flex items-center gap-1">
                     <button type="button" onClick={createEditHandler(s.id)}>
                       <MdEdit
                         size={20}
@@ -244,7 +244,7 @@ const StudentList: FC<{
           })
         )}
       </ul>
-    </>
+    </div>
   );
 };
 
@@ -273,18 +273,18 @@ const Students = () => {
   };
 
   return (
-    <section className="p-4 rounded-lg w-11/12 sm:max-w-2xl flex flex-col gap-3 items-center">
+    <section className="flex w-11/12 flex-grow flex-col items-center gap-3 rounded-lg p-4 sm:max-w-2xl">
       <button
         onClick={handleCreate}
         type="button"
-        className="rounded-lg bg-primary-800 w-full p-3 text-white hover:bg-primary-400"
+        className="w-full rounded-lg bg-primary-800 p-3 text-white hover:bg-primary-400"
       >
         Agregar alumno
       </button>
       {showCreateEdit ? (
         <Modal
           onBackdropClick={handleFinished}
-          className="w-full md:w-auto bg-white drop-shadow-2xl"
+          className="w-full bg-white drop-shadow-2xl md:w-auto"
         >
           <StudentForm onFinished={handleFinished} studentId={currentId} />
         </Modal>
@@ -293,7 +293,7 @@ const Students = () => {
       {showDeleteConfirm ? (
         <Modal
           onBackdropClick={handleFinished}
-          className="w-full md:w-auto bg-white drop-shadow-2xl"
+          className="w-full bg-white drop-shadow-2xl md:w-auto"
         >
           <ConfirmForm
             onCancel={handleFinished}

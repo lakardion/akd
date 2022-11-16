@@ -2,17 +2,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from 'components/button';
 import { Input } from 'components/form/input';
 import Decimal from 'decimal.js';
-import {
-  ChangeEvent,
-  FC,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { FC, useMemo } from 'react';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useFieldArray, useForm } from 'react-hook-form';
-import { CalculatedDebt } from 'server/router/class-session/helpers';
 import { trpc } from 'utils/trpc';
 import { useDebouncedValue } from 'utils/use-debounce';
 import { z } from 'zod';
@@ -31,37 +23,35 @@ const debtorsFormZod = z.object({
 export type DebtorsFormInput = z.infer<typeof debtorsFormZod>;
 
 export const useStudentDebtors = (
+  hoursForm: string,
   studentIds: string[],
-  hourOnChange: (hour: string) => void,
   classSessionId?: string
 ) => {
-  const [hoursForm, setHoursForm] = useState(0);
   const debouncedHours = useDebouncedValue(hoursForm, 500);
   const debouncedStudents = useDebouncedValue(studentIds, 500);
-  const { data: calculatedDebts } = trpc.useQuery(
-    [
-      'students.calculateDebts',
-      { hours: debouncedHours, studentIds: debouncedStudents, classSessionId },
-    ],
-    {
-      enabled: Boolean(debouncedHours && debouncedStudents),
-      keepPreviousData: true,
-      //data will never be stale on its own, it is the user that has to perform an action for this data to become stale
-      refetchOnWindowFocus: false,
-    }
-  );
 
-  const customHourChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      setHoursForm(e.target.value ? parseFloat(e.target.value) : 0);
-      hourOnChange(e.target.value);
-    },
-    [hourOnChange]
-  );
+  const { data: calculatedDebts, isFetching: areCalculatedDebtsFetching } =
+    trpc.useQuery(
+      [
+        'students.calculateDebts',
+        {
+          hours: parseFloat(debouncedHours),
+          studentIds: debouncedStudents,
+          classSessionId,
+        },
+      ],
+      {
+        enabled: Boolean(debouncedHours && debouncedStudents),
+        keepPreviousData: true,
+        //data will never be stale on its own, it is the user that has to perform an action for this data to become stale
+        refetchOnWindowFocus: false,
+      }
+    );
+
   const areThereUnconfiguredDebtors = useMemo(
     () =>
       Boolean(
-        hoursForm !== 0 &&
+        parseFloat(hoursForm) !== 0 &&
           calculatedDebts?.filter((d) => {
             if (
               !d.debt ||
@@ -77,10 +67,10 @@ export const useStudentDebtors = (
   return useMemo(
     () => ({
       calculatedDebts,
-      customHourChange,
       areThereUnconfiguredDebtors,
+      areCalculatedDebtsFetching,
     }),
-    [areThereUnconfiguredDebtors, customHourChange, calculatedDebts]
+    [areThereUnconfiguredDebtors, calculatedDebts, areCalculatedDebtsFetching]
   );
 };
 
@@ -117,7 +107,7 @@ export const DebtorsForm: FC<{
       onSubmit={handleSubmit(localHandleSubmit)}
       className="flex flex-col gap-3"
     >
-      <h1 className="text-3xl font-medium text-center">¿Cómo pagarán?</h1>
+      <h1 className="text-center text-3xl font-medium">¿Cómo pagarán?</h1>
       <section className="w-full px-3">
         <table className="w-full">
           <thead>
@@ -145,17 +135,17 @@ export const DebtorsForm: FC<{
               return (
                 <tr key={debtor.id}>
                   <td className="p-1">
-                    <p className="text-sm text-center whitespace-nowrap">
+                    <p className="whitespace-nowrap text-center text-sm">
                       {debtorsFeed[index]?.studentFullName}
                     </p>
                   </td>
                   <td className="p-1">
-                    <div className="flex justify-center w-full">
+                    <div className="flex w-full justify-center">
                       {debtorsFeed[index]?.hours}
                     </div>
                   </td>
                   <td className="p-1">
-                    <div className="flex justify-center w-full">
+                    <div className="flex w-full justify-center">
                       {/*
                         TODO:
                         I would like this to be a react-select that could also swap to be a readonly field. I know that's kind of crazy but would do a pretty cool UX
@@ -165,15 +155,15 @@ export const DebtorsForm: FC<{
                       <Input
                         key={debtor.id}
                         {...register(`debtors.${index}.rate`)}
-                        className={`w-20 text-center m-auto`}
+                        className={`m-auto w-20 text-center`}
                         invalid={isRateInvalid}
                       />
                     </div>
                   </td>
-                  <td className="text-center p-1">
-                    <div className="flex justify-between w-full">
+                  <td className="p-1 text-center">
+                    <div className="flex w-full justify-between">
                       <p>$</p>
-                      <p className="text-center flex-grow">
+                      <p className="flex-grow text-center">
                         {total.toNumber()}
                       </p>
                     </div>
@@ -184,7 +174,7 @@ export const DebtorsForm: FC<{
           </tbody>
         </table>
       </section>
-      <section aria-label="form controls" className="flex gap-2 w-full">
+      <section aria-label="form controls" className="flex w-full gap-2">
         <Button type="submit" className="flex-grow">
           Listo
         </Button>

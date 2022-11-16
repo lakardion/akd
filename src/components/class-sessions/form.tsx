@@ -230,6 +230,7 @@ export const ClassSessionForm: FC<{
   } = useClassSessionForm({ id, preloadedStudents, preloadTeacher });
 
   const formDebtors = watch('debtors');
+  const hours = watch('hours');
 
   const queryClient = trpc.useContext();
 
@@ -312,7 +313,6 @@ export const ClassSessionForm: FC<{
               },
       };
     });
-
     id
       ? //TODO: add debtors here as well. Editing can cause new debtors
         await edit({
@@ -345,8 +345,12 @@ export const ClassSessionForm: FC<{
     setValue('hours', hour);
   };
   //Not okay with this solution, might want to do something better some other time if I ever come up with a better way of performing this validation
-  const { customHourChange, calculatedDebts, areThereUnconfiguredDebtors } =
-    useStudentDebtors(studentIds, handleHourChange, id);
+  const {
+    // customHourChange,
+    calculatedDebts,
+    areThereUnconfiguredDebtors,
+    areCalculatedDebtsFetching,
+  } = useStudentDebtors(hours, studentIds, id);
 
   const [showDebtorsForm, setShowDebtorsForm] = useState(false);
   const handleDebtorsFormOpen = () => {
@@ -436,16 +440,20 @@ export const ClassSessionForm: FC<{
     //if added, we don't need to do anything, this is already handled by the areDebtorsInSync
   };
 
+  //TODO: find a better non-flashy way of doing this.
   const areDebtorsInSync = useMemo(() => {
     return calculatedDebtsReduced?.debts?.length === formDebtors.length;
   }, [calculatedDebtsReduced?.debts?.length, formDebtors.length]);
 
-  const showDebtorsWarning = !areDebtorsInSync && areThereUnconfiguredDebtors;
+  const showDebtorsWarning =
+    !areDebtorsInSync &&
+    areThereUnconfiguredDebtors &&
+    !areCalculatedDebtsFetching;
 
   return (
     <>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
-        <h1 className="text-3xl text-center">
+        <h1 className="text-center text-3xl">
           {id ? 'Editar clase' : 'Agregar clase'}
         </h1>
         <label htmlFor="dateTime">Fecha</label>
@@ -460,7 +468,7 @@ export const ClassSessionForm: FC<{
               dateFormat={'Pp'}
               timeFormat={'p'}
               locale={es}
-              className="bg-secondary-100 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blackish-900 placeholder:text-slate-500 text-black"
+              className="rounded-md bg-secondary-100 px-3 py-1 text-black placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blackish-900"
               minTime={setMinutes(setHours(new Date(), 8), 0)}
               maxTime={setMinutes(setHours(new Date(), 19), 0)}
             />
@@ -479,7 +487,7 @@ export const ClassSessionForm: FC<{
               defaultOptions
               onBlur={field.onBlur}
               ref={field.ref}
-              className="text-black akd-container"
+              className="akd-container text-black"
               classNamePrefix="akd"
               onChange={(value) => {
                 field.onChange(value?.value ?? '');
@@ -487,6 +495,7 @@ export const ClassSessionForm: FC<{
               }}
               value={selectedTeacher}
               placeholder="Seleccionar profesor"
+              isLoading={areCalculatedDebtsFetching}
             />
           )}
         />
@@ -499,7 +508,7 @@ export const ClassSessionForm: FC<{
             <ReactSelect
               onBlur={field.onBlur}
               ref={field.ref}
-              className="text-black akd-container"
+              className="akd-container text-black"
               classNamePrefix="akd"
               onChange={(value) => {
                 field.onChange(value?.value ?? '');
@@ -517,7 +526,7 @@ export const ClassSessionForm: FC<{
           type="number"
           placeholder="Agregar horas..."
           {...register('hours')}
-          onChange={customHourChange}
+          onChange={(e) => handleHourChange(e.target.value)}
         />
         <ValidationError errorMessages={errors.hours?.message} />
         <label htmlFor="students">Alumnos</label>
@@ -531,7 +540,7 @@ export const ClassSessionForm: FC<{
               defaultOptions
               onBlur={field.onBlur}
               ref={field.ref}
-              className="text-black akd-container"
+              className="akd-container text-black"
               classNamePrefix="akd"
               onChange={(value) => {
                 handleDebtors(value);
@@ -547,7 +556,7 @@ export const ClassSessionForm: FC<{
         {showDebtorsWarning ? (
           <button
             type="button"
-            className="transition-transform transform hover:scale-95"
+            className="transform transition-transform hover:scale-95"
             onClick={handleDebtorsFormOpen}
           >
             <WarningMessage>
@@ -560,7 +569,7 @@ export const ClassSessionForm: FC<{
         {areDebtorsInSync && formDebtors.length ? (
           <button
             type="button"
-            className="text-blue-500 text-sm hover:underline self-start"
+            className="self-start text-sm text-blue-500 hover:underline"
             onClick={handleDebtorsFormOpen}
           >
             Editar valores/h
@@ -570,7 +579,7 @@ export const ClassSessionForm: FC<{
           <Button
             variant="primary"
             type="submit"
-            className="capitalize flex-grow"
+            className="flex-grow capitalize"
             isLoading={isCreating || isEditing}
             disabled={showDebtorsWarning}
           >
@@ -579,7 +588,7 @@ export const ClassSessionForm: FC<{
           <Button
             variant="primary"
             onClick={onFinished}
-            className="capitalize flex-grow"
+            className="flex-grow capitalize"
           >
             cancelar
           </Button>
@@ -588,7 +597,7 @@ export const ClassSessionForm: FC<{
       {showDebtorsForm ? (
         <Modal
           onBackdropClick={handleDebtorsFormFinished}
-          className="w-[90%] md:w-[60%] max-w-[500px] bg-white drop-shadow-2xl"
+          className="w-[90%] max-w-[500px] bg-white drop-shadow-2xl md:w-[60%]"
         >
           <DebtorsForm
             onFinished={handleDebtorsFormFinished}
