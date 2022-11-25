@@ -2,20 +2,32 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from 'components/button';
 import { Input } from 'components/form/input';
 import { ValidationError } from 'components/form/validation-error';
+import { Modal } from 'components/modal';
 import { WarningMessage } from 'components/warning-message';
 import { format, setHours, setMinutes } from 'date-fns';
+import { es } from 'date-fns/locale';
+import Decimal from 'decimal.js';
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import ReactDatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { Controller, useForm } from 'react-hook-form';
 import ReactSelect, { MultiValue, SingleValue } from 'react-select';
 import AsyncReactSelect from 'react-select/async';
+import { CalculatedDebt } from 'server/router/class-session/helpers';
+import { diffStrArrays } from 'utils';
 import {
   debouncedSearchStudents,
   debouncedSearchTeachers,
 } from 'utils/client-search-utils';
 import { inferQueryOutput, trpc } from 'utils/trpc';
 import { z } from 'zod';
+import {
+  DebtorsForm,
+  DebtorsFormInput,
+  FormDebtor,
+  formDebtorZod,
+  useStudentDebtors,
+} from './debtors';
 
 const classSessionFormZod = z.object({
   teacherId: z.string({ required_error: 'Requerido' }).min(1, 'Requerido'),
@@ -28,20 +40,9 @@ const classSessionFormZod = z.object({
     .refine((value) => {
       return !isNaN(parseInt(value));
     }, 'Must be a number'),
+  debtors: z.array(formDebtorZod),
 });
 type ClassSessionFormInputs = z.infer<typeof classSessionFormZod>;
-
-const getStaticDate = () => {
-  const date = new Date();
-  date.setHours(8);
-  date.setMinutes(0);
-  date.setSeconds(0);
-  date.setMilliseconds(0);
-
-  return date;
-};
-
-const staticDate = getStaticDate();
 
 const getClassSessionFormDefaultValues = (
   classSession: inferQueryOutput<'classSessions.single'> | undefined,
@@ -60,7 +61,18 @@ const getClassSessionFormDefaultValues = (
     teacherId: preloads.teacher
       ? preloads.teacher.value
       : classSession?.teacherOption?.value ?? '',
+    debtors: [],
   };
+};
+
+const getStaticDate = () => {
+  const date = new Date();
+  date.setHours(8);
+  date.setMinutes(0);
+  date.setSeconds(0);
+  date.setMilliseconds(0);
+
+  return date;
 };
 
 const useClassSessionForm = ({
@@ -72,14 +84,17 @@ const useClassSessionForm = ({
   preloadedStudents?: { value: string; label: string }[];
   preloadTeacher?: { value: string; label: string };
 }) => {
-  const { data: classSession } = trpc.useQuery([
-    'classSessions.single',
-    { id },
-  ]);
-  const { data: teacherHourRates } = trpc.useQuery([
-    'rates.hourRates',
-    { type: 'TEACHER' },
-  ]);
+  //! this is refetching constantly and I have no clue why is that
+  const { data: classSession } = trpc.useQuery(
+    ['classSessions.single', { id }],
+    {
+      refetchOnWindowFocus: false,
+    }
+  );
+  const { data: teacherHourRates } = trpc.useQuery(
+    ['rates.hourRates', { type: 'TEACHER' }],
+    { refetchOnWindowFocus: false }
+  );
 
   const stablePreloads = useMemo(() => {
     return {
@@ -114,7 +129,13 @@ const useClassSessionForm = ({
   }, [stableFormReset, classSession, stablePreloads]);
 
   //select controlled values
-  const [selectedDate, setSelectedDate] = useState(staticDate);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+
+  //! this is not meant to be I must remove this and find a better way to solve this issue. I so... hate this..
+  useEffect(() => {
+    setSelectedDate(classSession ? classSession.date : getStaticDate());
+  }, [classSession]);
+
   const handleDateChange = useCallback(
     (date: Date) => {
       const setValue = form.setValue;
@@ -181,15 +202,18 @@ const useClassSessionForm = ({
 export const ClassSessionForm: FC<{
   id: string;
   onFinished: () => void;
+  fromStudent?: string;
   preloadedStudents?: { value: string; label: string }[];
   preloadTeacher?: { value: string; label: string };
-}> = ({ id, onFinished, preloadedStudents, preloadTeacher }) => {
+}> = ({ id, onFinished, preloadedStudents, preloadTeacher, fromStudent }) => {
   const {
     form: {
       handleSubmit,
       formState: { errors },
       control,
       register,
+      setValue,
+      watch,
     },
     parsedStudentsError,
     selectedDate,
@@ -205,7 +229,11 @@ export const ClassSessionForm: FC<{
     oldStudents,
   } = useClassSessionForm({ id, preloadedStudents, preloadTeacher });
 
+  const formDebtors = watch('debtors');
+  const hours = watch('hours');
+
   const queryClient = trpc.useContext();
+
   const { mutateAsync: create, isLoading: isCreating } = trpc.useMutation(
     'classSessions.create',
     {
@@ -217,11 +245,23 @@ export const ClassSessionForm: FC<{
           { id: data.teacherId ?? '' },
         ]);
         const month = format(data.date, 'yy-MM');
-        queryClient.invalidateQueries([
-          'teachers.history',
-          //for some reason teacherId is optional in the DB, maybe I knew better, I just don't like this coalescing here
-          { teacherId: data.teacherId ?? '', month },
-        ]);
+        data.teacherId &&
+          queryClient.invalidateQueries([
+            'teachers.history',
+            //for some reason teacherId is optional in the DB, maybe I knew better, I just don't like this coalescing here
+            { teacherId: data.teacherId, month },
+          ]);
+
+        if (fromStudent) {
+          queryClient.invalidateQueries([
+            'students.history',
+            { month, studentId: fromStudent },
+          ]);
+          queryClient.invalidateQueries([
+            'students.single',
+            { id: fromStudent },
+          ]);
+        }
       },
     }
   );
@@ -235,8 +275,47 @@ export const ClassSessionForm: FC<{
   );
 
   const onSubmit = async (data: ClassSessionFormInputs) => {
+    //it would be nice if we could do something regarding this iteration. Calculated debts do not change really and we can do sort of indexation of that so that we know where each debt should go to. I'm thinking of <studentId,calculatedDebtIndex>. I don't see this as a risky operation tbh
+    const debtsByStudentId = data.debtors.reduce<
+      Record<string, typeof data['debtors'][0]>
+    >((res, d) => {
+      res[d.studentId] = d;
+      return res;
+    }, {});
+
+    const injectedDebts = calculatedDebts?.map<CalculatedDebt>((cd, idx) => {
+      const matchingIdx = originalCalculatedDebtIdxByStudentId?.[cd.studentId];
+      if (
+        !cd.debt ||
+        idx !== matchingIdx ||
+        (cd.debt.action !== 'create' && cd.debt.action !== 'update')
+      )
+        return cd;
+
+      const studentDebt = debtsByStudentId?.[cd.studentId];
+      return {
+        studentFullName: cd.studentFullName,
+        studentId: cd.studentId,
+        studentBalanceAction: cd.studentBalanceAction,
+        debt:
+          cd.debt.action === 'create'
+            ? {
+                ...cd.debt,
+                rate: studentDebt?.rate
+                  ? new Decimal(studentDebt.rate).toNumber()
+                  : undefined,
+              }
+            : {
+                ...cd.debt,
+                rate: studentDebt?.rate
+                  ? new Decimal(studentDebt.rate).toNumber()
+                  : cd.debt.rate,
+              },
+      };
+    });
     id
-      ? await edit({
+      ? //TODO: add debtors here as well. Editing can cause new debtors
+        await edit({
           date: data.dateTime,
           hours: parseFloat(data.hours),
           studentIds: data.students ?? [],
@@ -244,6 +323,7 @@ export const ClassSessionForm: FC<{
           teacherId: data.teacherId,
           oldHours: oldHours ?? 0,
           oldStudentIds: oldStudents,
+          debts: injectedDebts,
           id,
         })
       : await create({
@@ -252,136 +332,280 @@ export const ClassSessionForm: FC<{
           studentIds: data.students,
           teacherId: data.teacherId,
           teacherHourRateId: data.teacherHourRateId,
+          debts: injectedDebts,
         });
     onFinished();
   };
 
+  const studentIds = useMemo(() => {
+    return selectedStudents.flatMap((s) => (s ? [s.value] : []));
+  }, [selectedStudents]);
+
+  const handleHourChange = (hour: string) => {
+    setValue('hours', hour);
+  };
+  //Not okay with this solution, might want to do something better some other time if I ever come up with a better way of performing this validation
+  const {
+    // customHourChange,
+    calculatedDebts,
+    areThereUnconfiguredDebtors,
+    areCalculatedDebtsFetching,
+  } = useStudentDebtors(hours, studentIds, id);
+
+  const [showDebtorsForm, setShowDebtorsForm] = useState(false);
+  const handleDebtorsFormOpen = () => {
+    setShowDebtorsForm(true);
+  };
+  const handleDebtorsFormFinished = () => {
+    setShowDebtorsForm(false);
+  };
+
+  const handleSetDebtors = (formValues: DebtorsFormInput) => {
+    setValue('debtors', formValues.debtors);
+  };
+
+  const calculatedDebtsReduced = useMemo(() => {
+    return calculatedDebts?.reduce<{
+      debts: {
+        studentId: string;
+        studentFullName: string;
+        rate: string;
+        hours: string;
+      }[];
+      originalIdxByStudentId: Record<string, number>;
+    }>(
+      (res, cd, idx) => {
+        if (
+          !cd.debt ||
+          (cd.debt.action !== 'create' && cd.debt.action !== 'update')
+        )
+          return res;
+
+        res.debts.push({
+          studentId: cd.studentId,
+          studentFullName: cd.studentFullName,
+          rate: cd.debt.rate?.toString() ?? '',
+          hours: cd.debt.hours.toString(),
+        });
+        res.originalIdxByStudentId[cd.studentId] = idx;
+        return res;
+      },
+      { debts: [], originalIdxByStudentId: {} }
+    );
+  }, [calculatedDebts]);
+
+  const [debtorsFeed, originalCalculatedDebtIdxByStudentId] = useMemo(() => {
+    if (!formDebtors.length)
+      return [
+        calculatedDebtsReduced?.debts ?? [],
+        calculatedDebtsReduced?.originalIdxByStudentId,
+      ] as const;
+    //iterate once to get a map off of them and make checking against these easier. otherwise we would have to do includes on each loop
+    const formDebtorsMap = formDebtors.reduce<Record<string, FormDebtor>>(
+      (res, curr) => {
+        res[curr.studentId] = curr;
+        return res;
+      },
+      {}
+    );
+    const mappedResult =
+      calculatedDebtsReduced?.debts.map((d) => ({
+        ...d,
+        rate: formDebtorsMap[d.studentId]?.rate ?? d?.rate?.toString(),
+      })) ?? [];
+    return [
+      mappedResult,
+      calculatedDebtsReduced?.originalIdxByStudentId,
+    ] as const;
+  }, [
+    calculatedDebtsReduced?.debts,
+    calculatedDebtsReduced?.originalIdxByStudentId,
+    formDebtors,
+  ]);
+
+  const handleDebtors = (
+    students: MultiValue<SingleValue<{ label: string; value: string }>>
+  ) => {
+    const studentDebtorIds = formDebtors.map((d) => d.studentId);
+    const studentIds = students.flatMap((s) => (s ? [s.value] : []));
+    const removed = diffStrArrays(studentIds, studentDebtorIds)[1];
+    //if removed, we want to remove it as well from the debtors array
+    if (removed.length) {
+      setValue(
+        'debtors',
+        formDebtors.filter((d) => !removed.includes(d.studentId))
+      );
+      return;
+    }
+    //if added, we don't need to do anything, this is already handled by the areDebtorsInSync
+  };
+
+  //TODO: find a better non-flashy way of doing this.
+  const areDebtorsInSync = useMemo(() => {
+    return calculatedDebtsReduced?.debts?.length === formDebtors.length;
+  }, [calculatedDebtsReduced?.debts?.length, formDebtors.length]);
+
+  const showDebtorsWarning =
+    !areDebtorsInSync &&
+    areThereUnconfiguredDebtors &&
+    !areCalculatedDebtsFetching;
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
-      <h1 className="text-3xl text-center">
-        {id ? 'Editar clase' : 'Agregar clase'}
-      </h1>
-      <label htmlFor="dateTime">Fecha</label>
-      <Controller
-        name="dateTime"
-        control={control}
-        defaultValue={staticDate}
-        render={() => (
-          <ReactDatePicker
-            selected={selectedDate}
-            onChange={handleDateChange}
-            showTimeSelect
-            dateFormat={'Pp'}
-            timeFormat={'p'}
-            locale="es"
-            className="bg-secondary-100 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blackish-900 placeholder:text-slate-500 text-black"
-            minTime={setMinutes(setHours(new Date(), 8), 0)}
-            maxTime={setMinutes(setHours(new Date(), 19), 0)}
-          />
-        )}
-      />
-      {errors.dateTime ? (
-        <p className="font-medium text-red-500">{errors.dateTime.message}</p>
-      ) : null}
-      <label htmlFor="teacherId">Profesor</label>
-      <Controller
-        name="teacherId"
-        control={control}
-        defaultValue=""
-        render={({ field }) => (
-          <AsyncReactSelect
-            loadOptions={debouncedSearchTeachers}
-            defaultOptions
-            onBlur={field.onBlur}
-            ref={field.ref}
-            className="text-black akd-container"
-            classNamePrefix="akd"
-            onChange={(value) => {
-              field.onChange(value?.value ?? '');
-              setSelectedTeacher(value);
-            }}
-            value={selectedTeacher}
-            placeholder="Seleccionar profesor"
-          />
-        )}
-      />
-      <ValidationError errorMessages={errors.teacherId?.message} />
-      <label htmlFor="teacherHourRateId">Ratio del profesor</label>
-      <Controller
-        name="teacherHourRateId"
-        control={control}
-        defaultValue=""
-        render={({ field }) => (
-          <ReactSelect
-            onBlur={field.onBlur}
-            ref={field.ref}
-            className="text-black akd-container"
-            classNamePrefix="akd"
-            onChange={(value) => {
-              field.onChange(value?.value ?? '');
-              setSelectedTeacherRateId(value);
-            }}
-            value={selectedTeacherRateId}
-            placeholder="Seleccionar ratio de hora"
-            options={teacherRateOptions}
-          />
-        )}
-      />
-      <ValidationError errorMessages={errors.teacherHourRateId?.message} />
-      <label htmlFor="hours">Horas</label>
-      <Input
-        type="number"
-        placeholder="Agregar horas..."
-        {...register('hours')}
-      />
-      <ValidationError errorMessages={errors.hours?.message} />
-      <label htmlFor="students">Alumnos</label>
-      <Controller
-        name="students"
-        control={control}
-        defaultValue={[]}
-        render={({ field }) => (
-          <AsyncReactSelect
-            loadOptions={debouncedSearchStudents}
-            isMulti
-            defaultOptions
-            onBlur={field.onBlur}
-            ref={field.ref}
-            className="text-black akd-container"
-            classNamePrefix="akd"
-            onChange={(value) => {
-              field.onChange(value.map((v) => v?.value));
-              setSelectedStudents(value);
-            }}
-            value={selectedStudents}
-            placeholder="Buscar alumnos..."
-          />
-        )}
-      />
-      <ValidationError errorMessages={parsedStudentsError} />
-      {selectedStudents?.length ? (
-        <WarningMessage>
-          A los alumnos seleccionados se les reducirá el balance de horas aun si
-          no tienen horas disponibles
-        </WarningMessage>
-      ) : null}
-      <section aria-label="action buttons" className="flex gap-2">
-        <Button
-          variant="primary"
-          type="submit"
-          className="capitalize flex-grow"
-          isLoading={isCreating || isEditing}
+    <>
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
+        <h1 className="text-center text-3xl">
+          {id ? 'Editar clase' : 'Agregar clase'}
+        </h1>
+        <label htmlFor="dateTime">Fecha</label>
+        <Controller
+          name="dateTime"
+          control={control}
+          render={() => (
+            <ReactDatePicker
+              selected={selectedDate}
+              onChange={handleDateChange}
+              showTimeSelect
+              dateFormat={'Pp'}
+              timeFormat={'p'}
+              locale={es}
+              className="rounded-md bg-secondary-100 px-3 py-1 text-black placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blackish-900"
+              minTime={setMinutes(setHours(new Date(), 8), 0)}
+              maxTime={setMinutes(setHours(new Date(), 19), 0)}
+            />
+          )}
+        />
+        {errors.dateTime ? (
+          <p className="font-medium text-red-500">{errors.dateTime.message}</p>
+        ) : null}
+        <label htmlFor="teacherId">Profesor</label>
+        <Controller
+          name="teacherId"
+          control={control}
+          render={({ field }) => (
+            <AsyncReactSelect
+              loadOptions={debouncedSearchTeachers}
+              defaultOptions
+              onBlur={field.onBlur}
+              ref={field.ref}
+              className="akd-container text-black"
+              classNamePrefix="akd"
+              onChange={(value) => {
+                field.onChange(value?.value ?? '');
+                setSelectedTeacher(value);
+              }}
+              value={selectedTeacher}
+              placeholder="Seleccionar profesor"
+              isLoading={areCalculatedDebtsFetching}
+            />
+          )}
+        />
+        <ValidationError errorMessages={errors.teacherId?.message} />
+        <label htmlFor="teacherHourRateId">Ratio del profesor</label>
+        <Controller
+          name="teacherHourRateId"
+          control={control}
+          render={({ field }) => (
+            <ReactSelect
+              onBlur={field.onBlur}
+              ref={field.ref}
+              className="akd-container text-black"
+              classNamePrefix="akd"
+              onChange={(value) => {
+                field.onChange(value?.value ?? '');
+                setSelectedTeacherRateId(value);
+              }}
+              value={selectedTeacherRateId}
+              placeholder="Seleccionar ratio de hora"
+              options={teacherRateOptions}
+            />
+          )}
+        />
+        <ValidationError errorMessages={errors.teacherHourRateId?.message} />
+        <label htmlFor="hours">Horas</label>
+        <Input
+          type="number"
+          placeholder="Agregar horas..."
+          {...register('hours')}
+          onChange={(e) => handleHourChange(e.target.value)}
+        />
+        <ValidationError errorMessages={errors.hours?.message} />
+        <label htmlFor="students">Alumnos</label>
+        <Controller
+          name="students"
+          control={control}
+          render={({ field }) => (
+            <AsyncReactSelect
+              loadOptions={debouncedSearchStudents}
+              isMulti
+              defaultOptions
+              onBlur={field.onBlur}
+              ref={field.ref}
+              className="akd-container text-black"
+              classNamePrefix="akd"
+              onChange={(value) => {
+                handleDebtors(value);
+                field.onChange(value.map((v) => v?.value));
+                setSelectedStudents(value);
+              }}
+              value={selectedStudents}
+              placeholder="Buscar alumnos..."
+            />
+          )}
+        />
+        <ValidationError errorMessages={parsedStudentsError} />
+        {showDebtorsWarning ? (
+          <button
+            type="button"
+            className="transform transition-transform hover:scale-95"
+            onClick={handleDebtorsFormOpen}
+          >
+            <WarningMessage>
+              Algunos alumnos no tienen la suficiente cantidad de horas para
+              adherirse a esta clase, por favor resuelve cómo se deberían cargar
+              sus deudas
+            </WarningMessage>
+          </button>
+        ) : null}
+        {areDebtorsInSync && formDebtors.length ? (
+          <button
+            type="button"
+            className="self-start text-sm text-blue-500 hover:underline"
+            onClick={handleDebtorsFormOpen}
+          >
+            Editar valores/h
+          </button>
+        ) : null}
+        <section aria-label="action buttons" className="flex gap-2">
+          <Button
+            variant="primary"
+            type="submit"
+            className="flex-grow capitalize"
+            isLoading={isCreating || isEditing}
+            disabled={showDebtorsWarning}
+          >
+            {id ? 'Editar clase' : 'Crear clase'}
+          </Button>
+          <Button
+            variant="primary"
+            onClick={onFinished}
+            className="flex-grow capitalize"
+          >
+            cancelar
+          </Button>
+        </section>
+      </form>
+      {showDebtorsForm ? (
+        <Modal
+          onBackdropClick={handleDebtorsFormFinished}
+          className="w-[90%] max-w-[500px] bg-white drop-shadow-2xl md:w-[60%]"
         >
-          {id ? 'Editar clase' : 'Crear clase'}
-        </Button>
-        <Button
-          variant="primary"
-          onClick={onFinished}
-          className="capitalize flex-grow"
-        >
-          cancelar
-        </Button>
-      </section>
-    </form>
+          <DebtorsForm
+            onFinished={handleDebtorsFormFinished}
+            onSubmit={handleSetDebtors}
+            debtorsFeed={debtorsFeed}
+          />
+        </Modal>
+      ) : null}
+    </>
   );
 };

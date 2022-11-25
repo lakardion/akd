@@ -3,11 +3,15 @@ import { SizeVariant, Spinner } from './spinner';
 
 export type ButtonColorVariant = 'primary' | 'accent' | 'secondary';
 export const buttonClassByVariant: Record<ButtonColorVariant, string> = {
-  primary: 'bg-primary-800 hover:bg-primary-400 text-white ',
-  accent: 'bg-accent hover:bg-primary-400 text-blackish-900 ',
-  secondary: 'bg-secondary hover:bg-primary-200 text-blackish-900 ',
+  primary:
+    'bg-primary-800 hover:bg-primary-400 text-white disabled:hover:bg-primary-400',
+  accent:
+    'bg-accent hover:bg-primary-400 text-blackish-900 disabled:hover:bg-accent-300',
+  secondary:
+    'bg-secondary hover:bg-primary-200 text-blackish-900 disabled:hover:bg-secondary-300',
 };
-
+export const disabledBtnClasses =
+  'disabled:hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed';
 export const Button: FC<
   ButtonHTMLAttributes<HTMLButtonElement> & {
     isLoading?: boolean;
@@ -27,10 +31,10 @@ export const Button: FC<
     <button
       {...props}
       type={type ?? 'button'}
-      className={`${buttonClassByVariant[variant]} py-1 px-2 rounded-md  ${className}`}
+      className={`${buttonClassByVariant[variant]} ${disabledBtnClasses} rounded-md py-1 px-2  ${className}`}
     >
       {isLoading ? (
-        <div className="w-full flex justify-center">
+        <div className="flex w-full justify-center">
           <Spinner size={spinnerSize} />
         </div>
       ) : (
@@ -59,10 +63,10 @@ export const PillButton: FC<
     <button
       {...props}
       type={type ?? 'button'}
-      className={`${buttonClassByVariant[variant]} rounded-lg w-full p-3 btn-disabled ${className}`}
+      className={`${buttonClassByVariant[variant]} btn-disabled w-full rounded-lg p-3 ${className}`}
     >
       {isLoading ? (
-        <div className="w-full flex justify-center">
+        <div className="flex w-full justify-center">
           <Spinner size={spinnerSize} />
         </div>
       ) : (

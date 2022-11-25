@@ -2,7 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-    provider = "prisma-client-js"
+    provider        = "prisma-client-js"
+    previewFeatures = ["interactiveTransactions"]
 }
 
 datasource db {
@@ -70,6 +71,7 @@ model Student {
 
     payments            Payment[]
     classSessionStudent ClassSessionStudent[]
+    debts               StudentDebt[]
 }
 
 model Payment {
@@ -81,8 +83,23 @@ model Payment {
     date          DateTime
     paymentMethod PaymentMethodType
 
-    student Student @relation(fields: [studentId], references: [id])
-    hour    Hour    @relation(fields: [hourId], references: [id])
+    student     Student      @relation(fields: [studentId], references: [id])
+    hour        Hour         @relation(fields: [hourId], references: [id])
+    studentDebt StudentDebt?
+}
+
+model StudentDebt {
+    id             String  @id @default(cuid())
+    hours          Decimal
+    studentId      String
+    paymentId      String? @unique
+    classSessionId String
+    rate           Decimal
+    restored       Boolean @default(false)
+
+    classSession ClassSession @relation(fields: [classSessionId], references: [id], onDelete: Cascade)
+    payment      Payment?     @relation(fields: [paymentId], references: [id])
+    student      Student      @relation(fields: [studentId], references: [id])
 }
 
 model TeacherPayment {
@@ -94,7 +111,7 @@ model TeacherPayment {
     paymentMethod PaymentMethodType
 
     classSessions ClassSession[]
-    teacher Teacher @relation(fields: [teacherId], references: [id])
+    teacher       Teacher        @relation(fields: [teacherId], references: [id])
 }
 
 model ClassSessionStudent {
@@ -111,11 +128,13 @@ model ClassSession {
     id                String   @id @default(cuid())
     date              DateTime
     hourId            String   @unique
+    isActive          Boolean  @default(true)
     teacherId         String?
     teacherHourRateId String
-    teacherPaymentId    String?
+    teacherPaymentId  String?
 
-    teacherPayment      TeacherPayment?        @relation(fields:[teacherPaymentId],references:[id])
+    studentDebts        StudentDebt[]
+    teacherPayment      TeacherPayment?       @relation(fields: [teacherPaymentId], references: [id])
     hour                Hour                  @relation(fields: [hourId], references: [id])
     teacher             Teacher?              @relation(fields: [teacherId], references: [id])
     classSessionStudent ClassSessionStudent[]

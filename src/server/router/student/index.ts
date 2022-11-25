@@ -1,17 +1,27 @@
 import { PaymentMethodType, Prisma } from '@prisma/client';
-import { includeInactiveFlagZod, studentFormZod } from 'common';
+import { Decimal } from '@prisma/client/runtime';
+import { studentFormZod } from 'common';
 import { isMatch } from 'date-fns';
 import { getMonthEdges } from 'utils/date';
-import {
-  DEFAULT_PAGE_SIZE,
-  getPagination,
-  paginationZod,
-} from 'utils/pagination';
+import { DEFAULT_PAGE_SIZE } from 'utils/pagination';
 import { infiniteCursorZod } from 'utils/server-zods';
 import { z } from 'zod';
-import { createRouter } from './context';
+import { createRouter } from '../context';
+import { calculateDebt, calculateDebtNewClass } from './helpers';
 
 export const studentRouter = createRouter()
+  .query('calculateDebts', {
+    input: z.object({
+      studentIds: z.array(z.string()),
+      hours: z.number(),
+      classSessionId: z.string().optional(),
+    }),
+    async resolve({ ctx, input: { hours, studentIds, classSessionId } }) {
+      return classSessionId
+        ? calculateDebt(ctx)({ hours, studentIds, classSessionId })
+        : calculateDebtNewClass(ctx)({ hours, studentIds });
+    },
+  })
   .query('history', {
     input: z.object({
       studentId: z.string(),
@@ -118,8 +128,35 @@ export const studentRouter = createRouter()
     async resolve({ ctx, input: { id } }) {
       const student = await ctx.prisma.student.findUnique({
         where: { id },
+        include: {
+          debts: {
+            where: {
+              payment: {
+                is: null,
+              },
+            },
+          },
+        },
       });
-      return { ...student, hourBalance: student?.hourBalance.toNumber() };
+      const result = student?.debts.reduce<[Decimal, Decimal]>(
+        (res, curr) => {
+          const [debtAmount, debtHours] = res;
+          return [
+            debtAmount.plus(curr.hours.times(curr.rate)),
+            debtHours.plus(curr.hours),
+          ];
+        },
+        [new Decimal(0), new Decimal(0)]
+      );
+
+      return {
+        ...student,
+        debts: {
+          amount: result?.[0].toNumber(),
+          hours: result?.[1].toNumber(),
+        },
+        hourBalance: student?.hourBalance.toNumber(),
+      };
     },
   })
   .query('allSearch', {
@@ -157,45 +194,31 @@ export const studentRouter = createRouter()
         skip: (page - 1) * size,
         take: size,
         orderBy: { lastName: 'asc' },
+        include: {
+          debts: {
+            where: {
+              payment: {
+                is: null,
+              },
+            },
+            select: {
+              hours: true,
+              rate: true,
+            },
+          },
+        },
       });
       return {
         size,
         nextCursor: studentsResult.length === size ? page + 1 : null,
         students: studentsResult.map((s) => ({
           ...s,
-          hourBalance: s.hourBalance.toNumber(),
-        })),
-      };
-    },
-  })
-  .query('all', {
-    input: includeInactiveFlagZod.merge(paginationZod).default({}),
-    async resolve({
-      ctx,
-      input: { page = 1, size = DEFAULT_PAGE_SIZE, includeInactive = false },
-    }) {
-      const totalPages = await ctx.prisma.student.count();
-      const { count, next, previous } = getPagination({
-        count: totalPages,
-        size,
-        page,
-      });
-      const students = await ctx.prisma.student.findMany({
-        orderBy: { lastName: 'asc' },
-        take: size,
-        skip: (page - 1) * size,
-        where: includeInactive
-          ? undefined
-          : {
-              isActive: true,
-            },
-      });
-      return {
-        count,
-        next,
-        previous,
-        students: students.map((s) => ({
-          ...s,
+          totalDebt: s.debts
+            .reduce((res, curr) => {
+              res = res.plus(curr.hours.times(curr.rate));
+              return res;
+            }, new Decimal(0))
+            .toNumber(),
           hourBalance: s.hourBalance.toNumber(),
         })),
       };
@@ -244,7 +267,11 @@ export const studentRouter = createRouter()
           },
         });
       }
-      return ctx.prisma.student.delete({ where: { id } });
+      const deleteOperation = await ctx.prisma.student.delete({
+        where: { id },
+      });
+
+      return deleteOperation;
     },
   })
   .mutation('edit', {

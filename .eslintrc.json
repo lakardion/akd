@@ -3,12 +3,14 @@
     "next/core-web-vitals",
     "plugin:react/recommended",
     "plugin:react-hooks/recommended",
+    "plugin:@typescript-eslint/recommended",
     "plugin:prettier/recommended"
   ],
+  "parser": "@typescript-eslint/parser",
+  "plugins": ["@typescript-eslint"],
   "rules": {
     "prettier/prettier": "off",
     "react/react-in-jsx-scope": "off",
-    "react-hooks/exhaustive-deps": "error",
-    "no-unused-vars": "warn"
+    "react-hooks/exhaustive-deps": "error"
   }
 }

@@ -27,6 +27,7 @@ type AttachToExistingClassSessionInput = z.infer<
   typeof attachToExistingClassSessionZod
 >;
 
+//TODO: add debtors logic here as well. And debtors' form
 const ExistingAttachClassSessionForm: FC<{
   goBack: () => void;
   onFinished: () => void;
@@ -71,8 +72,8 @@ const ExistingAttachClassSessionForm: FC<{
     [
       'classSessions.byDate',
       {
-        from: parse(selectedDate!, 'yyyy-MM-dd', new Date()),
-        to: addDays(parse(selectedDate!, 'yyyy-MM-dd', new Date()), 1),
+        from: parse(selectedDate, 'yyyy-MM-dd', new Date()),
+        to: addDays(parse(selectedDate, 'yyyy-MM-dd', new Date()), 1),
       },
     ],
     {
@@ -164,12 +165,15 @@ export const StudentAttachToClassSessionForm: FC<{
   };
   const goBack = createSwitchToViewHandler('main');
 
+  const preloadedStudents = useMemo(() => [studentInfo], [studentInfo]);
+
   if (view === 'create') {
     return (
       <ClassSessionForm
         id=""
         onFinished={onFinished}
-        preloadedStudents={[studentInfo]}
+        preloadedStudents={preloadedStudents}
+        fromStudent={studentInfo.value}
       />
     );
   }

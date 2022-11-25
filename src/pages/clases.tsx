@@ -1,4 +1,5 @@
 import { useAutoAnimate } from '@formkit/auto-animate/react';
+import { disabledBtnClasses } from 'components/button';
 import { ClassSessionForm } from 'components/class-sessions/form';
 import { ConfirmForm } from 'components/confirm-form';
 import { Modal } from 'components/modal';
@@ -38,15 +39,11 @@ const ClassSessionList: FC<{
       e?.stopPropagation();
       handleDelete(id);
     };
-  // const stableFetchNextPage = useCallback(
-  //   (page: number) => {
-  //     fetchNextPage({ pageParam: page });
-  //   },
-  //   [fetchNextPage]
-  // );
+
   const flatData = useMemo(() => {
     return data?.pages.flatMap((p) => p.classSessions) ?? [];
   }, [data?.pages]);
+
   const watchScroll: UIEventHandler<HTMLUListElement> = (e) => {
     /**
      * Some amount to start fetching before reaching the bottom
@@ -67,7 +64,7 @@ const ClassSessionList: FC<{
   return (
     <>
       <ul
-        className="flex flex-col items-center w-full gap-3 md:max-h-[700px] overflow-auto"
+        className="flex w-full flex-col items-center gap-3 overflow-auto md:max-h-[700px]"
         ref={parent}
         onScroll={watchScroll}
       >
@@ -81,7 +78,7 @@ const ClassSessionList: FC<{
             return (
               <li
                 key={s.id}
-                className={`bg-gray-300 w-full rounded-md py-3 px-2 sm:px-20 flex justify-between items-center ${status}`}
+                className={`flex w-full items-center justify-between rounded-md bg-gray-300 py-3 px-2 sm:px-20 ${status}`}
               >
                 <div className="flex items-center gap-2">
                   <p>{format(s.date, 'dd-MM-yyyy H:mm')}</p>
@@ -89,7 +86,7 @@ const ClassSessionList: FC<{
                     {s.teacher?.name} {s.teacher?.lastName}
                   </p>
                 </div>
-                <div className="flex gap-1 items-center">
+                <div className="flex items-center gap-1">
                   <button type="button" onClick={createEditHandler(s.id)}>
                     <MdEdit
                       size={20}
@@ -128,10 +125,6 @@ const ClassSessions = () => {
     'rates.hourRates',
     { type: 'TEACHER' },
   ]);
-  const { isLoading: isClassSessionLoading } = trpc.useQuery(
-    ['classSessions.single', { id: currentId }],
-    { enabled: Boolean(currentId) }
-  );
   const { isLoading } = trpc.useInfiniteQuery(['classSessions.all', {}], {
     getNextPageParam: (lastPage) => {
       return lastPage.nextCursor ? { page: lastPage.nextCursor } : null;
@@ -156,27 +149,27 @@ const ClassSessions = () => {
   const canCreate = teacherCount && teacherRates?.length;
   if (isLoading) {
     return (
-      <section className="flex items-center w-full justify-center">
+      <section className="flex w-full items-center justify-center">
         <Spinner size="md" />
       </section>
     );
   }
 
   return (
-    <section className="p-4 rounded-lg w-11/12 sm:max-w-2xl flex flex-col gap-3 items-center">
+    <section className="flex w-11/12 flex-col items-center gap-3 rounded-lg p-4 sm:max-w-2xl">
       {!canCreate ? (
         <section aria-label="warning" className="w-full">
           <WarningMessage>
             <p className="italic">
               No se pueden cargar clases a menos que haya{' '}
               <Link href="/profesores">
-                <span className="text-blue-600 hover:underline hover:cursor-pointer">
+                <span className="text-blue-600 hover:cursor-pointer hover:underline">
                   profesores
                 </span>
               </Link>{' '}
               y{' '}
               <Link href="/precios/profesores">
-                <span className="text-blue-600 hover:underline hover:cursor-pointer">
+                <span className="text-blue-600 hover:cursor-pointer hover:underline">
                   ratios
                 </span>
               </Link>
@@ -187,7 +180,7 @@ const ClassSessions = () => {
       <button
         onClick={handleCreate}
         type="button"
-        className="rounded-lg bg-primary-800 w-full p-3 text-white hover:bg-primary-400 :btn-disabled"
+        className={`${disabledBtnClasses} w-full rounded-lg bg-primary-800 p-3 text-white hover:bg-primary-400`}
         disabled={!canCreate}
       >
         Agregar clase
@@ -196,7 +189,7 @@ const ClassSessions = () => {
       {showCreateEdit ? (
         <Modal
           onBackdropClick={handleFinished}
-          className="w-full md:w-auto bg-white drop-shadow-2xl md:min-w-[400px]"
+          className="w-full bg-white drop-shadow-2xl md:w-auto md:min-w-[400px]"
         >
           <ClassSessionForm onFinished={handleFinished} id={currentId} />
         </Modal>
@@ -204,7 +197,7 @@ const ClassSessions = () => {
       {showDeleteConfirm ? (
         <Modal
           onBackdropClick={handleFinished}
-          className="w-full md:w-auto bg-white drop-shadow-2xl"
+          className="w-full bg-white drop-shadow-2xl md:w-auto"
         >
           <ConfirmForm
             onCancel={handleFinished}

@@ -1,4 +1,5 @@
 import { PaymentMethodType } from '@prisma/client';
+import { TRPCError } from '@trpc/server';
 import { paginationZod } from 'utils/pagination';
 import { identifiableZod } from 'utils/server-zods';
 import { z } from 'zod';
@@ -25,6 +26,57 @@ export const paymentRouter = createRouter()
         value: pmbs.value.toNumber(),
         hourValue: pmbs.hour.value.toNumber(),
       }));
+    },
+  })
+  .mutation('payDebtTotal', {
+    input: z.object({
+      date: z.date(),
+      studentId: z.string(),
+      paymentMethod: z.enum([
+        PaymentMethodType.CASH,
+        PaymentMethodType.TRANSFER,
+      ]),
+    }),
+    async resolve({ ctx, input: { date, paymentMethod, studentId } }) {
+      const debtsToBePaid = await ctx.prisma.studentDebt.findMany({
+        where: { studentId },
+      });
+
+      if (!debtsToBePaid?.length)
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'This student has no debts',
+        });
+
+      // Each of the debts should have its own payment (may change this in the future if this becomes an unnecessary complexity)
+      await Promise.all(
+        debtsToBePaid.map(async (d) => {
+          return ctx.prisma.$transaction(async ($tsx) => {
+            const createdHour = await $tsx.hour.create({
+              data: {
+                value: d.hours.toNumber(),
+              },
+            });
+            const paymentResult = await $tsx.payment.create({
+              data: {
+                date,
+                studentId,
+                value: d.hours.times(d.rate).toNumber(),
+                hourId: createdHour.id,
+                paymentMethod: paymentMethod,
+              },
+            });
+            await $tsx.studentDebt.update({
+              where: {
+                id: d.id,
+              },
+              data: {
+                paymentId: paymentResult.id,
+              },
+            });
+          });
+        })
+      );
     },
   })
   .mutation('create', {

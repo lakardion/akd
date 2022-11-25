@@ -4,11 +4,11 @@ import { createRouter } from './context';
 
 import { authRouter } from './auth';
 import { ratesRouter } from './rates-router';
-import { studentRouter } from './student-router';
+import { studentRouter } from './student';
 import { teacherRouter } from './teacher-router';
-import { classSessionRouter } from './class-session-router';
 import { paymentRouter } from './payment-router';
 import { teacherPaymentRouter } from './teacher-payment-router';
+import { classSessionRouter } from './class-session';
 
 export const appRouter = createRouter()
   .transformer(superjson)

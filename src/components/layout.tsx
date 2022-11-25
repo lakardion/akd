@@ -11,10 +11,12 @@ const routes = [
 ];
 
 export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
-  const handleLogin = () => {};
+  const handleLogin = () => {
+    //TODO:
+  };
   const router = useRouter();
   return (
-    <div className="w-screen h-screen">
+    <div className="w-screen h-screen flex flex-col">
       <header className="w-full pb-1 text-accent-900">
         <section className="flex justify-between w-full p-2">
           <Link href="/">
@@ -47,7 +49,7 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
           })}
         </nav>
       </header>
-      <main className="flex justify-center items-center">{children}</main>
+      <main className="flex justify-center flex-grow">{children}</main>
     </div>
   );
 };

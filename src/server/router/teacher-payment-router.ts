@@ -68,6 +68,7 @@ export const teacherPaymentRouter = createRouter()
       input: { paymentMethod, teacherId, value, date, classSessionIds },
     }) {
       //TODO: check whether we can remove balance from teacher. Balance should be the sum of all the classes that are unpaid under their name
+      //? What's the point of this transaction if we only have a single thing doing?
       return ctx.prisma.$transaction([
         ctx.prisma.teacherPayment.create({
           data: {
