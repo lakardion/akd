@@ -1,4 +1,5 @@
 import { useAutoAnimate } from '@formkit/auto-animate/react';
+import { disabledBtnClasses } from 'components/button';
 import { ClassSessionForm } from 'components/class-sessions/form';
 import { ConfirmForm } from 'components/confirm-form';
 import { Modal } from 'components/modal';
@@ -179,7 +180,7 @@ const ClassSessions = () => {
       <button
         onClick={handleCreate}
         type="button"
-        className=":btn-disabled w-full rounded-lg bg-primary-800 p-3 text-white hover:bg-primary-400"
+        className={`${disabledBtnClasses} w-full rounded-lg bg-primary-800 p-3 text-white hover:bg-primary-400`}
         disabled={!canCreate}
       >
         Agregar clase

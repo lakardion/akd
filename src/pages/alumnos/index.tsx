@@ -71,9 +71,7 @@ const StudentForm: FC<{ onFinished: () => void; studentId: string }> = ({
   const {
     register,
     formState: { errors },
-    control,
     handleSubmit,
-    getValues,
     reset,
   } = useForm<StudentFormInput>({
     resolver: zodResolver(studentFormZod),

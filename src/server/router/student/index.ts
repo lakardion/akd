@@ -1,13 +1,9 @@
 import { PaymentMethodType, Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime';
-import { includeInactiveFlagZod, studentFormZod } from 'common';
+import { studentFormZod } from 'common';
 import { isMatch } from 'date-fns';
 import { getMonthEdges } from 'utils/date';
-import {
-  DEFAULT_PAGE_SIZE,
-  getPagination,
-  paginationZod,
-} from 'utils/pagination';
+import { DEFAULT_PAGE_SIZE } from 'utils/pagination';
 import { infiniteCursorZod } from 'utils/server-zods';
 import { z } from 'zod';
 import { createRouter } from '../context';
@@ -142,14 +138,23 @@ export const studentRouter = createRouter()
           },
         },
       });
-      const totalDebt = student?.debts.reduce<Decimal>((res, curr) => {
-        res = res.plus(curr.hours.times(curr.rate));
-        return res;
-      }, new Decimal(0));
+      const result = student?.debts.reduce<[Decimal, Decimal]>(
+        (res, curr) => {
+          const [debtAmount, debtHours] = res;
+          return [
+            debtAmount.plus(curr.hours.times(curr.rate)),
+            debtHours.plus(curr.hours),
+          ];
+        },
+        [new Decimal(0), new Decimal(0)]
+      );
 
       return {
         ...student,
-        debts: totalDebt?.toNumber(),
+        debts: {
+          amount: result?.[0].toNumber(),
+          hours: result?.[1].toNumber(),
+        },
         hourBalance: student?.hourBalance.toNumber(),
       };
     },
@@ -191,6 +196,11 @@ export const studentRouter = createRouter()
         orderBy: { lastName: 'asc' },
         include: {
           debts: {
+            where: {
+              payment: {
+                is: null,
+              },
+            },
             select: {
               hours: true,
               rate: true,
@@ -209,39 +219,6 @@ export const studentRouter = createRouter()
               return res;
             }, new Decimal(0))
             .toNumber(),
-          hourBalance: s.hourBalance.toNumber(),
-        })),
-      };
-    },
-  })
-  .query('all', {
-    input: includeInactiveFlagZod.merge(paginationZod).default({}),
-    async resolve({
-      ctx,
-      input: { page = 1, size = DEFAULT_PAGE_SIZE, includeInactive = false },
-    }) {
-      const totalPages = await ctx.prisma.student.count();
-      const { count, next, previous } = getPagination({
-        count: totalPages,
-        size,
-        page,
-      });
-      const students = await ctx.prisma.student.findMany({
-        orderBy: { lastName: 'asc' },
-        take: size,
-        skip: (page - 1) * size,
-        where: includeInactive
-          ? undefined
-          : {
-              isActive: true,
-            },
-      });
-      return {
-        count,
-        next,
-        previous,
-        students: students.map((s) => ({
-          ...s,
           hourBalance: s.hourBalance.toNumber(),
         })),
       };

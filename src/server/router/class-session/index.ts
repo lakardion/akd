@@ -374,7 +374,7 @@ export const classSessionRouter = createRouter()
 
       return await ctx.prisma.$transaction(async (tsx) => {
         //1- Create hour
-        //this will luckily change after we remove th ehour entity
+        //TODO: this will luckily change after we remove th ehour entity
         const hour = await ctx.prisma.hour.create({
           data: { value: hours },
         });
