@@ -120,7 +120,7 @@ export const calculateDebt =
     //get all the data we need to do this calculation
     const classSession = await ctx.prisma.classSession.findUnique({
       where: { id: classSessionId },
-      include: { classSessionStudent: true, studentDebts: true, hour: true },
+      include: { classSessionStudent: true, studentDebts: true },
     });
 
     if (!classSession)
@@ -228,7 +228,7 @@ export const calculateDebt =
                   id: d.id,
                 },
                 studentBalanceAction: {
-                  increment: classSession.hour.value.toNumber(),
+                  increment: classSession.hours.toNumber(),
                 },
                 studentId: r,
                 studentFullName,
@@ -247,7 +247,7 @@ export const calculateDebt =
       const returnChecked: CalculatedDebt = {
         debt: undefined,
         studentBalanceAction: {
-          increment: classSession.hour.value.toNumber(),
+          increment: classSession.hours.toNumber(),
         },
         studentId: student.id,
         studentFullName,
@@ -261,19 +261,19 @@ export const calculateDebt =
        * We will have to take into account existing debts and current hourBalance to be able to put up with the variations
        */
       const student = studentsById[u];
-      const areHoursTheSame = newHours.equals(classSession.hour.value);
+      const areHoursTheSame = newHours.equals(classSession.hours);
       // debt has nothing to do if the hours haven't changed from previous commit to class session
       if (!student || areHoursTheSame) {
         return [];
       }
-      const haveHoursIncreased = newHours.greaterThan(classSession.hour.value);
+      const haveHoursIncreased = newHours.greaterThan(classSession.hours);
       const { paid, unpaid } = groupStudentDebtByPaymentStatus(student);
       const studentFullName = `${student.name} ${student.lastName}`;
       if (paid.length) {
         const [paidDebt] = paid;
         if (!paidDebt) return [];
         const newBalance = student.hourBalance
-          .plus(classSession.hour.value)
+          .plus(classSession.hours)
           .minus(newHours);
 
         if (haveHoursIncreased) {
@@ -285,9 +285,7 @@ export const calculateDebt =
                     id: paidDebt.id,
                   },
                   studentBalanceAction: {
-                    increment: classSession.hour.value
-                      .minus(newHours)
-                      .toNumber(),
+                    increment: classSession.hours.minus(newHours).toNumber(),
                   },
                   studentId: u,
                   studentFullName,
@@ -323,7 +321,7 @@ export const calculateDebt =
               id: paidDebt.id,
             },
             studentBalanceAction: {
-              increment: classSession.hour.value.minus(newHours).toNumber(),
+              increment: classSession.hours.minus(newHours).toNumber(),
             },
             studentId: u,
             studentFullName,
@@ -333,7 +331,7 @@ export const calculateDebt =
       if (unpaid.length) {
         const [debt] = unpaid;
         if (!debt) return [];
-        const hoursSurplus = classSession.hour.value.minus(debt.hours);
+        const hoursSurplus = classSession.hours.minus(debt.hours);
         const newBalance = student.hourBalance
           .plus(hoursSurplus)
           .minus(newHours);

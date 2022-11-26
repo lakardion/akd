@@ -3,11 +3,7 @@ import { Decimal } from '@prisma/client/runtime';
 import { includeInactiveFlagZod, teacherFormZod } from 'common';
 import { isMatch } from 'date-fns';
 import { getMonthEdges } from 'utils/date';
-import {
-  DEFAULT_PAGE_SIZE,
-  getPagination,
-  paginationZod,
-} from 'utils/pagination';
+import { DEFAULT_PAGE_SIZE } from 'utils/pagination';
 import { identifiableZod, infiniteCursorZod } from 'utils/server-zods';
 import { z } from 'zod';
 import { createRouter } from './context';
@@ -62,11 +58,7 @@ export const teacherRouter = createRouter()
         select: {
           id: true,
           date: true,
-          hour: {
-            select: {
-              value: true,
-            },
-          },
+          hours: true,
           classSessionStudent: {
             select: {
               student: {
@@ -87,7 +79,7 @@ export const teacherRouter = createRouter()
             date: cs.date,
             classSession: {
               id: cs.id,
-              hours: cs.hour.value.toNumber(),
+              hours: cs.hours.toNumber(),
               studentId: css.student.id,
               studentFullName: `${css.student.name} ${css.student.lastName}`,
             },
@@ -173,7 +165,6 @@ export const teacherRouter = createRouter()
               teacherPaymentId: null,
             },
             include: {
-              hour: true,
               teacherHourRate: true,
               _count: {
                 select: {
@@ -188,7 +179,7 @@ export const teacherRouter = createRouter()
       const currentTotal = teacher?.classSessions.reduce(
         (sum, curr) =>
           sum.plus(
-            curr.hour.value
+            curr.hours
               .times(curr._count.classSessionStudent)
               .times(curr.teacherHourRate.rate)
           ),

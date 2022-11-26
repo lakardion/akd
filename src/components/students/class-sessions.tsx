@@ -99,7 +99,7 @@ const ExistingAttachClassSessionForm: FC<{
     <form
       name="attach-to-existing"
       onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-col gap-3 w-full"
+      className="flex w-full flex-col gap-3"
     >
       <h1 className="text-3xl">Agregar a clase existente</h1>
       <label htmlFor="date">Fecha</label>
@@ -200,7 +200,7 @@ export const StudentAttachToClassSessionForm: FC<{
         <h1 className="text-3xl">Agregar alumno a clase</h1>
         <section
           aria-label="add to class options"
-          className="flex flex-col w-full gap-5 justify-evenly flex-grow"
+          className="flex w-full flex-grow flex-col justify-evenly gap-5"
         >
           <Button
             onClick={createSwitchToViewHandler('existing')}
@@ -275,7 +275,7 @@ export const ClassSessionTable: FC<{ studentId: string }> = ({ studentId }) => {
   const dataRows: ClassSessionRow[] = useMemo(() => {
     return (
       data?.results.map((r) => ({
-        hours: r.hour.value,
+        hours: r.hours,
         teacher: { name: r.teacher?.name, lastName: r.teacher?.lastName },
         date: r.date,
         studentCount: r._count.classSessionStudent,

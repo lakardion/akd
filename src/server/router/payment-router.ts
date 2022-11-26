@@ -16,15 +16,12 @@ export const paymentRouter = createRouter()
         where: {
           studentId: id,
         },
-        include: {
-          hour: true,
-        },
       });
 
       return paymentsByStudent.map((pmbs) => ({
         ...pmbs,
         value: pmbs.value.toNumber(),
-        hourValue: pmbs.hour.value.toNumber(),
+        hourValue: pmbs.hours.toNumber(),
       }));
     },
   })
@@ -52,17 +49,12 @@ export const paymentRouter = createRouter()
       await Promise.all(
         debtsToBePaid.map(async (d) => {
           return ctx.prisma.$transaction(async ($tsx) => {
-            const createdHour = await $tsx.hour.create({
-              data: {
-                value: d.hours.toNumber(),
-              },
-            });
             const paymentResult = await $tsx.payment.create({
               data: {
                 date,
                 studentId,
                 value: d.hours.times(d.rate).toNumber(),
-                hourId: createdHour.id,
+                hours: d.hours.toNumber(),
                 paymentMethod: paymentMethod,
               },
             });
@@ -95,18 +87,13 @@ export const paymentRouter = createRouter()
       input: { date, studentId, hours, value, paymentMethod },
     }) {
       //! this is not fully transactional. But I don't seem to be able to do the creating on the fly rather than do it sequentially
-      const createdHour = await ctx.prisma.hour.create({
-        data: {
-          value: hours,
-        },
-      });
       const [createdPayment] = await ctx.prisma.$transaction([
         ctx.prisma.payment.create({
           data: {
             date,
             value,
             studentId,
-            hourId: createdHour.id,
+            hours,
             paymentMethod: paymentMethod,
           },
         }),

@@ -20,6 +20,7 @@ import {
 } from 'react';
 import { useForm } from 'react-hook-form';
 import { MdDelete, MdEdit } from 'react-icons/md';
+import { usePopulateFakeStudents } from 'utils/fake-hooks';
 import { trpc } from 'utils/trpc';
 import { useDebouncedValue } from 'utils/use-debounce';
 

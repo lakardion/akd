@@ -65,11 +65,6 @@ export const classSessionRouter = createRouter()
               lastName: true,
             },
           },
-          hour: {
-            select: {
-              value: true,
-            },
-          },
         },
       });
 
@@ -81,7 +76,7 @@ export const classSessionRouter = createRouter()
         previousPage: page - 1 === 0 ? null : page - 1,
         results: results.map((r) => ({
           ...r,
-          hour: { value: r.hour.value.toNumber() },
+          hours: r.hours.toNumber(),
         })),
       };
     },
@@ -147,9 +142,6 @@ export const classSessionRouter = createRouter()
       const classSession = await ctx.prisma.classSession.findUnique({
         where: { id },
         include: {
-          hour: {
-            select: { value: true },
-          },
           classSessionStudent: {
             include: {
               student: true,
@@ -175,7 +167,7 @@ export const classSessionRouter = createRouter()
               label: `${classSession?.teacherHourRate.description} (${classSession?.teacherHourRate.rate})`,
             }
           : undefined,
-        hour: classSession?.hour?.value.toNumber(),
+        hour: classSession?.hours.toNumber(),
         studentOptions: classSession?.classSessionStudent?.map((css) => ({
           value: css.studentId,
           label: `${css.student.name} ${css.student.lastName}`,
@@ -198,11 +190,6 @@ export const classSessionRouter = createRouter()
               lastName: true,
             },
           },
-          hour: {
-            select: {
-              value: true,
-            },
-          },
           teacherHourRate: true,
           _count: {
             select: {
@@ -221,8 +208,8 @@ export const classSessionRouter = createRouter()
               ...ucs.teacherHourRate,
               rate: ucs.teacherHourRate.rate.toNumber(),
             },
-            hour: { value: ucs.hour.value.toNumber() },
-            total: ucs.hour.value
+            hours: ucs.hours.toNumber(),
+            total: ucs.hours
               .times(ucs._count.classSessionStudent)
               .times(ucs.teacherHourRate.rate)
               .toNumber(),
@@ -243,7 +230,6 @@ export const classSessionRouter = createRouter()
           },
         },
         include: {
-          hour: true,
           teacher: true,
         },
       });
@@ -299,11 +285,7 @@ export const classSessionRouter = createRouter()
               id,
             },
             data: {
-              hour: {
-                update: {
-                  value: hours,
-                },
-              },
+              hours,
             },
           });
         }
@@ -375,9 +357,6 @@ export const classSessionRouter = createRouter()
       return await ctx.prisma.$transaction(async (tsx) => {
         //1- Create hour
         //TODO: this will luckily change after we remove th ehour entity
-        const hour = await ctx.prisma.hour.create({
-          data: { value: hours },
-        });
         const classSessionStudent = studentIds.length
           ? {
               createMany: {
@@ -390,7 +369,7 @@ export const classSessionRouter = createRouter()
           data: {
             date,
             classSessionStudent,
-            hourId: hour.id,
+            hours,
             teacherId,
             teacherHourRateId,
           },
@@ -444,17 +423,11 @@ export const classSessionRouter = createRouter()
                 },
               },
             },
-            classSession: {
-              include: {
-                hour: {
-                  select: { value: true },
-                },
-              },
-            },
+            classSession: true,
           },
         })) ?? [];
       const [first] = classSessionStudent;
-      const hours = first ? first.classSession.hour.value : new Decimal(0);
+      const hours = first ? first.classSession.hours : new Decimal(0);
       const paidDebtIds: string[] = [];
       const studentsInfo = classSessionStudent.reduce<{
         fresh: string[];
@@ -530,7 +503,6 @@ export const classSessionRouter = createRouter()
     async resolve({ ctx, input: { studentId, classSessionId } }) {
       const classSession = await ctx.prisma.classSession.findUnique({
         where: { id: classSessionId },
-        include: { hour: { select: { value: true } } },
       });
       return ctx.prisma.$transaction([
         ctx.prisma.classSessionStudent.create({
@@ -545,7 +517,7 @@ export const classSessionRouter = createRouter()
           },
           data: {
             hourBalance: {
-              decrement: classSession?.hour.value,
+              decrement: classSession?.hours,
             },
           },
         }),

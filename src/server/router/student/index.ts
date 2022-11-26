@@ -51,13 +51,8 @@ export const studentRouter = createRouter()
               lastName: true,
             },
           },
-
+          hours: true,
           date: true,
-          hour: {
-            select: {
-              value: true,
-            },
-          },
         },
       });
 
@@ -84,7 +79,7 @@ export const studentRouter = createRouter()
         (cs) => ({
           date: cs.date,
           classSession: {
-            hours: cs.hour.value.toNumber(),
+            hours: cs.hours.toNumber(),
             id: cs.id,
             teacherFullName: `${cs.teacher?.name} ${cs.teacher?.lastName}`,
           },
@@ -102,7 +97,7 @@ export const studentRouter = createRouter()
         select: {
           date: true,
           id: true,
-          hour: { select: { value: true } },
+          hours: true,
           paymentMethod: true,
           value: true,
         },
@@ -111,7 +106,7 @@ export const studentRouter = createRouter()
         date: p.date,
         payment: {
           amount: p.value.toNumber(),
-          hours: p.hour.value.toNumber(),
+          hours: p.hours.toNumber(),
           id: p.id,
           type: p.paymentMethod,
         },
