@@ -125,7 +125,7 @@ export const TeacherPaymentForm: FC<{
     () =>
       unpaidClassSessions?.map<ClassSessionTableRow>((ucs) => ({
         date: ucs.date,
-        hours: ucs.hour.value,
+        hours: ucs.hours,
         id: ucs.id,
         rate: ucs.teacherHourRate.rate,
         students: ucs._count.classSessionStudent,
@@ -174,9 +174,9 @@ export const TeacherPaymentForm: FC<{
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-col p-3 gap-2 w-full md:w-[500px]"
+      className="flex w-full flex-col gap-2 p-3 md:w-[500px]"
     >
-      <h1 className="text-3xl text-center">Agregar pago</h1>
+      <h1 className="text-center text-3xl">Agregar pago</h1>
       <label htmlFor="date">Fecha</label>
       <Input
         {...register('date')}
@@ -186,24 +186,24 @@ export const TeacherPaymentForm: FC<{
       <ValidationError errorMessages={errors.date?.message} />
       <label htmlFor="paymentMethod">Medio de pago</label>
       <div className="flex items-center">
-        <div className="flex-grow flex justify-center gap-3 items-center">
+        <div className="flex flex-grow items-center justify-center gap-3">
           <label htmlFor="cash">Efectivo</label>
           <Input
             type="radio"
             id="cash"
             value={PaymentMethodType.CASH}
             {...register('paymentMethod')}
-            className="border-0 w-full h-6"
+            className="h-6 w-full border-0"
           />
         </div>
-        <div className="flex-grow flex justify-center gap-3 items-center">
+        <div className="flex flex-grow items-center justify-center gap-3">
           <label htmlFor="transfer">Transferencia</label>
           <Input
             type="radio"
             id="transfer"
             value={PaymentMethodType.TRANSFER}
             {...register('paymentMethod')}
-            className="border-0 h-6 w-full"
+            className="h-6 w-full border-0"
           />
         </div>
       </div>
@@ -222,7 +222,7 @@ export const TeacherPaymentForm: FC<{
         />
       </div>
       <div className="">
-        <p className="text-center text-blackish text-6xl rounded-lg p-3">
+        <p className="rounded-lg p-3 text-center text-6xl text-blackish">
           $ {classSessions?.reduce((sum, curr) => sum + (curr?.total ?? 0), 0)}
         </p>
       </div>
@@ -320,7 +320,7 @@ export const PaymentTable: FC<{ teacherId: string }> = ({ teacherId }) => {
   }
   if (!data?.results?.length)
     return (
-      <section className="flex justify-center w-full items-center italic font-medium">
+      <section className="flex w-full items-center justify-center font-medium italic">
         <p>No hay pagos para mostrar</p>
       </section>
     );
