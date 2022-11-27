@@ -18,12 +18,12 @@ const legacyRouter = createLegacyRouter()
   .merge('students.', studentRouter)
   .merge('teachers.', teacherRouter)
   .merge('classSessions.', classSessionRouter)
-  .merge('payments.', paymentRouter)
   .merge('teacherPayments.', teacherPaymentRouter)
   .interop();
 
 const mainRouter = router({
   rates: ratesRouter,
+  payments: paymentRouter,
 });
 
 export const appRouter = mergeRouters(legacyRouter, mainRouter);

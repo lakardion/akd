@@ -57,24 +57,20 @@ export const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
   const { data: hourRates } = trpc.proxy.rates.hourRates.useQuery({
     type: 'STUDENT',
   });
+  const utils = trpc.proxy.useContext();
   const queryClient = trpc.useContext();
   const { data: hourPackages } = trpc.proxy.rates.hourPackages.useQuery();
-  const { mutateAsync: create, isLoading: isCreating } = trpc.useMutation(
-    'payments.create',
-    {
+  const { mutateAsync: create, isLoading: isCreating } =
+    trpc.proxy.payments.create.useMutation({
       onSuccess: (data) => {
-        queryClient.invalidateQueries([
-          'payments.byStudent',
-          { id: studentId },
-        ]);
+        utils.payments.byStudent.invalidate({ id: studentId });
         queryClient.invalidateQueries(['students.single', { id: studentId }]);
         queryClient.invalidateQueries([
           'students.history',
           { month: format(data.date, 'yy-MM'), studentId },
         ]);
       },
-    }
-  );
+    });
   const [hourTypeSelected, setHourTypeSelected] =
     useState<HourTypeSelectOption>();
   const [selectedHourRate, setSelectedHourRate] = useState<number>();
@@ -322,9 +318,12 @@ const defaultColumns: ColumnDef<{
 
 //TODO: wtf I'm not using this anywhere??
 export const PaymentTable: FC<{ studentId: string }> = ({ studentId }) => {
-  const { data } = trpc.useQuery(['payments.byStudent', { id: studentId }], {
-    enabled: Boolean(studentId),
-  });
+  const { data } = trpc.proxy.payments.byStudent.useQuery(
+    { id: studentId },
+    {
+      enabled: Boolean(studentId),
+    }
+  );
 
   const table = useReactTable({
     data: data ?? [],
@@ -343,9 +342,12 @@ export const PaymentTable: FC<{ studentId: string }> = ({ studentId }) => {
 };
 
 export const PaymentsList: FC<{ studentId: string }> = ({ studentId }) => {
-  const { data } = trpc.useQuery(['payments.byStudent', { id: studentId }], {
-    enabled: Boolean(studentId),
-  });
+  const { data } = trpc.proxy.payments.byStudent.useQuery(
+    { id: studentId },
+    {
+      enabled: Boolean(studentId),
+    }
+  );
 
   return (
     <ul>
@@ -443,16 +445,14 @@ const DebtPaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
   //   paysTotal || parseInt(partialAmount ?? '') === 0 || isNaN(parseInt(rest));
 
   const queryClient = trpc.useContext();
-  const { mutateAsync: payDebt, isLoading: isPaying } = trpc.useMutation(
-    'payments.payDebtTotal',
-    {
+  const { mutateAsync: payDebt, isLoading: isPaying } =
+    trpc.proxy.payments.payDebtTotal.useMutation({
       onSuccess() {
         queryClient.invalidateQueries(['students.single', { id: studentId }]);
         queryClient.invalidateQueries(['students.allSearch']);
         queryClient.invalidateQueries(['students.history']);
       },
-    }
-  );
+    });
   const { amount, hours } = data?.debts ?? {};
   const onSubmit = async (values: DebtPaymentFormInput) => {
     // const parsed = createDebtPaymentZod(data?.debts ?? 0).safeParse(values);
