@@ -7,9 +7,8 @@ import { paymentRouter } from './payment-router';
 import { ratesRouter } from './rates-router';
 import { studentRouter } from './student';
 import { teacherPaymentRouter } from './teacher-payment-router';
-import { teacherRouter } from './teacher-router';
 import { mergeRouters, router } from './trpc';
-import superjson from 'superjson';
+import { teacherRouter } from './teacher-router';
 
 const legacyRouter = createLegacyRouter()
   // I love the fact that this is even considered in the type checking. If you don't pass superjson here any dates are inferred as string values. That's neat!
@@ -18,12 +17,12 @@ const legacyRouter = createLegacyRouter()
   .merge('students.', studentRouter)
   .merge('teachers.', teacherRouter)
   .merge('classSessions.', classSessionRouter)
-  .merge('teacherPayments.', teacherPaymentRouter)
   .interop();
 
 const mainRouter = router({
   rates: ratesRouter,
   payments: paymentRouter,
+  teacherPayments: teacherPaymentRouter,
 });
 
 export const appRouter = mergeRouters(legacyRouter, mainRouter);
