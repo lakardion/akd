@@ -3,7 +3,12 @@ import type { AppRouter } from '../server/router';
 import { createReactQueryHooks, httpBatchLink } from '@trpc/react-query';
 //TODO: have to use this at some point in the future.
 import { createTRPCNext } from '@trpc/next';
-import type { inferProcedureOutput, inferProcedureInput } from '@trpc/server';
+import type {
+  inferProcedureOutput,
+  inferProcedureInput,
+  inferRouterInputs,
+  inferRouterOutputs,
+} from '@trpc/server';
 import { createTRPCProxyClient } from '@trpc/client';
 import superjson from 'superjson';
 import { getBaseUrl } from './url';
@@ -44,6 +49,9 @@ export type inferMutationOutput<
 export type inferMutationInput<
   TRouteKey extends keyof AppRouter['_def']['mutations']
 > = inferProcedureInput<AppRouter['_def']['mutations'][TRouteKey]>;
+
+export type RouterInput = inferRouterInputs<AppRouter>;
+export type RouterOutput = inferRouterOutputs<AppRouter>;
 
 export const createTRPCVanillaClient = () => {
   return trpc.createClient({

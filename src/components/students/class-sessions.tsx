@@ -42,17 +42,16 @@ const ExistingAttachClassSessionForm: FC<{
     resolver: zodResolver(attachToExistingClassSessionZod),
   });
   const utils = trpc.proxy.useContext();
-  const queryClient = trpc.useContext();
   const {
     mutateAsync: attachToExistingClassSession,
     isLoading: isAttachingToClass,
-  } = trpc.useMutation('classSessions.addStudent', {
+  } = trpc.proxy.classSessions.addStudent.useMutation({
     onSuccess: () => {
-      queryClient.invalidateQueries('classSessions.all');
-      queryClient.invalidateQueries('classSessions.byDate');
-      queryClient.invalidateQueries('classSessions.byStudent');
-      queryClient.invalidateQueries('classSessions.paginated');
-      queryClient.invalidateQueries('classSessions.single');
+      utils.classSessions.all.invalidate();
+      utils.classSessions.byDate.invalidate();
+      utils.classSessions.byStudent.invalidate();
+      utils.classSessions.paginated.invalidate();
+      utils.classSessions.single.invalidate();
       utils.students.single.invalidate({ id: studentId });
     },
   });
@@ -69,14 +68,11 @@ const ExistingAttachClassSessionForm: FC<{
     data: classSessionByDate,
     isFetching,
     isLoading,
-  } = trpc.useQuery(
-    [
-      'classSessions.byDate',
-      {
-        from: parse(selectedDate, 'yyyy-MM-dd', new Date()),
-        to: addDays(parse(selectedDate, 'yyyy-MM-dd', new Date()), 1),
-      },
-    ],
+  } = trpc.proxy.classSessions.byDate.useQuery(
+    {
+      from: parse(selectedDate, 'yyyy-MM-dd', new Date()),
+      to: addDays(parse(selectedDate, 'yyyy-MM-dd', new Date()), 1),
+    },
     {
       enabled: Boolean(selectedDate),
     }
@@ -257,10 +253,8 @@ const defaultColumns: ColumnDef<ClassSessionRow>[] = [
 
 export const ClassSessionTable: FC<{ studentId: string }> = ({ studentId }) => {
   const [page, setPage] = useState(1);
-  const { data, isFetching, isLoading, isPreviousData } = trpc.useQuery([
-    'classSessions.paginated',
-    { page, studentId },
-  ]);
+  const { data, isFetching, isLoading, isPreviousData } =
+    trpc.proxy.classSessions.paginated.useQuery({ page, studentId });
   const { goFirstPage, goLastPage, goNextPage, goPreviousPage } =
     usePaginationHandlers(
       useMemo(

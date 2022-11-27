@@ -46,10 +46,8 @@ export const TeacherPaymentForm: FC<{
     id: teacherId,
   });
   const utils = trpc.proxy.useContext();
-  const { data: unpaidClassSessions } = trpc.useQuery([
-    'classSessions.unpaid',
-    { teacherId },
-  ]);
+  const { data: unpaidClassSessions } =
+    trpc.proxy.classSessions.unpaid.useQuery({ teacherId });
   const { mutateAsync: create, isLoading: isCreating } =
     trpc.proxy.teacherPayments.create.useMutation({
       onSuccess: () => {

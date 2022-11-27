@@ -19,7 +19,7 @@ import {
   debouncedSearchStudents,
   debouncedSearchTeachers,
 } from 'utils/client-search-utils';
-import { inferQueryOutput, trpc } from 'utils/trpc';
+import { inferQueryOutput, RouterOutput, trpc } from 'utils/trpc';
 import { z } from 'zod';
 import {
   DebtorsForm,
@@ -45,7 +45,7 @@ const classSessionFormZod = z.object({
 type ClassSessionFormInputs = z.infer<typeof classSessionFormZod>;
 
 const getClassSessionFormDefaultValues = (
-  classSession: inferQueryOutput<'classSessions.single'> | undefined,
+  classSession: RouterOutput['classSessions']['single'] | undefined,
   preloads: {
     teacher?: { value: string; label: string };
     students?: { value: string; label: string }[];
@@ -85,8 +85,8 @@ const useClassSessionForm = ({
   preloadTeacher?: { value: string; label: string };
 }) => {
   //! this is refetching constantly and I have no clue why is that
-  const { data: classSession } = trpc.useQuery(
-    ['classSessions.single', { id }],
+  const { data: classSession } = trpc.proxy.classSessions.single.useQuery(
+    { id },
     {
       refetchOnWindowFocus: false,
     }
@@ -235,12 +235,11 @@ export const ClassSessionForm: FC<{
   const utils = trpc.proxy.useContext();
   const queryClient = trpc.useContext();
 
-  const { mutateAsync: create, isLoading: isCreating } = trpc.useMutation(
-    'classSessions.create',
-    {
+  const { mutateAsync: create, isLoading: isCreating } =
+    trpc.proxy.classSessions.create.useMutation({
       onSuccess: (data) => {
-        queryClient.invalidateQueries(['classSessions.all']);
-        queryClient.invalidateQueries(['classSessions.byStudent']);
+        utils.classSessions.all.invalidate();
+        utils.classSessions.byStudent.invalidate();
         utils.teachers.single.invalidate({ id: data.teacherId ?? '' });
         const month = format(data.date, 'yy-MM');
         data.teacherId &&
@@ -254,16 +253,13 @@ export const ClassSessionForm: FC<{
           utils.students.single.invalidate({ id: fromStudent });
         }
       },
-    }
-  );
-  const { mutateAsync: edit, isLoading: isEditing } = trpc.useMutation(
-    'classSessions.update',
-    {
+    });
+  const { mutateAsync: edit, isLoading: isEditing } =
+    trpc.proxy.classSessions.update.useMutation({
       onSuccess: () => {
-        queryClient.invalidateQueries(['classSessions.single', { id }]);
+        utils.classSessions.single.invalidate({ id });
       },
-    }
-  );
+    });
 
   const onSubmit = async (data: ClassSessionFormInputs) => {
     //it would be nice if we could do something regarding this iteration. Calculated debts do not change really and we can do sort of indexation of that so that we know where each debt should go to. I'm thinking of <studentId,calculatedDebtIndex>. I don't see this as a risky operation tbh
