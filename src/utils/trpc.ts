@@ -1,6 +1,6 @@
 // src/utils/trpc.ts
 import type { AppRouter } from '../server/router';
-import { createReactQueryHooks } from '@trpc/react';
+import { createReactQueryHooks, httpBatchLink } from '@trpc/react-query';
 import type { inferProcedureOutput, inferProcedureInput } from '@trpc/server';
 import superjson from 'superjson';
 import { getBaseUrl } from './url';
@@ -29,7 +29,7 @@ export type inferMutationInput<
 
 export const createTRPCVanillaClient = () => {
   return trpc.createClient({
-    url: `${getBaseUrl()}/api/trpc`,
+    links: [httpBatchLink({ url: `${getBaseUrl()}/api/trpc` })],
     transformer: superjson,
   });
 };

@@ -6,10 +6,10 @@ import { getMonthEdges } from 'utils/date';
 import { DEFAULT_PAGE_SIZE } from 'utils/pagination';
 import { infiniteCursorZod } from 'utils/server-zods';
 import { z } from 'zod';
-import { createRouter } from '../context';
+import { createLegacyRouter } from '../context';
 import { calculateDebt, calculateDebtNewClass } from './helpers';
 
-export const studentRouter = createRouter()
+export const studentRouter = createLegacyRouter()
   .query('calculateDebts', {
     input: z.object({
       studentIds: z.array(z.string()),

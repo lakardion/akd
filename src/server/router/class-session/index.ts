@@ -4,14 +4,14 @@ import { diffStrArraysImproved } from 'utils';
 import { DEFAULT_PAGE_SIZE } from 'utils/pagination';
 import { identifiableZod, infiniteCursorZod } from 'utils/server-zods';
 import { z } from 'zod';
-import { createRouter } from '../context';
+import { createLegacyRouter } from '../context';
 import {
   addressDebt,
   calculatedDebtZod,
   updateDebtorsHourBalance,
 } from './helpers';
 
-export const classSessionRouter = createRouter()
+export const classSessionRouter = createLegacyRouter()
   .query('paginated', {
     input: z.object({
       studentId: z.string().optional(),

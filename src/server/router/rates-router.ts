@@ -5,9 +5,9 @@ import {
   includeInactiveFlagZod,
 } from 'common';
 import { z } from 'zod';
-import { createRouter } from './context';
+import { createLegacyRouter } from './context';
 
-export const ratesRouter = createRouter()
+export const ratesRouter = createLegacyRouter()
   .query('hourRate', {
     input: z.object({ id: z.string() }),
     async resolve({ ctx, input: { id } }) {

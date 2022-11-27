@@ -7,6 +7,7 @@ import { SessionProvider } from 'next-auth/react';
 import '../styles/globals.css';
 import { Layout } from 'components/layout';
 import { getBaseUrl } from 'utils/url';
+import { httpBatchLink } from '@trpc/client';
 
 const MyApp: AppType = ({
   Component,
@@ -30,7 +31,7 @@ export default withTRPC<AppRouter>({
     const url = `${getBaseUrl()}/api/trpc`;
 
     return {
-      url,
+      links:[httpBatchLink({url})],
       transformer: superjson,
       /**
        * @link https://react-query.tanstack.com/reference/QueryClient

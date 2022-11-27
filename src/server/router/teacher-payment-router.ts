@@ -1,9 +1,9 @@
 import { PaymentMethodType } from '@prisma/client';
 import { DEFAULT_PAGE_SIZE } from 'utils/pagination';
 import { z } from 'zod';
-import { createRouter } from './context';
+import { createLegacyRouter } from './context';
 
-export const teacherPaymentRouter = createRouter()
+export const teacherPaymentRouter = createLegacyRouter()
   .query('all', {
     input: z.object({
       page: z.number(),

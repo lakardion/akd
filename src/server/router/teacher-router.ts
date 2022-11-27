@@ -6,9 +6,9 @@ import { getMonthEdges } from 'utils/date';
 import { DEFAULT_PAGE_SIZE } from 'utils/pagination';
 import { identifiableZod, infiniteCursorZod } from 'utils/server-zods';
 import { z } from 'zod';
-import { createRouter } from './context';
+import { createLegacyRouter } from './context';
 
-export const teacherRouter = createRouter()
+export const teacherRouter = createLegacyRouter()
   .query('history', {
     input:
       //lets actually allow only to query by month. It is always going to be a limited amount and we can definitely get that going on the frontend

@@ -3,9 +3,9 @@ import { TRPCError } from '@trpc/server';
 import { paginationZod } from 'utils/pagination';
 import { identifiableZod } from 'utils/server-zods';
 import { z } from 'zod';
-import { createRouter } from './context';
+import { createLegacyRouter } from './context';
 
-export const paymentRouter = createRouter()
+export const paymentRouter = createLegacyRouter()
   .query('byStudent', {
     input: paginationZod.merge(identifiableZod),
     async resolve({ ctx, input: { page, size, id } }) {
