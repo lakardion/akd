@@ -20,7 +20,7 @@ import { trpc } from 'utils/trpc';
 
 const useHourRateForm = ({ id }: { id: string }) => {
   //TODO: remove proxy
-  const { data: hourRate } = trpc.proxy.rates.hourRate.useQuery(
+  const { data: hourRate } = trpc.rates.hourRate.useQuery(
     { id },
     {
       enabled: Boolean(id),
@@ -48,7 +48,7 @@ const useHourRateForm = ({ id }: { id: string }) => {
 };
 
 const useHourPackageForm = ({ id }: { id: string }) => {
-  const { data: hourPackage } = trpc.proxy.rates.hourPackage.useQuery(
+  const { data: hourPackage } = trpc.rates.hourPackage.useQuery(
     { id },
     {
       enabled: Boolean(id),
@@ -80,7 +80,7 @@ const StudentHourRateList: FC<{
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
 }> = ({ onEdit, onDelete }) => {
-  const { data, isLoading } = trpc.proxy.rates.hourRates.useQuery({
+  const { data, isLoading } = trpc.rates.hourRates.useQuery({
     type: 'STUDENT',
   });
   const [parent] = useAutoAnimate<HTMLUListElement>();
@@ -120,7 +120,7 @@ const PackagePriceList: FC<{
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
 }> = ({ onEdit, onDelete }) => {
-  const { data, isLoading } = trpc.proxy.rates.hourPackages.useQuery();
+  const { data, isLoading } = trpc.rates.hourPackages.useQuery();
   const [parent] = useAutoAnimate<HTMLUListElement>();
   if (!data) {
     return <Spinner size="sm" />;
@@ -159,15 +159,15 @@ const AddHourRateForm: FC<{ onFinished: () => void; id: string }> = ({
   onFinished,
   id,
 }) => {
-  const utils = trpc.proxy.useContext();
+  const utils = trpc.useContext();
   const { isLoading: isCreating, mutateAsync: create } =
-    trpc.proxy.rates.createHourRate.useMutation({
+    trpc.rates.createHourRate.useMutation({
       onSuccess: () => {
         utils.rates.hourRates.invalidate({ type: 'STUDENT' });
       },
     });
   const { isLoading: isEditing, mutateAsync: edit } =
-    trpc.proxy.rates.editHourRate.useMutation({
+    trpc.rates.editHourRate.useMutation({
       onSuccess: () => {
         utils.rates.hourRates.invalidate({ type: 'STUDENT' });
       },
@@ -232,16 +232,16 @@ const AddHourPackageForm: FC<{ onFinished: () => void; id: string }> = ({
   onFinished,
   id,
 }) => {
-  const utils = trpc.proxy.useContext();
+  const utils = trpc.useContext();
   const queryClient = trpc.useContext();
   const { isLoading: isCreating, mutateAsync: create } =
-    trpc.proxy.rates.createHourPackage.useMutation({
+    trpc.rates.createHourPackage.useMutation({
       onSuccess: () => {
         utils.rates.hourPackages.invalidate();
       },
     });
   const { isLoading: isEditing, mutateAsync: edit } =
-    trpc.proxy.rates.editHourPackage.useMutation({
+    trpc.rates.editHourPackage.useMutation({
       onSuccess: () => {
         utils.rates.hourPackages.invalidate();
       },
@@ -316,12 +316,12 @@ const StudentHourRatePrices = () => {
   const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
   const [currentId, setCurrentId] = useState('');
   const [showCreateEditModal, setShowCreateEditModal] = useState(false);
-  const utils = trpc.proxy.useContext();
+  const utils = trpc.useContext();
   const {
     isLoading: isDeleting,
     error: deleteError,
     mutateAsync: deleteOne,
-  } = trpc.proxy.rates.deleteHourRate.useMutation({
+  } = trpc.rates.deleteHourRate.useMutation({
     onSuccess: () => {
       utils.rates.hourRates.invalidate();
     },
@@ -390,7 +390,7 @@ const StudentPackagePrices = () => {
     isLoading: isDeleting,
     error: deleteError,
     mutateAsync: deleteOne,
-  } = trpc.proxy.rates.deleteHourPackage.useMutation({
+  } = trpc.rates.deleteHourPackage.useMutation({
     onSuccess: () => {
       // queryClient.invalidateQueries('rates.hourPackages');
     },

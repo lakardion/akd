@@ -3,7 +3,6 @@ import { TRPCError } from '@trpc/server';
 import { paginationZod } from 'utils/pagination';
 import { identifiableZod } from 'utils/server-zods';
 import { z } from 'zod';
-import { createLegacyRouter } from './context';
 import { publicProcedure, router } from './trpc';
 
 export const paymentRouter = router({

@@ -17,7 +17,7 @@ const StudentHistory: FC<{ month: string; studentId: string }> = ({
   month,
   studentId,
 }) => {
-  const { data: history, isLoading } = trpc.proxy.students.history.useQuery({
+  const { data: history, isLoading } = trpc.students.history.useQuery({
     month,
     studentId,
   });
@@ -111,7 +111,7 @@ const StudentDetail = () => {
     return typeof id === 'string' ? id : '';
   }, [id]);
 
-  const { data } = trpc.proxy.students.single.useQuery(
+  const { data } = trpc.students.single.useQuery(
     { id: stableId },
     {
       enabled: Boolean(id),

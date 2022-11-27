@@ -1,28 +1,27 @@
 // src/utils/trpc.ts
+import { httpBatchLink } from '@trpc/react-query';
 import type { AppRouter } from '../server/router';
-import { createReactQueryHooks, httpBatchLink } from '@trpc/react-query';
-//TODO: have to use this at some point in the future.
+import { createTRPCProxyClient, loggerLink } from '@trpc/client';
 import { createTRPCNext } from '@trpc/next';
-import type {
-  inferProcedureOutput,
-  inferProcedureInput,
-  inferRouterInputs,
-  inferRouterOutputs,
-} from '@trpc/server';
-import { createTRPCProxyClient } from '@trpc/client';
+import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 import superjson from 'superjson';
 import { getBaseUrl } from './url';
-//TODO: use the non-deprecated hook
-export const trpc = createReactQueryHooks<AppRouter>();
 
-//TODO:
-export const trpcNext = createTRPCNext<AppRouter>({
-  config({ ctx }) {
+export const trpc = createTRPCNext<AppRouter>({
+  config() {
     return {
-      links: [httpBatchLink({ url: getBaseUrl() })],
       transformer: superjson,
+      links: [
+        loggerLink({
+          enabled: (opts) =>
+            process.env.NODE_ENV === 'development' ||
+            (opts.direction === 'down' && opts.result instanceof Error),
+        }),
+        httpBatchLink({ url: `${getBaseUrl()}/api/trpc` }),
+      ],
     };
   },
+  ssr: false,
 });
 
 export const trpcProxyClient = createTRPCProxyClient<AppRouter>({
@@ -30,32 +29,5 @@ export const trpcProxyClient = createTRPCProxyClient<AppRouter>({
   transformer: superjson,
 });
 
-/**
- * This is a helper method to infer the output of a query resolver
- * @example type HelloOutput = inferQueryOutput<'hello'>
- */
-export type inferQueryOutput<
-  TRouteKey extends keyof AppRouter['_def']['queries']
-> = inferProcedureOutput<AppRouter['_def']['queries'][TRouteKey]>;
-
-export type inferQueryInput<
-  TRouteKey extends keyof AppRouter['_def']['queries']
-> = inferProcedureInput<AppRouter['_def']['queries'][TRouteKey]>;
-
-export type inferMutationOutput<
-  TRouteKey extends keyof AppRouter['_def']['mutations']
-> = inferProcedureOutput<AppRouter['_def']['mutations'][TRouteKey]>;
-
-export type inferMutationInput<
-  TRouteKey extends keyof AppRouter['_def']['mutations']
-> = inferProcedureInput<AppRouter['_def']['mutations'][TRouteKey]>;
-
 export type RouterInput = inferRouterInputs<AppRouter>;
 export type RouterOutput = inferRouterOutputs<AppRouter>;
-
-export const createTRPCVanillaClient = () => {
-  return trpc.createClient({
-    links: [httpBatchLink({ url: `${getBaseUrl()}/api/trpc` })],
-    transformer: superjson,
-  });
-};

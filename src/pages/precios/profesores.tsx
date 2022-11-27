@@ -16,7 +16,7 @@ import { useForm } from 'react-hook-form';
 import { trpc } from 'utils/trpc';
 
 const useHourRateForm = ({ id }: { id: string }) => {
-  const { data: hourRate } = trpc.proxy.rates.hourRate.useQuery(
+  const { data: hourRate } = trpc.rates.hourRate.useQuery(
     { id },
     {
       enabled: Boolean(id),
@@ -47,7 +47,7 @@ const TeacherHourRateList: FC<{
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
 }> = ({ onEdit, onDelete }) => {
-  const { data, isLoading } = trpc.proxy.rates.hourRates.useQuery({
+  const { data, isLoading } = trpc.rates.hourRates.useQuery({
     type: 'TEACHER',
   });
 
@@ -90,15 +90,15 @@ const AddHourRateForm: FC<{ onFinished: () => void; id: string }> = ({
   id,
 }) => {
   const queryClient = trpc.useContext();
-  const utils = trpc.proxy.useContext();
+  const utils = trpc.useContext();
   const { isLoading: isCreating, mutateAsync: create } =
-    trpc.proxy.rates.createHourRate.useMutation({
+    trpc.rates.createHourRate.useMutation({
       onSuccess: () => {
         utils.rates.hourRates.invalidate({ type: 'TEACHER' });
       },
     });
   const { isLoading: isEditing, mutateAsync: edit } =
-    trpc.proxy.rates.editHourRate.useMutation({
+    trpc.rates.editHourRate.useMutation({
       onSuccess: () => {
         utils.rates.hourRates.invalidate({ type: 'TEACHER' });
       },
@@ -163,13 +163,13 @@ const TeacherHourRatePrices = () => {
   const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
   const [currentId, setCurrentId] = useState('');
   const [showCreateEditModal, setShowCreateEditModal] = useState(false);
-  const utils = trpc.proxy.useContext();
+  const utils = trpc.useContext();
   const queryClient = trpc.useContext();
   const {
     isLoading: isDeleting,
     error: deleteError,
     mutateAsync: deleteOne,
-  } = trpc.proxy.rates.deleteHourRate.useMutation({
+  } = trpc.rates.deleteHourRate.useMutation({
     onSuccess: () => {
       utils.rates.hourRates.invalidate();
     },

@@ -42,14 +42,15 @@ export const TeacherPaymentForm: FC<{
   onFinished: () => void;
   month: string;
 }> = ({ teacherId, onFinished, month }) => {
-  const { data: teacher } = trpc.proxy.teachers.single.useQuery({
+  const { data: teacher } = trpc.teachers.single.useQuery({
     id: teacherId,
   });
-  const utils = trpc.proxy.useContext();
-  const { data: unpaidClassSessions } =
-    trpc.proxy.classSessions.unpaid.useQuery({ teacherId });
+  const utils = trpc.useContext();
+  const { data: unpaidClassSessions } = trpc.classSessions.unpaid.useQuery({
+    teacherId,
+  });
   const { mutateAsync: create, isLoading: isCreating } =
-    trpc.proxy.teacherPayments.create.useMutation({
+    trpc.teacherPayments.create.useMutation({
       onSuccess: () => {
         utils.teachers.single.invalidate({ id: teacherId });
         utils.teachers.history.invalidate({ teacherId: teacherId, month });
@@ -267,7 +268,7 @@ const paymentColumns: ColumnDef<TeacherPaymentColumn>[] = [
 
 export const PaymentTable: FC<{ teacherId: string }> = ({ teacherId }) => {
   const [page, setPage] = useState(1);
-  const { data, isLoading } = trpc.proxy.teacherPayments.all.useQuery(
+  const { data, isLoading } = trpc.teacherPayments.all.useQuery(
     { teacherId, page },
     {
       enabled: Boolean(teacherId),

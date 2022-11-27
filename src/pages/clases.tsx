@@ -22,7 +22,7 @@ const ClassSessionList: FC<{
   handleEdit: (id: string) => void;
 }> = ({ handleDelete, handleEdit }) => {
   const { data, fetchNextPage, hasNextPage, isLoading, isFetching } =
-    trpc.proxy.classSessions.all.useInfiniteQuery(
+    trpc.classSessions.all.useInfiniteQuery(
       {},
       {
         getNextPageParam: (lastPage) => {
@@ -123,10 +123,10 @@ const ClassSessions = () => {
     currentId,
   } = useCRUDState();
   const { data: teacherCount, isLoading: isTeacherCountLoading } =
-    trpc.proxy.teachers.count.useQuery();
+    trpc.teachers.count.useQuery();
   const { data: teacherRates, isLoading: isHourRatesLoading } =
-    trpc.proxy.rates.hourRates.useQuery({ type: 'TEACHER' });
-  const { isLoading } = trpc.proxy.classSessions.all.useInfiniteQuery(
+    trpc.rates.hourRates.useQuery({ type: 'TEACHER' });
+  const { isLoading } = trpc.classSessions.all.useInfiniteQuery(
     {},
     {
       getNextPageParam: (lastPage) => {
@@ -136,9 +136,9 @@ const ClassSessions = () => {
     }
   );
 
-  const utils = trpc.proxy.useContext();
+  const utils = trpc.useContext();
   const { mutateAsync: deleteOne, isLoading: isDeleting } =
-    trpc.proxy.classSessions.delete.useMutation({
+    trpc.classSessions.delete.useMutation({
       onSuccess: () => {
         utils.classSessions.all.invalidate();
       },

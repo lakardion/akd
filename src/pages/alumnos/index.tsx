@@ -28,21 +28,21 @@ const StudentForm: FC<{ onFinished: () => void; studentId: string }> = ({
   studentId,
   onFinished,
 }) => {
-  const utils = trpc.proxy.useContext();
-  const { data: student } = trpc.proxy.students.single.useQuery(
+  const utils = trpc.useContext();
+  const { data: student } = trpc.students.single.useQuery(
     { id: studentId },
     {
       enabled: Boolean(studentId),
     }
   );
   const { mutateAsync: createStudent, isLoading: isCreating } =
-    trpc.proxy.students.create.useMutation({
+    trpc.students.create.useMutation({
       onSuccess: () => {
         utils.students.allSearch.invalidate();
       },
     });
   const { mutateAsync: editStudent, isLoading: isEditing } =
-    trpc.proxy.students.edit.useMutation({
+    trpc.students.edit.useMutation({
       onSuccess: () => {
         utils.students.allSearch.invalidate();
         utils.students.single.invalidate({ id: studentId });
@@ -125,7 +125,7 @@ const StudentList: FC<{
     hasNextPage,
     isLoading: studentsLoading,
     isFetching: studentsFetching,
-  } = trpc.proxy.students.allSearch.useInfiniteQuery(
+  } = trpc.students.allSearch.useInfiniteQuery(
     { query: debouncedSearch },
     {
       getNextPageParam: (lastPage) => {
@@ -247,9 +247,9 @@ const StudentList: FC<{
 
 const Students = () => {
   // usePopulateFakeStudents(100);
-  const utils = trpc.proxy.useContext();
+  const utils = trpc.useContext();
   const { isLoading: isDeleting, mutateAsync: deleteStudent } =
-    trpc.proxy.students.delete.useMutation({
+    trpc.students.delete.useMutation({
       onSuccess: () => {
         utils.students.allSearch.invalidate();
       },

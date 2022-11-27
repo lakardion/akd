@@ -54,14 +54,14 @@ export const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
   studentId,
   onFinished,
 }) => {
-  const { data: hourRates } = trpc.proxy.rates.hourRates.useQuery({
+  const { data: hourRates } = trpc.rates.hourRates.useQuery({
     type: 'STUDENT',
   });
-  const utils = trpc.proxy.useContext();
+  const utils = trpc.useContext();
   const queryClient = trpc.useContext();
-  const { data: hourPackages } = trpc.proxy.rates.hourPackages.useQuery();
+  const { data: hourPackages } = trpc.rates.hourPackages.useQuery();
   const { mutateAsync: create, isLoading: isCreating } =
-    trpc.proxy.payments.create.useMutation({
+    trpc.payments.create.useMutation({
       onSuccess: (data) => {
         utils.payments.byStudent.invalidate({ id: studentId });
         utils.students.single.invalidate({ id: studentId });
@@ -318,7 +318,7 @@ const defaultColumns: ColumnDef<{
 
 //TODO: wtf I'm not using this anywhere??
 export const PaymentTable: FC<{ studentId: string }> = ({ studentId }) => {
-  const { data } = trpc.proxy.payments.byStudent.useQuery(
+  const { data } = trpc.payments.byStudent.useQuery(
     { id: studentId },
     {
       enabled: Boolean(studentId),
@@ -342,7 +342,7 @@ export const PaymentTable: FC<{ studentId: string }> = ({ studentId }) => {
 };
 
 export const PaymentsList: FC<{ studentId: string }> = ({ studentId }) => {
-  const { data } = trpc.proxy.payments.byStudent.useQuery(
+  const { data } = trpc.payments.byStudent.useQuery(
     { id: studentId },
     {
       enabled: Boolean(studentId),
@@ -412,7 +412,7 @@ const DebtPaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
   studentId,
   onFinished,
 }) => {
-  const { data } = trpc.proxy.students.single.useQuery(
+  const { data } = trpc.students.single.useQuery(
     { id: studentId },
     {
       enabled: Boolean(studentId),
@@ -447,10 +447,10 @@ const DebtPaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
   // const shouldHideRest =
   //   paysTotal || parseInt(partialAmount ?? '') === 0 || isNaN(parseInt(rest));
 
-  const utils = trpc.proxy.useContext();
+  const utils = trpc.useContext();
   const queryClient = trpc.useContext();
   const { mutateAsync: payDebt, isLoading: isPaying } =
-    trpc.proxy.payments.payDebtTotal.useMutation({
+    trpc.payments.payDebtTotal.useMutation({
       onSuccess() {
         utils.students.single.invalidate({ id: studentId });
         utils.students.allSearch.invalidate();

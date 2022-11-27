@@ -13,7 +13,7 @@ const useRunOnce = (fn: () => void) => {
 };
 
 export const usePopulateFakeStudents = (amountOfRecords: number) => {
-  const { mutateAsync } = trpc.proxy.students.create.useMutation();
+  const { mutateAsync } = trpc.students.create.useMutation();
 
   useRunOnce(() => {
     getFakeStudents(amountOfRecords).forEach((fs) => {

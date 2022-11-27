@@ -31,7 +31,7 @@ export const useStudentDebtors = (
   const debouncedStudents = useDebouncedValue(studentIds, 500);
 
   const { data: calculatedDebts, isFetching: areCalculatedDebtsFetching } =
-    trpc.proxy.students.calculateDebts.useQuery(
+    trpc.students.calculateDebts.useQuery(
       {
         hours: parseFloat(debouncedHours),
         studentIds: debouncedStudents,

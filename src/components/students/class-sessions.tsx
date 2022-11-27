@@ -41,11 +41,11 @@ const ExistingAttachClassSessionForm: FC<{
   const { handleSubmit, control } = useForm<AttachToExistingClassSessionInput>({
     resolver: zodResolver(attachToExistingClassSessionZod),
   });
-  const utils = trpc.proxy.useContext();
+  const utils = trpc.useContext();
   const {
     mutateAsync: attachToExistingClassSession,
     isLoading: isAttachingToClass,
-  } = trpc.proxy.classSessions.addStudent.useMutation({
+  } = trpc.classSessions.addStudent.useMutation({
     onSuccess: () => {
       utils.classSessions.all.invalidate();
       utils.classSessions.byDate.invalidate();
@@ -68,7 +68,7 @@ const ExistingAttachClassSessionForm: FC<{
     data: classSessionByDate,
     isFetching,
     isLoading,
-  } = trpc.proxy.classSessions.byDate.useQuery(
+  } = trpc.classSessions.byDate.useQuery(
     {
       from: parse(selectedDate, 'yyyy-MM-dd', new Date()),
       to: addDays(parse(selectedDate, 'yyyy-MM-dd', new Date()), 1),
@@ -254,7 +254,7 @@ const defaultColumns: ColumnDef<ClassSessionRow>[] = [
 export const ClassSessionTable: FC<{ studentId: string }> = ({ studentId }) => {
   const [page, setPage] = useState(1);
   const { data, isFetching, isLoading, isPreviousData } =
-    trpc.proxy.classSessions.paginated.useQuery({ page, studentId });
+    trpc.classSessions.paginated.useQuery({ page, studentId });
   const { goFirstPage, goLastPage, goNextPage, goPreviousPage } =
     usePaginationHandlers(
       useMemo(

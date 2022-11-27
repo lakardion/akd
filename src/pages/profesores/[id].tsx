@@ -15,7 +15,7 @@ const TeacherHistory: FC<{ month: string; teacherId: string }> = ({
   month,
   teacherId,
 }) => {
-  const { data: teacherHistory } = trpc.proxy.teachers.history.useQuery({
+  const { data: teacherHistory } = trpc.teachers.history.useQuery({
     month,
     teacherId,
   });
@@ -86,7 +86,7 @@ const TeacherDetail = () => {
     return typeof id === 'string' ? id : '';
   }, [id]);
 
-  const { data } = trpc.proxy.teachers.single.useQuery(
+  const { data } = trpc.teachers.single.useQuery(
     { id: stableId },
     {
       enabled: Boolean(id),

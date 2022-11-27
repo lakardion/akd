@@ -19,7 +19,7 @@ import {
   debouncedSearchStudents,
   debouncedSearchTeachers,
 } from 'utils/client-search-utils';
-import { inferQueryOutput, RouterOutput, trpc } from 'utils/trpc';
+import { RouterOutput, trpc } from 'utils/trpc';
 import { z } from 'zod';
 import {
   DebtorsForm,
@@ -85,13 +85,13 @@ const useClassSessionForm = ({
   preloadTeacher?: { value: string; label: string };
 }) => {
   //! this is refetching constantly and I have no clue why is that
-  const { data: classSession } = trpc.proxy.classSessions.single.useQuery(
+  const { data: classSession } = trpc.classSessions.single.useQuery(
     { id },
     {
       refetchOnWindowFocus: false,
     }
   );
-  const { data: teacherHourRates } = trpc.proxy.rates.hourRates.useQuery(
+  const { data: teacherHourRates } = trpc.rates.hourRates.useQuery(
     { type: 'TEACHER' },
     { refetchOnWindowFocus: false }
   );
@@ -232,11 +232,10 @@ export const ClassSessionForm: FC<{
   const formDebtors = watch('debtors');
   const hours = watch('hours');
 
-  const utils = trpc.proxy.useContext();
-  const queryClient = trpc.useContext();
+  const utils = trpc.useContext();
 
   const { mutateAsync: create, isLoading: isCreating } =
-    trpc.proxy.classSessions.create.useMutation({
+    trpc.classSessions.create.useMutation({
       onSuccess: (data) => {
         utils.classSessions.all.invalidate();
         utils.classSessions.byStudent.invalidate();
@@ -255,7 +254,7 @@ export const ClassSessionForm: FC<{
       },
     });
   const { mutateAsync: edit, isLoading: isEditing } =
-    trpc.proxy.classSessions.update.useMutation({
+    trpc.classSessions.update.useMutation({
       onSuccess: () => {
         utils.classSessions.single.invalidate({ id });
       },

@@ -46,7 +46,7 @@ const defaultColumns: ColumnDef<ClassSessionRow>[] = [
 export const ClassSessionTable: FC<{ teacherId: string }> = ({ teacherId }) => {
   const [page, setPage] = useState(1);
   const { data, isFetching, isLoading, isPreviousData } =
-    trpc.proxy.classSessions.paginated.useQuery({ page, teacherId });
+    trpc.classSessions.paginated.useQuery({ page, teacherId });
 
   const { goFirstPage, goLastPage, goNextPage, goPreviousPage } =
     usePaginationHandlers(

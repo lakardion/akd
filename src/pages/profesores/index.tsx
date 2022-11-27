@@ -22,21 +22,21 @@ const TeacherForm: FC<{ onFinished: () => void; id: string }> = ({
   onFinished,
 }) => {
   const queryClient = trpc.useContext();
-  const { data } = trpc.proxy.teachers.teacher.useQuery(
+  const { data } = trpc.teachers.teacher.useQuery(
     { id },
     {
       enabled: Boolean(id),
     }
   );
-  const utils = trpc.proxy.useContext();
+  const utils = trpc.useContext();
   const { mutateAsync: create, isLoading: isCreating } =
-    trpc.proxy.teachers.create.useMutation({
+    trpc.teachers.create.useMutation({
       onSuccess: () => {
         utils.teachers.allSearch.invalidate();
       },
     });
   const { mutateAsync: edit, isLoading: isEditing } =
-    trpc.proxy.teachers.edit.useMutation({
+    trpc.teachers.edit.useMutation({
       onSuccess: () => {
         utils.teachers.allSearch.invalidate();
         utils.teachers.teacher.invalidate({ id });
@@ -103,14 +103,13 @@ const TeacherItem: FC<{
 }> = ({ deleteHandler, editHandler, teacher }) => {
   const { asPath } = useRouter();
   const [isActive, setIsActive] = useState(teacher.isActive);
-  const utils = trpc.proxy.useContext();
+  const utils = trpc.useContext();
 
-  const { mutateAsync: changeIsActive } =
-    trpc.proxy.teachers.active.useMutation({
-      onSuccess: () => {
-        utils.teachers.allSearch.invalidate();
-      },
-    });
+  const { mutateAsync: changeIsActive } = trpc.teachers.active.useMutation({
+    onSuccess: () => {
+      utils.teachers.allSearch.invalidate();
+    },
+  });
 
   const debouncedChangeIsActive = useMemo(() => {
     return debouncePromiseValue<typeof changeIsActive>(changeIsActive, 200);
@@ -175,7 +174,7 @@ const TeachersList: FC<{
   //TODO: why is this not being used?
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 200);
-  const { data, isLoading } = trpc.proxy.teachers.allSearch.useInfiniteQuery(
+  const { data, isLoading } = trpc.teachers.allSearch.useInfiniteQuery(
     {
       query: debouncedSearch,
     },
@@ -237,9 +236,9 @@ const Teachers = () => {
   const [currentId, setCurrentId] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const utils = trpc.proxy.useContext();
+  const utils = trpc.useContext();
   const { isLoading: isDeleting, mutateAsync: deleteOne } =
-    trpc.proxy.teachers.delete.useMutation({
+    trpc.teachers.delete.useMutation({
       onSuccess: () => {
         utils.teachers.allSearch.invalidate();
       },
