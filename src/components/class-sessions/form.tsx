@@ -250,14 +250,8 @@ export const ClassSessionForm: FC<{
           );
 
         if (fromStudent) {
-          queryClient.invalidateQueries([
-            'students.history',
-            { month, studentId: fromStudent },
-          ]);
-          queryClient.invalidateQueries([
-            'students.single',
-            { id: fromStudent },
-          ]);
+          utils.students.history.invalidate({ month, studentId: fromStudent });
+          utils.students.single.invalidate({ id: fromStudent });
         }
       },
     }

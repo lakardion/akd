@@ -64,11 +64,11 @@ export const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
     trpc.proxy.payments.create.useMutation({
       onSuccess: (data) => {
         utils.payments.byStudent.invalidate({ id: studentId });
-        queryClient.invalidateQueries(['students.single', { id: studentId }]);
-        queryClient.invalidateQueries([
-          'students.history',
-          { month: format(data.date, 'yy-MM'), studentId },
-        ]);
+        utils.students.single.invalidate({ id: studentId });
+        utils.students.history.invalidate({
+          month: format(data.date, 'yy-MM'),
+          studentId,
+        });
       },
     });
   const [hourTypeSelected, setHourTypeSelected] =
@@ -412,9 +412,12 @@ const DebtPaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
   studentId,
   onFinished,
 }) => {
-  const { data } = trpc.useQuery(['students.single', { id: studentId }], {
-    enabled: Boolean(studentId),
-  });
+  const { data } = trpc.proxy.students.single.useQuery(
+    { id: studentId },
+    {
+      enabled: Boolean(studentId),
+    }
+  );
   const memoedResolver = useMemo(
     () => zodResolver(createDebtPaymentZod(data?.debts.amount ?? 0)),
     [data?.debts.amount]
@@ -444,13 +447,14 @@ const DebtPaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
   // const shouldHideRest =
   //   paysTotal || parseInt(partialAmount ?? '') === 0 || isNaN(parseInt(rest));
 
+  const utils = trpc.proxy.useContext();
   const queryClient = trpc.useContext();
   const { mutateAsync: payDebt, isLoading: isPaying } =
     trpc.proxy.payments.payDebtTotal.useMutation({
       onSuccess() {
-        queryClient.invalidateQueries(['students.single', { id: studentId }]);
-        queryClient.invalidateQueries(['students.allSearch']);
-        queryClient.invalidateQueries(['students.history']);
+        utils.students.single.invalidate({ id: studentId });
+        utils.students.allSearch.invalidate();
+        utils.students.history.invalidate();
       },
     });
   const { amount, hours } = data?.debts ?? {};

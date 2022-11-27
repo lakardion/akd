@@ -31,15 +31,12 @@ export const useStudentDebtors = (
   const debouncedStudents = useDebouncedValue(studentIds, 500);
 
   const { data: calculatedDebts, isFetching: areCalculatedDebtsFetching } =
-    trpc.useQuery(
-      [
-        'students.calculateDebts',
-        {
-          hours: parseFloat(debouncedHours),
-          studentIds: debouncedStudents,
-          classSessionId,
-        },
-      ],
+    trpc.proxy.students.calculateDebts.useQuery(
+      {
+        hours: parseFloat(debouncedHours),
+        studentIds: debouncedStudents,
+        classSessionId,
+      },
       {
         enabled: Boolean(debouncedHours && debouncedStudents),
         keepPreviousData: true,

@@ -41,6 +41,7 @@ const ExistingAttachClassSessionForm: FC<{
   const { handleSubmit, control } = useForm<AttachToExistingClassSessionInput>({
     resolver: zodResolver(attachToExistingClassSessionZod),
   });
+  const utils = trpc.proxy.useContext();
   const queryClient = trpc.useContext();
   const {
     mutateAsync: attachToExistingClassSession,
@@ -52,7 +53,7 @@ const ExistingAttachClassSessionForm: FC<{
       queryClient.invalidateQueries('classSessions.byStudent');
       queryClient.invalidateQueries('classSessions.paginated');
       queryClient.invalidateQueries('classSessions.single');
-      queryClient.invalidateQueries(['students.single', { id: studentId }]);
+      utils.students.single.invalidate({ id: studentId });
     },
   });
   const onSubmit = async () => {

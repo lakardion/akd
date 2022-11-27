@@ -17,8 +17,7 @@ export const debouncedSearchTeachers: typeof searchTeachers =
   debouncePromiseValue(searchTeachers, 300);
 
 const searchStudents = async (value: string) => {
-  const client = createTRPCVanillaClient();
-  const { students } = await client.query('students.allSearch', {
+  const { students } = await trpcProxyClient.students.allSearch.query({
     query: value,
   });
   return students.map((s) => ({
