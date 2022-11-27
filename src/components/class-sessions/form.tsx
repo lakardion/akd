@@ -232,6 +232,7 @@ export const ClassSessionForm: FC<{
   const formDebtors = watch('debtors');
   const hours = watch('hours');
 
+  const utils = trpc.proxy.useContext();
   const queryClient = trpc.useContext();
 
   const { mutateAsync: create, isLoading: isCreating } = trpc.useMutation(
@@ -240,17 +241,13 @@ export const ClassSessionForm: FC<{
       onSuccess: (data) => {
         queryClient.invalidateQueries(['classSessions.all']);
         queryClient.invalidateQueries(['classSessions.byStudent']);
-        queryClient.invalidateQueries([
-          'teachers.single',
-          { id: data.teacherId ?? '' },
-        ]);
+        utils.teachers.single.invalidate({ id: data.teacherId ?? '' });
         const month = format(data.date, 'yy-MM');
         data.teacherId &&
-          queryClient.invalidateQueries([
-            'teachers.history',
+          utils.teachers.history.invalidate(
             //for some reason teacherId is optional in the DB, maybe I knew better, I just don't like this coalescing here
-            { teacherId: data.teacherId, month },
-          ]);
+            { teacherId: data.teacherId, month }
+          );
 
         if (fromStudent) {
           queryClient.invalidateQueries([

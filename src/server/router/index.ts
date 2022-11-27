@@ -15,7 +15,6 @@ const legacyRouter = createLegacyRouter()
   // However this is footgun I think. I am having a hard time interopping these properly given that we have two routers actually. Probably this works just fine but TS is screaming at me real bad clientside given that dates are not expected to be dates but strings.
   .merge('auth.', authRouter)
   .merge('students.', studentRouter)
-  .merge('teachers.', teacherRouter)
   .merge('classSessions.', classSessionRouter)
   .interop();
 
@@ -23,6 +22,7 @@ const mainRouter = router({
   rates: ratesRouter,
   payments: paymentRouter,
   teacherPayments: teacherPaymentRouter,
+  teachers: teacherRouter,
 });
 
 export const appRouter = mergeRouters(legacyRouter, mainRouter);

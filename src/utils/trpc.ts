@@ -4,19 +4,25 @@ import { createReactQueryHooks, httpBatchLink } from '@trpc/react-query';
 //TODO: have to use this at some point in the future.
 import { createTRPCNext } from '@trpc/next';
 import type { inferProcedureOutput, inferProcedureInput } from '@trpc/server';
+import { createTRPCProxyClient } from '@trpc/client';
 import superjson from 'superjson';
 import { getBaseUrl } from './url';
 //TODO: use the non-deprecated hook
 export const trpc = createReactQueryHooks<AppRouter>();
 
 //TODO:
-const trpcNext = createTRPCNext<AppRouter>({
+export const trpcNext = createTRPCNext<AppRouter>({
   config({ ctx }) {
     return {
       links: [httpBatchLink({ url: getBaseUrl() })],
       transformer: superjson,
     };
   },
+});
+
+export const trpcProxyClient = createTRPCProxyClient<AppRouter>({
+  links: [httpBatchLink({ url: getBaseUrl() })],
+  transformer: superjson,
 });
 
 /**

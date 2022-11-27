@@ -120,7 +120,7 @@ const ClassSessions = () => {
     currentId,
   } = useCRUDState();
   const { data: teacherCount, isLoading: isTeacherCountLoading } =
-    trpc.useQuery(['teachers.count']);
+    trpc.proxy.teachers.count.useQuery();
   const { data: teacherRates, isLoading: isHourRatesLoading } =
     trpc.proxy.rates.hourRates.useQuery({ type: 'TEACHER' });
   const { isLoading } = trpc.useInfiniteQuery(['classSessions.all', {}], {

@@ -15,28 +15,28 @@ const TeacherHistory: FC<{ month: string; teacherId: string }> = ({
   month,
   teacherId,
 }) => {
-  const { data: teacherHistory } = trpc.useQuery([
-    'teachers.history',
-    { month, teacherId },
-  ]);
+  const { data: teacherHistory } = trpc.proxy.teachers.history.useQuery({
+    month,
+    teacherId,
+  });
   return (
     <section
       aria-label="class and payment history"
-      className="w-full flex flex-col gap-3"
+      className="flex w-full flex-col gap-3"
     >
       {teacherHistory?.map((th) => {
         if ('payment' in th) {
           const Icon = iconByPaymentType[th.payment.type];
           return (
             <section
-              className="relative w-full flex gap-3 p-2 px-6 bg-teal-100/50 text-black rounded-lg justify-between"
+              className="relative flex w-full justify-between gap-3 rounded-lg bg-teal-100/50 p-2 px-6 text-black"
               key={th.payment.id}
             >
               <div className="flex flex-col gap-2">
                 <h1 className="font-bold">Pago</h1>
                 <p>{format(th.date, 'dd-MM-yy')}</p>
               </div>
-              <div className="text-2xl self-end">$ {th.payment.amount}</div>
+              <div className="self-end text-2xl">$ {th.payment.amount}</div>
               <div className="absolute top-0 right-4 p-2">
                 <Icon size={20} />
               </div>
@@ -45,14 +45,14 @@ const TeacherHistory: FC<{ month: string; teacherId: string }> = ({
         } else {
           return (
             <section
-              className="relative w-full flex gap-3 p-2 px-6 bg-primary-100/50 text-black rounded-lg justify-between items-center"
+              className="relative flex w-full items-center justify-between gap-3 rounded-lg bg-primary-100/50 p-2 px-6 text-black"
               key={`${th.classSession.id}-${th.classSession.studentId}`}
             >
               <div className="flex flex-col gap-2">
                 <h1 className="font-bold">Clase</h1>
                 <p>{format(th.date, 'dd-MM-yy')}</p>
               </div>
-              <div className="text-xl self-center">
+              <div className="self-center text-xl">
                 {th.classSession.studentFullName}
               </div>
               <p className="text-2xl">{th.classSession.hours} hs</p>
@@ -86,9 +86,12 @@ const TeacherDetail = () => {
     return typeof id === 'string' ? id : '';
   }, [id]);
 
-  const { data } = trpc.useQuery(['teachers.single', { id: stableId }], {
-    enabled: Boolean(id),
-  });
+  const { data } = trpc.proxy.teachers.single.useQuery(
+    { id: stableId },
+    {
+      enabled: Boolean(id),
+    }
+  );
 
   const handleShowPaymentModal = () => {
     setShowPaymentmodal(true);
@@ -115,18 +118,18 @@ const TeacherDetail = () => {
     );
 
   return (
-    <section className="flex flex-col gap-3 items-center p-3  w-full sm:max-w-[550px]">
+    <section className="flex w-full flex-col items-center gap-3  p-3 sm:max-w-[550px]">
       <h1 className="text-3xl">
         {data?.name} {data?.lastName}
       </h1>
-      <h2 className="text-2xl font-medium text-center w-full">
+      <h2 className="w-full text-center text-2xl font-medium">
         <span className={getBalanceStyle(data?.balance)}>
           $ {data?.balance}
         </span>
       </h2>
       <section
         aria-label="action buttons"
-        className="flex flex-col w-full gap-2"
+        className="flex w-full flex-col gap-2"
       >
         <PillButton
           onClick={handleShowPaymentModal}
@@ -139,7 +142,7 @@ const TeacherDetail = () => {
         </PillButton>
       </section>
       <section aria-label="teacher history cards" className="w-full">
-        <section className="flex gap-3 py-4 items-center justify-center w-full">
+        <section className="flex w-full items-center justify-center gap-3 py-4">
           <div>
             <label>Mes</label>
           </div>
@@ -149,7 +152,7 @@ const TeacherDetail = () => {
             dateFormat="MMMM-yy"
             showMonthYearPicker
             locale={es}
-            className="bg-primary-300/50 p-2 rounded-lg w-full text-center"
+            className="w-full rounded-lg bg-primary-300/50 p-2 text-center"
             wrapperClassName="max-w-[150px] flex justify-center items-center"
           />
         </section>
@@ -158,7 +161,7 @@ const TeacherDetail = () => {
       {showPaymentmodal ? (
         <Modal
           onBackdropClick={handleClosePaymentModal}
-          className="w-full md:w-auto bg-white drop-shadow-2xl"
+          className="w-full bg-white drop-shadow-2xl md:w-auto"
         >
           <TeacherPaymentForm
             teacherId={stableId}
@@ -170,7 +173,7 @@ const TeacherDetail = () => {
       {showClassSessionModal ? (
         <Modal
           onBackdropClick={handleCloseClassSessionModal}
-          className="w-[90%] md:w-[60%] max-w-[500px] bg-white drop-shadow-2xl"
+          className="w-[90%] max-w-[500px] bg-white drop-shadow-2xl md:w-[60%]"
         >
           {data ? (
             <ClassSessionForm

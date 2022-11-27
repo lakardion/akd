@@ -22,26 +22,26 @@ const TeacherForm: FC<{ onFinished: () => void; id: string }> = ({
   onFinished,
 }) => {
   const queryClient = trpc.useContext();
-  const { data } = trpc.useQuery(['teachers.teacher', { id }], {
-    enabled: Boolean(id),
-  });
-  const { mutateAsync: create, isLoading: isCreating } = trpc.useMutation(
-    'teachers.create',
+  const { data } = trpc.proxy.teachers.teacher.useQuery(
+    { id },
     {
-      onSuccess: () => {
-        queryClient.invalidateQueries('teachers.allSearch');
-      },
+      enabled: Boolean(id),
     }
   );
-  const { mutateAsync: edit, isLoading: isEditing } = trpc.useMutation(
-    'teachers.edit',
-    {
+  const utils = trpc.proxy.useContext();
+  const { mutateAsync: create, isLoading: isCreating } =
+    trpc.proxy.teachers.create.useMutation({
       onSuccess: () => {
-        queryClient.invalidateQueries('teachers.allSearch');
-        queryClient.invalidateQueries(['teachers.teacher', { id }]);
+        utils.teachers.allSearch.invalidate();
       },
-    }
-  );
+    });
+  const { mutateAsync: edit, isLoading: isEditing } =
+    trpc.proxy.teachers.edit.useMutation({
+      onSuccess: () => {
+        utils.teachers.allSearch.invalidate();
+        utils.teachers.teacher.invalidate({ id });
+      },
+    });
   const onSubmit = async (data: TeacherFormInput) => {
     const updated = id ? await edit({ id, ...data }) : await create(data);
     onFinished();
@@ -80,7 +80,7 @@ const TeacherForm: FC<{ onFinished: () => void; id: string }> = ({
       <label htmlFor="name">Nombre</label>
       <Input {...register('name')} placeholder="Name..." />
       <ValidationError errorMessages={errors.name?.message} />
-      <section className="flex gap-3 w-full pt-2">
+      <section className="flex w-full gap-3 pt-2">
         <Button
           type="submit"
           className="flex-grow"
@@ -103,13 +103,14 @@ const TeacherItem: FC<{
 }> = ({ deleteHandler, editHandler, teacher }) => {
   const { asPath } = useRouter();
   const [isActive, setIsActive] = useState(teacher.isActive);
+  const utils = trpc.proxy.useContext();
 
-  const queryClient = trpc.useContext();
-  const { mutateAsync: changeIsActive } = trpc.useMutation('teachers.active', {
-    onSuccess: () => {
-      queryClient.invalidateQueries(['teachers.allSearch']);
-    },
-  });
+  const { mutateAsync: changeIsActive } =
+    trpc.proxy.teachers.active.useMutation({
+      onSuccess: () => {
+        utils.teachers.allSearch.invalidate();
+      },
+    });
 
   const debouncedChangeIsActive = useMemo(() => {
     return debouncePromiseValue<typeof changeIsActive>(changeIsActive, 200);
@@ -136,14 +137,14 @@ const TeacherItem: FC<{
     <Link href={`${asPath}/${teacher.id}`} key={teacher.id}>
       <li
         key={teacher.id}
-        className="bg-gray-300 w-full rounded-md py-3 px-2 sm:px-20 flex justify-between items-center transition-transform hover:scale-95 hover:text-primary-600 hover:cursor-pointer"
+        className="flex w-full items-center justify-between rounded-md bg-gray-300 py-3 px-2 transition-transform hover:scale-95 hover:cursor-pointer hover:text-primary-600 sm:px-20"
       >
         <div className="flex items-center gap-2">
           <p>
             {teacher.lastName} {teacher.name}
           </p>
         </div>
-        <div className="flex gap-1 items-center">
+        <div className="flex items-center gap-1">
           <button type="button" onClick={handleEdit}>
             <MdEdit
               size={20}
@@ -171,15 +172,13 @@ const TeachersList: FC<{
   handleDelete: (id: string) => void;
   handleEdit: (id: string) => void;
 }> = ({ handleDelete, handleEdit }) => {
+  //TODO: why is this not being used?
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 200);
-  const { data, isLoading } = trpc.useInfiniteQuery(
-    [
-      'teachers.allSearch',
-      {
-        query: debouncedSearch,
-      },
-    ],
+  const { data, isLoading } = trpc.proxy.teachers.allSearch.useInfiniteQuery(
+    {
+      query: debouncedSearch,
+    },
     {
       getNextPageParam: (lastPage) => {
         return lastPage.nextCursor
@@ -195,7 +194,7 @@ const TeachersList: FC<{
 
   if (isLoading) {
     return (
-      <div className="w-full flex justify-center">
+      <div className="flex w-full justify-center">
         <Spinner size="sm" />
       </div>
     );
@@ -206,7 +205,7 @@ const TeachersList: FC<{
 
   return (
     <ul
-      className="flex flex-col items-center w-full gap-3 md:max-h-[700px] overflow-auto"
+      className="flex w-full flex-col items-center gap-3 overflow-auto md:max-h-[700px]"
       ref={parent}
     >
       {isLoading ? (
@@ -238,15 +237,13 @@ const Teachers = () => {
   const [currentId, setCurrentId] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const queryClient = trpc.useContext();
-  const { isLoading: isDeleting, mutateAsync: deleteOne } = trpc.useMutation(
-    'teachers.delete',
-    {
+  const utils = trpc.proxy.useContext();
+  const { isLoading: isDeleting, mutateAsync: deleteOne } =
+    trpc.proxy.teachers.delete.useMutation({
       onSuccess: () => {
-        queryClient.invalidateQueries('teachers.allSearch');
+        utils.teachers.allSearch.invalidate();
       },
-    }
-  );
+    });
   const handleAdd = () => {
     setShowForm(true);
   };
@@ -270,14 +267,14 @@ const Teachers = () => {
   };
 
   return (
-    <section className="flex flex-col gap-3 w-[90%] max-w-2xl p-4">
+    <section className="flex w-[90%] max-w-2xl flex-col gap-3 p-4">
       <PillButton onClick={handleAdd} type="button">
         Agregar profesor
       </PillButton>
       {showForm ? (
         <Modal
           onBackdropClick={handleFinished}
-          className="w-full md:w-auto bg-white drop-shadow-2xl"
+          className="w-full bg-white drop-shadow-2xl md:w-auto"
         >
           <TeacherForm onFinished={handleFinished} id={currentId} />
         </Modal>
