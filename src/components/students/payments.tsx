@@ -54,28 +54,23 @@ export const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
   studentId,
   onFinished,
 }) => {
-  const { data: hourRates } = trpc.useQuery([
-    'rates.hourRates',
-    { type: 'STUDENT' },
-  ]);
+  const { data: hourRates } = trpc.rates.hourRates.useQuery({
+    type: 'STUDENT',
+  });
+  const utils = trpc.useContext();
   const queryClient = trpc.useContext();
-  const { data: hourPackages } = trpc.useQuery(['rates.hourPackages']);
-  const { mutateAsync: create, isLoading: isCreating } = trpc.useMutation(
-    'payments.create',
-    {
+  const { data: hourPackages } = trpc.rates.hourPackages.useQuery();
+  const { mutateAsync: create, isLoading: isCreating } =
+    trpc.payments.create.useMutation({
       onSuccess: (data) => {
-        queryClient.invalidateQueries([
-          'payments.byStudent',
-          { id: studentId },
-        ]);
-        queryClient.invalidateQueries(['students.single', { id: studentId }]);
-        queryClient.invalidateQueries([
-          'students.history',
-          { month: format(data.date, 'yy-MM'), studentId },
-        ]);
+        utils.payments.byStudent.invalidate({ id: studentId });
+        utils.students.single.invalidate({ id: studentId });
+        utils.students.history.invalidate({
+          month: format(data.date, 'yy-MM'),
+          studentId,
+        });
       },
-    }
-  );
+    });
   const [hourTypeSelected, setHourTypeSelected] =
     useState<HourTypeSelectOption>();
   const [selectedHourRate, setSelectedHourRate] = useState<number>();
@@ -321,10 +316,14 @@ const defaultColumns: ColumnDef<{
   },
 ];
 
+//TODO: wtf I'm not using this anywhere??
 export const PaymentTable: FC<{ studentId: string }> = ({ studentId }) => {
-  const { data } = trpc.useQuery(['payments.byStudent', { id: studentId }], {
-    enabled: Boolean(studentId),
-  });
+  const { data } = trpc.payments.byStudent.useQuery(
+    { id: studentId },
+    {
+      enabled: Boolean(studentId),
+    }
+  );
 
   const table = useReactTable({
     data: data ?? [],
@@ -343,9 +342,12 @@ export const PaymentTable: FC<{ studentId: string }> = ({ studentId }) => {
 };
 
 export const PaymentsList: FC<{ studentId: string }> = ({ studentId }) => {
-  const { data } = trpc.useQuery(['payments.byStudent', { id: studentId }], {
-    enabled: Boolean(studentId),
-  });
+  const { data } = trpc.payments.byStudent.useQuery(
+    { id: studentId },
+    {
+      enabled: Boolean(studentId),
+    }
+  );
 
   return (
     <ul>
@@ -410,9 +412,12 @@ const DebtPaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
   studentId,
   onFinished,
 }) => {
-  const { data } = trpc.useQuery(['students.single', { id: studentId }], {
-    enabled: Boolean(studentId),
-  });
+  const { data } = trpc.students.single.useQuery(
+    { id: studentId },
+    {
+      enabled: Boolean(studentId),
+    }
+  );
   const memoedResolver = useMemo(
     () => zodResolver(createDebtPaymentZod(data?.debts.amount ?? 0)),
     [data?.debts.amount]
@@ -442,17 +447,16 @@ const DebtPaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
   // const shouldHideRest =
   //   paysTotal || parseInt(partialAmount ?? '') === 0 || isNaN(parseInt(rest));
 
+  const utils = trpc.useContext();
   const queryClient = trpc.useContext();
-  const { mutateAsync: payDebt, isLoading: isPaying } = trpc.useMutation(
-    'payments.payDebtTotal',
-    {
+  const { mutateAsync: payDebt, isLoading: isPaying } =
+    trpc.payments.payDebtTotal.useMutation({
       onSuccess() {
-        queryClient.invalidateQueries(['students.single', { id: studentId }]);
-        queryClient.invalidateQueries(['students.allSearch']);
-        queryClient.invalidateQueries(['students.history']);
+        utils.students.single.invalidate({ id: studentId });
+        utils.students.allSearch.invalidate();
+        utils.students.history.invalidate();
       },
-    }
-  );
+    });
   const { amount, hours } = data?.debts ?? {};
   const onSubmit = async (values: DebtPaymentFormInput) => {
     // const parsed = createDebtPaymentZod(data?.debts ?? 0).safeParse(values);

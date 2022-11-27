@@ -19,9 +19,13 @@ import { useForm } from 'react-hook-form';
 import { trpc } from 'utils/trpc';
 
 const useHourRateForm = ({ id }: { id: string }) => {
-  const { data: hourRate } = trpc.useQuery(['rates.hourRate', { id }], {
-    enabled: Boolean(id),
-  });
+  //TODO: remove proxy
+  const { data: hourRate } = trpc.rates.hourRate.useQuery(
+    { id },
+    {
+      enabled: Boolean(id),
+    }
+  );
   const defaultValues: AddHourRateFormInput = useMemo(() => {
     return {
       description: hourRate?.description ?? '',
@@ -44,9 +48,12 @@ const useHourRateForm = ({ id }: { id: string }) => {
 };
 
 const useHourPackageForm = ({ id }: { id: string }) => {
-  const { data: hourPackage } = trpc.useQuery(['rates.hourPackage', { id }], {
-    enabled: Boolean(id),
-  });
+  const { data: hourPackage } = trpc.rates.hourPackage.useQuery(
+    { id },
+    {
+      enabled: Boolean(id),
+    }
+  );
   const defaultValues: AddHourPackageFormInput = useMemo(
     () => ({
       description: hourPackage?.description ?? '',
@@ -73,10 +80,9 @@ const StudentHourRateList: FC<{
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
 }> = ({ onEdit, onDelete }) => {
-  const { data, isLoading } = trpc.useQuery([
-    'rates.hourRates',
-    { type: 'STUDENT' },
-  ]);
+  const { data, isLoading } = trpc.rates.hourRates.useQuery({
+    type: 'STUDENT',
+  });
   const [parent] = useAutoAnimate<HTMLUListElement>();
   if (!data) {
     return <Spinner size="sm" />;
@@ -91,7 +97,7 @@ const StudentHourRateList: FC<{
   return (
     <ul ref={parent}>
       {data?.map((sp) => (
-        <li key={sp.id} className="flex gap-3 justify-between">
+        <li key={sp.id} className="flex justify-between gap-3">
           <div>{sp.description}</div>
           <div>
             <div>{sp.rate}</div>
@@ -114,7 +120,7 @@ const PackagePriceList: FC<{
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
 }> = ({ onEdit, onDelete }) => {
-  const { data, isLoading } = trpc.useQuery(['rates.hourPackages']);
+  const { data, isLoading } = trpc.rates.hourPackages.useQuery();
   const [parent] = useAutoAnimate<HTMLUListElement>();
   if (!data) {
     return <Spinner size="sm" />;
@@ -128,7 +134,7 @@ const PackagePriceList: FC<{
   return (
     <ul ref={parent}>
       {data.map((d) => (
-        <li key={d.id} className="flex gap-3 justify-between">
+        <li key={d.id} className="flex justify-between gap-3">
           <div>{d.description}</div>
           {/* todo: add flex basis to keep consistency */}
           <div className="flex gap-2">
@@ -153,23 +159,19 @@ const AddHourRateForm: FC<{ onFinished: () => void; id: string }> = ({
   onFinished,
   id,
 }) => {
-  const queryClient = trpc.useContext();
-  const { isLoading: isCreating, mutateAsync: create } = trpc.useMutation(
-    'rates.createHourRate',
-    {
+  const utils = trpc.useContext();
+  const { isLoading: isCreating, mutateAsync: create } =
+    trpc.rates.createHourRate.useMutation({
       onSuccess: () => {
-        queryClient.invalidateQueries(['rates.hourRates', { type: 'STUDENT' }]);
+        utils.rates.hourRates.invalidate({ type: 'STUDENT' });
       },
-    }
-  );
-  const { isLoading: isEditing, mutateAsync: edit } = trpc.useMutation(
-    'rates.editHourRate',
-    {
+    });
+  const { isLoading: isEditing, mutateAsync: edit } =
+    trpc.rates.editHourRate.useMutation({
       onSuccess: () => {
-        queryClient.invalidateQueries(['rates.hourRates', { type: 'STUDENT' }]);
+        utils.rates.hourRates.invalidate({ type: 'STUDENT' });
       },
-    }
-  );
+    });
 
   const {
     handleSubmit,
@@ -191,7 +193,7 @@ const AddHourRateForm: FC<{ onFinished: () => void; id: string }> = ({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
-      <h1 className="font-medium text-3xl">Agregar precio de horas</h1>
+      <h1 className="text-3xl font-medium">Agregar precio de horas</h1>
       <section className="flex flex-col gap-2">
         <label htmlFor="rate">Valor</label>
         <Input
@@ -230,23 +232,20 @@ const AddHourPackageForm: FC<{ onFinished: () => void; id: string }> = ({
   onFinished,
   id,
 }) => {
+  const utils = trpc.useContext();
   const queryClient = trpc.useContext();
-  const { isLoading: isCreating, mutateAsync: create } = trpc.useMutation(
-    'rates.createHourPackage',
-    {
+  const { isLoading: isCreating, mutateAsync: create } =
+    trpc.rates.createHourPackage.useMutation({
       onSuccess: () => {
-        queryClient.invalidateQueries('rates.hourPackages');
+        utils.rates.hourPackages.invalidate();
       },
-    }
-  );
-  const { isLoading: isEditing, mutateAsync: edit } = trpc.useMutation(
-    'rates.editHourPackage',
-    {
+    });
+  const { isLoading: isEditing, mutateAsync: edit } =
+    trpc.rates.editHourPackage.useMutation({
       onSuccess: () => {
-        queryClient.invalidateQueries('rates.hourPackages');
+        utils.rates.hourPackages.invalidate();
       },
-    }
-  );
+    });
   const {
     handleSubmit,
     register,
@@ -269,7 +268,7 @@ const AddHourPackageForm: FC<{ onFinished: () => void; id: string }> = ({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
-      <h1 className="font-medium text-3xl">
+      <h1 className="text-3xl font-medium">
         {id ? 'Editar paquete de horas' : 'Agregar paquete de horas'}
       </h1>
       <section className="flex flex-col gap-2">
@@ -317,14 +316,14 @@ const StudentHourRatePrices = () => {
   const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
   const [currentId, setCurrentId] = useState('');
   const [showCreateEditModal, setShowCreateEditModal] = useState(false);
-  const queryClient = trpc.useContext();
+  const utils = trpc.useContext();
   const {
     isLoading: isDeleting,
     error: deleteError,
     mutateAsync: deleteOne,
-  } = trpc.useMutation('rates.deleteHourRate', {
+  } = trpc.rates.deleteHourRate.useMutation({
     onSuccess: () => {
-      queryClient.invalidateQueries('rates.hourRates');
+      utils.rates.hourRates.invalidate();
     },
   });
 
@@ -391,9 +390,9 @@ const StudentPackagePrices = () => {
     isLoading: isDeleting,
     error: deleteError,
     mutateAsync: deleteOne,
-  } = trpc.useMutation('rates.deleteHourPackage', {
+  } = trpc.rates.deleteHourPackage.useMutation({
     onSuccess: () => {
-      queryClient.invalidateQueries('rates.hourPackages');
+      // queryClient.invalidateQueries('rates.hourPackages');
     },
   });
 

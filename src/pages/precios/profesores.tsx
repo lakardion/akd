@@ -16,9 +16,12 @@ import { useForm } from 'react-hook-form';
 import { trpc } from 'utils/trpc';
 
 const useHourRateForm = ({ id }: { id: string }) => {
-  const { data: hourRate } = trpc.useQuery(['rates.hourRate', { id }], {
-    enabled: Boolean(id),
-  });
+  const { data: hourRate } = trpc.rates.hourRate.useQuery(
+    { id },
+    {
+      enabled: Boolean(id),
+    }
+  );
   const defaultValues: AddHourRateFormInput = useMemo(() => {
     return {
       description: hourRate?.description ?? '',
@@ -44,10 +47,9 @@ const TeacherHourRateList: FC<{
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
 }> = ({ onEdit, onDelete }) => {
-  const { data, isLoading } = trpc.useQuery([
-    'rates.hourRates',
-    { type: 'TEACHER' },
-  ]);
+  const { data, isLoading } = trpc.rates.hourRates.useQuery({
+    type: 'TEACHER',
+  });
 
   const [parent] = useAutoAnimate<HTMLUListElement>();
 
@@ -64,7 +66,7 @@ const TeacherHourRateList: FC<{
   return (
     <ul ref={parent}>
       {data?.map((sp) => (
-        <li key={sp.id} className="flex gap-3 justify-between">
+        <li key={sp.id} className="flex justify-between gap-3">
           <div>{sp.description}</div>
           <div>
             <div>{sp.rate}</div>
@@ -88,22 +90,19 @@ const AddHourRateForm: FC<{ onFinished: () => void; id: string }> = ({
   id,
 }) => {
   const queryClient = trpc.useContext();
-  const { isLoading: isCreating, mutateAsync: create } = trpc.useMutation(
-    'rates.createHourRate',
-    {
+  const utils = trpc.useContext();
+  const { isLoading: isCreating, mutateAsync: create } =
+    trpc.rates.createHourRate.useMutation({
       onSuccess: () => {
-        queryClient.invalidateQueries(['rates.hourRates', { type: 'TEACHER' }]);
+        utils.rates.hourRates.invalidate({ type: 'TEACHER' });
       },
-    }
-  );
-  const { isLoading: isEditing, mutateAsync: edit } = trpc.useMutation(
-    'rates.editHourRate',
-    {
+    });
+  const { isLoading: isEditing, mutateAsync: edit } =
+    trpc.rates.editHourRate.useMutation({
       onSuccess: () => {
-        queryClient.invalidateQueries(['rates.hourRates', { type: 'TEACHER' }]);
+        utils.rates.hourRates.invalidate({ type: 'TEACHER' });
       },
-    }
-  );
+    });
 
   const {
     handleSubmit,
@@ -125,7 +124,7 @@ const AddHourRateForm: FC<{ onFinished: () => void; id: string }> = ({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
-      <h1 className="font-medium text-3xl">Agregar precio de horas</h1>
+      <h1 className="text-3xl font-medium">Agregar precio de horas</h1>
       <section className="flex flex-col gap-2">
         <label htmlFor="rate">Valor</label>
         <Input
@@ -164,14 +163,15 @@ const TeacherHourRatePrices = () => {
   const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
   const [currentId, setCurrentId] = useState('');
   const [showCreateEditModal, setShowCreateEditModal] = useState(false);
+  const utils = trpc.useContext();
   const queryClient = trpc.useContext();
   const {
     isLoading: isDeleting,
     error: deleteError,
     mutateAsync: deleteOne,
-  } = trpc.useMutation('rates.deleteHourRate', {
+  } = trpc.rates.deleteHourRate.useMutation({
     onSuccess: () => {
-      queryClient.invalidateQueries('rates.hourRates');
+      utils.rates.hourRates.invalidate();
     },
   });
 

@@ -42,27 +42,20 @@ export const TeacherPaymentForm: FC<{
   onFinished: () => void;
   month: string;
 }> = ({ teacherId, onFinished, month }) => {
-  const { data: teacher } = trpc.useQuery([
-    'teachers.single',
-    { id: teacherId },
-  ]);
-  const queryClient = trpc.useContext();
-  const { data: unpaidClassSessions } = trpc.useQuery([
-    'classSessions.unpaid',
-    { teacherId },
-  ]);
-  const { mutateAsync: create, isLoading: isCreating } = trpc.useMutation(
-    'teacherPayments.create',
-    {
+  const { data: teacher } = trpc.teachers.single.useQuery({
+    id: teacherId,
+  });
+  const utils = trpc.useContext();
+  const { data: unpaidClassSessions } = trpc.classSessions.unpaid.useQuery({
+    teacherId,
+  });
+  const { mutateAsync: create, isLoading: isCreating } =
+    trpc.teacherPayments.create.useMutation({
       onSuccess: () => {
-        queryClient.invalidateQueries(['teachers.single', { id: teacherId }]);
-        queryClient.invalidateQueries([
-          'teachers.history',
-          { teacherId: teacherId, month },
-        ]);
+        utils.teachers.single.invalidate({ id: teacherId });
+        utils.teachers.history.invalidate({ teacherId: teacherId, month });
       },
-    }
-  );
+    });
 
   const {
     formState: { errors },
@@ -275,8 +268,8 @@ const paymentColumns: ColumnDef<TeacherPaymentColumn>[] = [
 
 export const PaymentTable: FC<{ teacherId: string }> = ({ teacherId }) => {
   const [page, setPage] = useState(1);
-  const { data, isLoading } = trpc.useQuery(
-    ['teacherPayments.all', { teacherId, page }],
+  const { data, isLoading } = trpc.teacherPayments.all.useQuery(
+    { teacherId, page },
     {
       enabled: Boolean(teacherId),
     }

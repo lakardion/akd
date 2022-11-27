@@ -6,30 +6,33 @@ import { getMonthEdges } from 'utils/date';
 import { DEFAULT_PAGE_SIZE } from 'utils/pagination';
 import { infiniteCursorZod } from 'utils/server-zods';
 import { z } from 'zod';
-import { createRouter } from '../context';
+import { publicProcedure, router } from '../trpc';
 import { calculateDebt, calculateDebtNewClass } from './helpers';
 
-export const studentRouter = createRouter()
-  .query('calculateDebts', {
-    input: z.object({
-      studentIds: z.array(z.string()),
-      hours: z.number(),
-      classSessionId: z.string().optional(),
-    }),
-    async resolve({ ctx, input: { hours, studentIds, classSessionId } }) {
+export const studentRouter = router({
+  calculateDebts: publicProcedure
+    .input(
+      z.object({
+        studentIds: z.array(z.string()),
+        hours: z.number(),
+        classSessionId: z.string().optional(),
+      })
+    )
+    .query(async ({ ctx, input: { hours, studentIds, classSessionId } }) => {
       return classSessionId
         ? calculateDebt(ctx)({ hours, studentIds, classSessionId })
         : calculateDebtNewClass(ctx)({ hours, studentIds });
-    },
-  })
-  .query('history', {
-    input: z.object({
-      studentId: z.string(),
-      month: z.string().refine((value) => {
-        return isMatch(value, 'yy-MM');
-      }),
     }),
-    async resolve({ ctx, input: { studentId, month } }) {
+  history: publicProcedure
+    .input(
+      z.object({
+        studentId: z.string(),
+        month: z.string().refine((value) => {
+          return isMatch(value, 'yy-MM');
+        }),
+      })
+    )
+    .query(async ({ ctx, input: { studentId, month } }) => {
       const [firstDayOfMonth, lastDayOfMonth] = getMonthEdges(month);
       const classSessions = await ctx.prisma.classSession.findMany({
         where: {
@@ -114,13 +117,14 @@ export const studentRouter = createRouter()
       const merged = classSessionsMapped.concat(paymentsMapped);
       merged.sort((a, b) => (a > b ? -1 : 1));
       return merged;
-    },
-  })
-  .query('single', {
-    input: z.object({
-      id: z.string(),
     }),
-    async resolve({ ctx, input: { id } }) {
+  single: publicProcedure
+    .input(
+      z.object({
+        id: z.string(),
+      })
+    )
+    .query(async ({ ctx, input: { id } }) => {
       const student = await ctx.prisma.student.findUnique({
         where: { id },
         include: {
@@ -152,96 +156,101 @@ export const studentRouter = createRouter()
         },
         hourBalance: student?.hourBalance.toNumber(),
       };
-    },
-  })
-  .query('allSearch', {
-    input: z.object({
-      query: z.string().optional(),
-      cursor: infiniteCursorZod,
     }),
-    async resolve({
-      ctx,
-      input: {
-        cursor: { page = 1, size = DEFAULT_PAGE_SIZE },
-        query,
-      },
-    }) {
-      const whereClause: Prisma.StudentWhereInput | undefined = query
-        ? {
-            OR: [
-              {
-                name: {
-                  contains: query,
-                  mode: 'insensitive',
+  allSearch: publicProcedure
+    .input(
+      z.object({
+        query: z.string().optional(),
+        cursor: infiniteCursorZod,
+      })
+    )
+    .query(
+      async ({
+        ctx,
+        input: {
+          cursor: { page = 1, size = DEFAULT_PAGE_SIZE },
+          query,
+        },
+      }) => {
+        const whereClause: Prisma.StudentWhereInput | undefined = query
+          ? {
+              OR: [
+                {
+                  name: {
+                    contains: query,
+                    mode: 'insensitive',
+                  },
+                },
+                {
+                  lastName: {
+                    contains: query,
+                    mode: 'insensitive',
+                  },
+                },
+              ],
+            }
+          : undefined;
+        const studentsResult = await ctx.prisma.student.findMany({
+          where: whereClause,
+          skip: (page - 1) * size,
+          take: size,
+          orderBy: { lastName: 'asc' },
+          include: {
+            debts: {
+              where: {
+                payment: {
+                  is: null,
                 },
               },
-              {
-                lastName: {
-                  contains: query,
-                  mode: 'insensitive',
-                },
+              select: {
+                hours: true,
+                rate: true,
               },
-            ],
-          }
-        : undefined;
-      const studentsResult = await ctx.prisma.student.findMany({
-        where: whereClause,
-        skip: (page - 1) * size,
-        take: size,
-        orderBy: { lastName: 'asc' },
-        include: {
-          debts: {
-            where: {
-              payment: {
-                is: null,
-              },
-            },
-            select: {
-              hours: true,
-              rate: true,
             },
           },
-        },
-      });
-      return {
-        size,
-        nextCursor: studentsResult.length === size ? page + 1 : null,
-        students: studentsResult.map((s) => ({
-          ...s,
-          totalDebt: s.debts
-            .reduce((res, curr) => {
-              res = res.plus(curr.hours.times(curr.rate));
-              return res;
-            }, new Decimal(0))
-            .toNumber(),
-          hourBalance: s.hourBalance.toNumber(),
-        })),
-      };
-    },
-  })
-  .mutation('create', {
-    input: studentFormZod,
-    async resolve({
-      ctx,
-      input: { course, faculty, lastName, name, university },
-    }) {
-      const newStudent = await ctx.prisma.student.create({
-        data: {
-          course,
-          faculty,
-          lastName,
-          name,
-          university,
-        },
-      });
-      return newStudent;
-    },
-  })
-  .mutation('delete', {
-    input: z.object({
-      id: z.string(),
-    }),
-    async resolve({ ctx, input: { id } }) {
+        });
+        return {
+          size,
+          nextCursor: studentsResult.length === size ? page + 1 : null,
+          students: studentsResult.map((s) => ({
+            ...s,
+            totalDebt: s.debts
+              .reduce((res, curr) => {
+                res = res.plus(curr.hours.times(curr.rate));
+                return res;
+              }, new Decimal(0))
+              .toNumber(),
+            hourBalance: s.hourBalance.toNumber(),
+          })),
+        };
+      }
+    ),
+  create: publicProcedure
+    .input(studentFormZod)
+    .mutation(
+      async ({
+        ctx,
+        input: { course, faculty, lastName, name, university },
+      }) => {
+        const newStudent = await ctx.prisma.student.create({
+          data: {
+            course,
+            faculty,
+            lastName,
+            name,
+            university,
+          },
+        });
+        return newStudent;
+      }
+    ),
+  delete: publicProcedure
+    .input(
+      z.object({
+        id: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input: { id } }) => {
       //! must be careful on trying to delete students, since they usually hold a lot of relationships, we might as well allow delete these logically rather than physically.
       const student = await ctx.prisma.student.findUnique({
         where: { id },
@@ -267,28 +276,31 @@ export const studentRouter = createRouter()
       });
 
       return deleteOperation;
-    },
-  })
-  .mutation('edit', {
-    input: z
-      .object({
-        id: z.string(),
-      })
-      .merge(studentFormZod),
-    async resolve({
-      ctx,
-      input: { course, faculty, lastName, name, id, university },
-    }) {
-      const editedUser = await ctx.prisma.student.update({
-        where: { id },
-        data: {
-          course,
-          faculty,
-          lastName,
-          name,
-          university,
-        },
-      });
-      return editedUser;
-    },
-  });
+    }),
+  edit: publicProcedure
+    .input(
+      z
+        .object({
+          id: z.string(),
+        })
+        .merge(studentFormZod)
+    )
+    .mutation(
+      async ({
+        ctx,
+        input: { course, faculty, lastName, name, id, university },
+      }) => {
+        const editedUser = await ctx.prisma.student.update({
+          where: { id },
+          data: {
+            course,
+            faculty,
+            lastName,
+            name,
+            university,
+          },
+        });
+        return editedUser;
+      }
+    ),
+});

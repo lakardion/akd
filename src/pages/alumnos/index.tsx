@@ -28,28 +28,26 @@ const StudentForm: FC<{ onFinished: () => void; studentId: string }> = ({
   studentId,
   onFinished,
 }) => {
-  const queryClient = trpc.useContext();
-  const { data: student } = trpc.useQuery(
-    ['students.single', { id: studentId }],
+  const utils = trpc.useContext();
+  const { data: student } = trpc.students.single.useQuery(
+    { id: studentId },
     {
       enabled: Boolean(studentId),
     }
   );
   const { mutateAsync: createStudent, isLoading: isCreating } =
-    trpc.useMutation('students.create', {
+    trpc.students.create.useMutation({
       onSuccess: () => {
-        queryClient.invalidateQueries('students.allSearch');
+        utils.students.allSearch.invalidate();
       },
     });
-  const { mutateAsync: editStudent, isLoading: isEditing } = trpc.useMutation(
-    'students.edit',
-    {
+  const { mutateAsync: editStudent, isLoading: isEditing } =
+    trpc.students.edit.useMutation({
       onSuccess: () => {
-        queryClient.invalidateQueries('students.allSearch');
-        queryClient.invalidateQueries(['students.single', { id: studentId }]);
+        utils.students.allSearch.invalidate();
+        utils.students.single.invalidate({ id: studentId });
       },
-    }
-  );
+    });
 
   const onSubmit = async (data: StudentFormInput) => {
     const updatedStudent = studentId
@@ -127,8 +125,8 @@ const StudentList: FC<{
     hasNextPage,
     isLoading: studentsLoading,
     isFetching: studentsFetching,
-  } = trpc.useInfiniteQuery(
-    ['students.allSearch', { query: debouncedSearch }],
+  } = trpc.students.allSearch.useInfiniteQuery(
+    { query: debouncedSearch },
     {
       getNextPageParam: (lastPage) => {
         return lastPage.nextCursor
@@ -249,11 +247,11 @@ const StudentList: FC<{
 
 const Students = () => {
   // usePopulateFakeStudents(100);
-  const queryClient = trpc.useContext();
+  const utils = trpc.useContext();
   const { isLoading: isDeleting, mutateAsync: deleteStudent } =
-    trpc.useMutation('students.delete', {
+    trpc.students.delete.useMutation({
       onSuccess: () => {
-        queryClient.invalidateQueries('students.allSearch');
+        utils.students.allSearch.invalidate();
       },
     });
   const {

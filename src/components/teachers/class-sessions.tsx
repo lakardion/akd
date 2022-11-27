@@ -45,10 +45,8 @@ const defaultColumns: ColumnDef<ClassSessionRow>[] = [
 
 export const ClassSessionTable: FC<{ teacherId: string }> = ({ teacherId }) => {
   const [page, setPage] = useState(1);
-  const { data, isFetching, isLoading, isPreviousData } = trpc.useQuery([
-    'classSessions.paginated',
-    { page, teacherId },
-  ]);
+  const { data, isFetching, isLoading, isPreviousData } =
+    trpc.classSessions.paginated.useQuery({ page, teacherId });
 
   const { goFirstPage, goLastPage, goNextPage, goPreviousPage } =
     usePaginationHandlers(
@@ -65,12 +63,14 @@ export const ClassSessionTable: FC<{ teacherId: string }> = ({ teacherId }) => {
 
   const dataRows: ClassSessionRow[] = useMemo(() => {
     return (
-      data?.results.map((r) => ({
-        hours: r.hours,
-        teacher: { name: r.teacher?.name, lastName: r.teacher?.lastName },
-        date: r.date,
-        studentCount: r._count.classSessionStudent,
-      })) ?? []
+      data?.results.map((r) => {
+        return {
+          hours: r.hours,
+          teacher: { name: r.teacher?.name, lastName: r.teacher?.lastName },
+          date: r.date,
+          studentCount: r._count.classSessionStudent,
+        };
+      }) ?? []
     );
   }, [data?.results]);
 

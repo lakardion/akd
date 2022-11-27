@@ -22,12 +22,15 @@ const ClassSessionList: FC<{
   handleEdit: (id: string) => void;
 }> = ({ handleDelete, handleEdit }) => {
   const { data, fetchNextPage, hasNextPage, isLoading, isFetching } =
-    trpc.useInfiniteQuery(['classSessions.all', {}], {
-      getNextPageParam: (lastPage) => {
-        return lastPage.nextCursor ? { page: lastPage.nextCursor } : null;
-      },
-      keepPreviousData: true,
-    });
+    trpc.classSessions.all.useInfiniteQuery(
+      {},
+      {
+        getNextPageParam: (lastPage) => {
+          return lastPage.nextCursor ? { page: lastPage.nextCursor } : null;
+        },
+        keepPreviousData: true,
+      }
+    );
   const [parent] = useAutoAnimate<HTMLUListElement>({ duration: 500 });
   const createEditHandler =
     (id: string) => (e: MouseEvent<HTMLButtonElement>) => {
@@ -120,27 +123,26 @@ const ClassSessions = () => {
     currentId,
   } = useCRUDState();
   const { data: teacherCount, isLoading: isTeacherCountLoading } =
-    trpc.useQuery(['teachers.count']);
-  const { data: teacherRates, isLoading: isHourRatesLoading } = trpc.useQuery([
-    'rates.hourRates',
-    { type: 'TEACHER' },
-  ]);
-  const { isLoading } = trpc.useInfiniteQuery(['classSessions.all', {}], {
-    getNextPageParam: (lastPage) => {
-      return lastPage.nextCursor ? { page: lastPage.nextCursor } : null;
-    },
-    keepPreviousData: true,
-  });
-
-  const queryClient = trpc.useContext();
-  const { mutateAsync: deleteOne, isLoading: isDeleting } = trpc.useMutation(
-    'classSessions.delete',
+    trpc.teachers.count.useQuery();
+  const { data: teacherRates, isLoading: isHourRatesLoading } =
+    trpc.rates.hourRates.useQuery({ type: 'TEACHER' });
+  const { isLoading } = trpc.classSessions.all.useInfiniteQuery(
+    {},
     {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['classSessions.all']);
+      getNextPageParam: (lastPage) => {
+        return lastPage.nextCursor ? { page: lastPage.nextCursor } : null;
       },
+      keepPreviousData: true,
     }
   );
+
+  const utils = trpc.useContext();
+  const { mutateAsync: deleteOne, isLoading: isDeleting } =
+    trpc.classSessions.delete.useMutation({
+      onSuccess: () => {
+        utils.classSessions.all.invalidate();
+      },
+    });
   const handleSubmitDelete = async () => {
     await deleteOne({ id: currentId });
     handleFinished();

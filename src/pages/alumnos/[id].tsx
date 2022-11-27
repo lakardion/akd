@@ -5,7 +5,7 @@ import {
   StudentAttachToClassSessionForm,
   StudentPayments,
 } from 'components/students';
-import { format } from 'date-fns';
+import { format, isDate } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useRouter } from 'next/router';
 import { FC, useMemo, useState } from 'react';
@@ -17,10 +17,10 @@ const StudentHistory: FC<{ month: string; studentId: string }> = ({
   month,
   studentId,
 }) => {
-  const { data: history, isLoading } = trpc.useQuery([
-    'students.history',
-    { month, studentId },
-  ]);
+  const { data: history, isLoading } = trpc.students.history.useQuery({
+    month,
+    studentId,
+  });
   return (
     <section
       aria-label="class and payment history"
@@ -111,9 +111,12 @@ const StudentDetail = () => {
     return typeof id === 'string' ? id : '';
   }, [id]);
 
-  const { data } = trpc.useQuery(['students.single', { id: stableId }], {
-    enabled: Boolean(id),
-  });
+  const { data } = trpc.students.single.useQuery(
+    { id: stableId },
+    {
+      enabled: Boolean(id),
+    }
+  );
 
   const status = getStatus(data?.hourBalance ?? 0);
 

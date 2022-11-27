@@ -3,12 +3,12 @@ import { TRPCError } from '@trpc/server';
 import { paginationZod } from 'utils/pagination';
 import { identifiableZod } from 'utils/server-zods';
 import { z } from 'zod';
-import { createRouter } from './context';
+import { publicProcedure, router } from './trpc';
 
-export const paymentRouter = createRouter()
-  .query('byStudent', {
-    input: paginationZod.merge(identifiableZod),
-    async resolve({ ctx, input: { page, size, id } }) {
+export const paymentRouter = router({
+  byStudent: publicProcedure
+    .input(paginationZod.merge(identifiableZod))
+    .query(async ({ ctx, input: { page, size, id } }) => {
       const paymentsByStudent = await ctx.prisma.payment.findMany({
         orderBy: {
           date: 'desc',
@@ -23,18 +23,19 @@ export const paymentRouter = createRouter()
         value: pmbs.value.toNumber(),
         hourValue: pmbs.hours.toNumber(),
       }));
-    },
-  })
-  .mutation('payDebtTotal', {
-    input: z.object({
-      date: z.date(),
-      studentId: z.string(),
-      paymentMethod: z.enum([
-        PaymentMethodType.CASH,
-        PaymentMethodType.TRANSFER,
-      ]),
     }),
-    async resolve({ ctx, input: { date, paymentMethod, studentId } }) {
+  payDebtTotal: publicProcedure
+    .input(
+      z.object({
+        date: z.date(),
+        studentId: z.string(),
+        paymentMethod: z.enum([
+          PaymentMethodType.CASH,
+          PaymentMethodType.TRANSFER,
+        ]),
+      })
+    )
+    .mutation(async ({ ctx, input: { date, paymentMethod, studentId } }) => {
       const debtsToBePaid = await ctx.prisma.studentDebt.findMany({
         where: { studentId },
       });
@@ -69,43 +70,46 @@ export const paymentRouter = createRouter()
           });
         })
       );
-    },
-  })
-  .mutation('create', {
-    input: z.object({
-      date: z.date(),
-      studentId: z.string(),
-      hours: z.number(),
-      value: z.number(),
-      paymentMethod: z.enum([
-        PaymentMethodType.CASH,
-        PaymentMethodType.TRANSFER,
-      ]),
     }),
-    async resolve({
-      ctx,
-      input: { date, studentId, hours, value, paymentMethod },
-    }) {
-      //! this is not fully transactional. But I don't seem to be able to do the creating on the fly rather than do it sequentially
-      const [createdPayment] = await ctx.prisma.$transaction([
-        ctx.prisma.payment.create({
-          data: {
-            date,
-            value,
-            studentId,
-            hours,
-            paymentMethod: paymentMethod,
-          },
-        }),
-        ctx.prisma.student.update({
-          where: { id: studentId },
-          data: {
-            hourBalance: {
-              increment: hours,
+  create: publicProcedure
+    .input(
+      z.object({
+        date: z.date(),
+        studentId: z.string(),
+        hours: z.number(),
+        value: z.number(),
+        paymentMethod: z.enum([
+          PaymentMethodType.CASH,
+          PaymentMethodType.TRANSFER,
+        ]),
+      })
+    )
+    .mutation(
+      async ({
+        ctx,
+        input: { date, studentId, hours, value, paymentMethod },
+      }) => {
+        //! this is not fully transactional. But I don't seem to be able to do the creating on the fly rather than do it sequentially
+        const [createdPayment] = await ctx.prisma.$transaction([
+          ctx.prisma.payment.create({
+            data: {
+              date,
+              value,
+              studentId,
+              hours,
+              paymentMethod: paymentMethod,
             },
-          },
-        }),
-      ]);
-      return createdPayment;
-    },
-  });
+          }),
+          ctx.prisma.student.update({
+            where: { id: studentId },
+            data: {
+              hourBalance: {
+                increment: hours,
+              },
+            },
+          }),
+        ]);
+        return createdPayment;
+      }
+    ),
+});

@@ -1,6 +1,7 @@
 import type { NextPage } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
+import { trpc } from 'utils/trpc';
 
 type TechnologyCardProps = {
   name: string;
@@ -25,7 +26,7 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <section className="container mx-auto flex flex-col items-center justify-center md:h-[calc(100vh-94px)] p-4">
+      <section className="container mx-auto flex flex-col items-center justify-center p-4 md:h-[calc(100vh-94px)]">
         <ul>
           {routes.map((r) => (
             <li key={r.href}>
