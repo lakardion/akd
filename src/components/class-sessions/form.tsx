@@ -91,8 +91,8 @@ const useClassSessionForm = ({
       refetchOnWindowFocus: false,
     }
   );
-  const { data: teacherHourRates } = trpc.useQuery(
-    ['rates.hourRates', { type: 'TEACHER' }],
+  const { data: teacherHourRates } = trpc.proxy.rates.hourRates.useQuery(
+    { type: 'TEACHER' },
     { refetchOnWindowFocus: false }
   );
 

@@ -65,12 +65,14 @@ export const ClassSessionTable: FC<{ teacherId: string }> = ({ teacherId }) => {
 
   const dataRows: ClassSessionRow[] = useMemo(() => {
     return (
-      data?.results.map((r) => ({
-        hours: r.hours,
-        teacher: { name: r.teacher?.name, lastName: r.teacher?.lastName },
-        date: r.date,
-        studentCount: r._count.classSessionStudent,
-      })) ?? []
+      data?.results.map((r) => {
+        return {
+          hours: r.hours,
+          teacher: { name: r.teacher?.name, lastName: r.teacher?.lastName },
+          date: r.date,
+          studentCount: r._count.classSessionStudent,
+        };
+      }) ?? []
     );
   }, [data?.results]);
 

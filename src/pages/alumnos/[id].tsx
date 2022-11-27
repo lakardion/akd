@@ -5,7 +5,7 @@ import {
   StudentAttachToClassSessionForm,
   StudentPayments,
 } from 'components/students';
-import { format } from 'date-fns';
+import { format, isDate } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useRouter } from 'next/router';
 import { FC, useMemo, useState } from 'react';

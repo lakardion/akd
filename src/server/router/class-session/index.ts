@@ -67,7 +67,6 @@ export const classSessionRouter = createLegacyRouter()
           },
         },
       });
-
       return {
         page,
         count: totalRecords,

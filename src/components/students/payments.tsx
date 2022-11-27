@@ -54,12 +54,11 @@ export const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
   studentId,
   onFinished,
 }) => {
-  const { data: hourRates } = trpc.useQuery([
-    'rates.hourRates',
-    { type: 'STUDENT' },
-  ]);
+  const { data: hourRates } = trpc.proxy.rates.hourRates.useQuery({
+    type: 'STUDENT',
+  });
   const queryClient = trpc.useContext();
-  const { data: hourPackages } = trpc.useQuery(['rates.hourPackages']);
+  const { data: hourPackages } = trpc.proxy.rates.hourPackages.useQuery();
   const { mutateAsync: create, isLoading: isCreating } = trpc.useMutation(
     'payments.create',
     {
@@ -321,6 +320,7 @@ const defaultColumns: ColumnDef<{
   },
 ];
 
+//TODO: wtf I'm not using this anywhere??
 export const PaymentTable: FC<{ studentId: string }> = ({ studentId }) => {
   const { data } = trpc.useQuery(['payments.byStudent', { id: studentId }], {
     enabled: Boolean(studentId),

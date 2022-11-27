@@ -1,11 +1,23 @@
 // src/utils/trpc.ts
 import type { AppRouter } from '../server/router';
 import { createReactQueryHooks, httpBatchLink } from '@trpc/react-query';
+//TODO: have to use this at some point in the future.
+import { createTRPCNext } from '@trpc/next';
 import type { inferProcedureOutput, inferProcedureInput } from '@trpc/server';
 import superjson from 'superjson';
 import { getBaseUrl } from './url';
-
+//TODO: use the non-deprecated hook
 export const trpc = createReactQueryHooks<AppRouter>();
+
+//TODO:
+const trpcNext = createTRPCNext<AppRouter>({
+  config({ ctx }) {
+    return {
+      links: [httpBatchLink({ url: getBaseUrl() })],
+      transformer: superjson,
+    };
+  },
+});
 
 /**
  * This is a helper method to infer the output of a query resolver

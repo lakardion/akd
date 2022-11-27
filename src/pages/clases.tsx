@@ -121,10 +121,8 @@ const ClassSessions = () => {
   } = useCRUDState();
   const { data: teacherCount, isLoading: isTeacherCountLoading } =
     trpc.useQuery(['teachers.count']);
-  const { data: teacherRates, isLoading: isHourRatesLoading } = trpc.useQuery([
-    'rates.hourRates',
-    { type: 'TEACHER' },
-  ]);
+  const { data: teacherRates, isLoading: isHourRatesLoading } =
+    trpc.proxy.rates.hourRates.useQuery({ type: 'TEACHER' });
   const { isLoading } = trpc.useInfiniteQuery(['classSessions.all', {}], {
     getNextPageParam: (lastPage) => {
       return lastPage.nextCursor ? { page: lastPage.nextCursor } : null;
