@@ -50,7 +50,7 @@ const StudentForm: FC<{ onFinished: () => void; studentId: string }> = ({
     });
 
   const onSubmit = async (data: StudentFormInput) => {
-    const updatedStudent = studentId
+    studentId
       ? await editStudent({ id: studentId, ...data })
       : await createStudent(data);
     onFinished();
@@ -102,7 +102,11 @@ const StudentForm: FC<{ onFinished: () => void; studentId: string }> = ({
       <Input {...register('course')} placeholder="Carrera..." />
       <ValidationError errorMessages={errors.course?.message} />
       <section aria-label="action buttons" className="flex w-full gap-2">
-        <Button className="flex-grow" type="submit">
+        <Button
+          className="flex-grow"
+          type="submit"
+          isLoading={isCreating || isEditing}
+        >
           {studentId ? 'Editar' : 'Agregar'}
         </Button>
         <Button className="flex-grow" onClick={onFinished}>
@@ -174,7 +178,7 @@ const StudentList: FC<{
   };
 
   return (
-    <div className="flex w-full flex-grow flex-col gap-3">
+    <div className="flex w-full flex-grow flex-col gap-3 overflow-hidden">
       <input
         value={search}
         placeholder="Buscar alumnos..."
@@ -270,7 +274,7 @@ const Students = () => {
   };
 
   return (
-    <section className="flex w-11/12 flex-grow flex-col items-center gap-3 rounded-lg p-4 sm:max-w-2xl">
+    <section className="flex flex-grow flex-col items-center gap-3 rounded-lg p-4 sm:max-w-2xl">
       <button
         onClick={handleCreate}
         type="button"
