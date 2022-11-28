@@ -5,7 +5,7 @@ import {
   addHourRateFormZod,
   AddHourRateInput,
 } from 'common';
-import { Button } from 'components/button';
+import { Button, PillButton } from 'components/button';
 import { ConfirmForm } from 'components/confirm-form';
 import { Input } from 'components/form/input';
 import { ValidationError } from 'components/form/validation-error';
@@ -143,17 +143,17 @@ const AddHourRateForm: FC<{ onFinished: () => void; id: string }> = ({
         <ValidationError errorMessages={errors.rate?.message} />
       </section>
       <section className="flex gap-3">
-        <Button type="submit" className="flex-grow" variant="accent">
+        <PillButton type="submit" className="flex-grow" variant="accent">
           Agregar
-        </Button>
-        <Button
+        </PillButton>
+        <PillButton
           type="button"
           onClick={onFinished}
           className="flex-grow"
           variant="accent"
         >
           Cancelar
-        </Button>
+        </PillButton>
       </section>
     </form>
   );
@@ -206,7 +206,10 @@ const TeacherHourRatePrices = () => {
       <button onClick={handleOpenCreateEdit}>Agregar</button>
       <TeacherHourRateList onEdit={handleEdit} onDelete={handleDelete} />
       {showCreateEditModal ? (
-        <Modal onBackdropClick={handleCloseCreateEditModal}>
+        <Modal
+          onBackdropClick={handleCloseCreateEditModal}
+          className="w-full bg-white drop-shadow-2xl md:w-auto md:min-w-[400px]"
+        >
           <AddHourRateForm
             onFinished={handleCloseCreateEditModal}
             id={currentId}
@@ -214,7 +217,10 @@ const TeacherHourRatePrices = () => {
         </Modal>
       ) : null}
       {showConfirmDeleteModal ? (
-        <Modal onBackdropClick={handleCloseConfirmDeleteModal}>
+        <Modal
+          onBackdropClick={handleCloseConfirmDeleteModal}
+          className="w-full bg-white drop-shadow-2xl md:w-auto md:min-w-[400px]"
+        >
           <ConfirmForm
             title="Estás seguro/a?"
             body="Confirmar la eliminación del precio de hora"

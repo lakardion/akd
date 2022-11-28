@@ -199,7 +199,7 @@ const ClassSessions = () => {
       {showDeleteConfirm ? (
         <Modal
           onBackdropClick={handleFinished}
-          className="w-full bg-white drop-shadow-2xl md:w-auto"
+          className="w-full bg-white drop-shadow-2xl md:w-auto md:min-w-[400px]"
         >
           <ConfirmForm
             onCancel={handleFinished}

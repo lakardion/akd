@@ -73,7 +73,9 @@ const TeacherForm: FC<{ onFinished: () => void; id: string }> = ({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-2">
-      <h1>{id ? 'Editar alumno' : 'Agregar profesor'}</h1>
+      <h1 className="text-center text-2xl">
+        {id ? 'Editar profesor' : 'Agregar profesor'}
+      </h1>
       <label htmlFor="lastName">Apellido</label>
       <Input {...register('lastName')} placeholder="Last name..." />
       <ValidationError errorMessages={errors.lastName?.message} />
@@ -81,16 +83,17 @@ const TeacherForm: FC<{ onFinished: () => void; id: string }> = ({
       <Input {...register('name')} placeholder="Name..." />
       <ValidationError errorMessages={errors.name?.message} />
       <section className="flex w-full gap-3 pt-2">
-        <Button
+        <PillButton
           type="submit"
+          variant="accent"
           className="flex-grow"
           isLoading={isCreating || isEditing}
         >
           {id ? 'Editar' : 'Agregar'}
-        </Button>
-        <Button onClick={onFinished} className="flex-grow">
+        </PillButton>
+        <PillButton variant="accent" onClick={onFinished} className="flex-grow">
           Cancelar
-        </Button>
+        </PillButton>
       </section>
     </form>
   );
@@ -273,14 +276,17 @@ const Teachers = () => {
       {showForm ? (
         <Modal
           onBackdropClick={handleFinished}
-          className="w-full bg-white drop-shadow-2xl md:w-auto"
+          className="w-full bg-white drop-shadow-2xl md:w-auto md:min-w-[400px]"
         >
           <TeacherForm onFinished={handleFinished} id={currentId} />
         </Modal>
       ) : null}
       <TeachersList handleDelete={handleDelete} handleEdit={handleEdit} />
       {showConfirm ? (
-        <Modal onBackdropClick={handleFinished}>
+        <Modal
+          onBackdropClick={handleFinished}
+          className="w-full bg-white drop-shadow-2xl md:w-auto md:min-w-[400px]"
+        >
           <ConfirmForm
             body="Confirma eliminar este profesor"
             onCancel={handleFinished}

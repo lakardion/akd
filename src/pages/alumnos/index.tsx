@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { StudentFormInput, studentFormZod } from 'common';
-import { Button } from 'components/button';
+import { Button, PillButton } from 'components/button';
 import { ConfirmForm } from 'components/confirm-form';
 import { Input } from 'components/form/input';
 import { ValidationError } from 'components/form/validation-error';
@@ -102,16 +102,17 @@ const StudentForm: FC<{ onFinished: () => void; studentId: string }> = ({
       <Input {...register('course')} placeholder="Carrera..." />
       <ValidationError errorMessages={errors.course?.message} />
       <section aria-label="action buttons" className="flex w-full gap-2">
-        <Button
+        <PillButton
           className="flex-grow"
           type="submit"
+          variant="accent"
           isLoading={isCreating || isEditing}
         >
           {studentId ? 'Editar' : 'Agregar'}
-        </Button>
-        <Button className="flex-grow" onClick={onFinished}>
+        </PillButton>
+        <PillButton className="flex-grow" onClick={onFinished} variant="accent">
           Cancelar
-        </Button>
+        </PillButton>
       </section>
     </form>
   );
@@ -285,7 +286,7 @@ const Students = () => {
       {showCreateEdit ? (
         <Modal
           onBackdropClick={handleFinished}
-          className="w-full bg-white drop-shadow-2xl md:w-auto"
+          className="w-full bg-white drop-shadow-2xl md:w-auto md:min-w-[400px]"
         >
           <StudentForm onFinished={handleFinished} studentId={currentId} />
         </Modal>

@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from 'components/button';
+import { PillButton } from 'components/button';
 import { Input } from 'components/form/input';
 import { ValidationError } from 'components/form/validation-error';
 import { Modal } from 'components/modal';
@@ -562,22 +562,22 @@ export const ClassSessionForm: FC<{
           </button>
         ) : null}
         <section aria-label="action buttons" className="flex gap-2">
-          <Button
-            variant="primary"
+          <PillButton
+            variant="accent"
             type="submit"
             className="flex-grow capitalize"
             isLoading={isCreating || isEditing}
             disabled={showDebtorsWarning}
           >
             {id ? 'Editar clase' : 'Crear clase'}
-          </Button>
-          <Button
-            variant="primary"
+          </PillButton>
+          <PillButton
+            variant="accent"
             onClick={onFinished}
             className="flex-grow capitalize"
           >
             cancelar
-          </Button>
+          </PillButton>
         </section>
       </form>
       {showDebtorsForm ? (
