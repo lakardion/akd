@@ -1,5 +1,5 @@
 import { debouncePromiseValue } from './delay';
-import { createTRPCVanillaClient, trpcProxyClient } from './trpc';
+import { trpcProxyClient } from './trpc';
 
 //TODO: this needs a rewrite to adapt it to trpc v10
 
