@@ -16,9 +16,9 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
   };
   const router = useRouter();
   return (
-    <div className="w-screen h-screen flex flex-col">
+    <div className="flex h-screen flex-col">
       <header className="w-full pb-1 text-accent-900">
-        <section className="flex justify-between w-full p-2">
+        <section className="flex w-full justify-between p-2">
           <Link href="/">
             <section className="hover:cursor-pointer">
               <span className="text-2xl">La Academia </span>
@@ -31,14 +31,14 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
             <Button onClick={handleLogin}>Login</Button>
           </section>
         </section>
-        <nav className="flex gap-3 w-full p-2 border border-solid border-b-blackish-900/50">
+        <nav className="flex w-full gap-3 border border-solid border-b-blackish-900/50 p-2">
           {routes.map((r) => {
             const isCurrentRoute = router.pathname.includes(r.href);
             return (
               <Link href={r.href} key={r.href}>
                 <button
                   type="button"
-                  className={`hover:text-primary-500/75 capitalize ${
+                  className={`capitalize hover:text-primary-500/75 ${
                     isCurrentRoute ? 'text-primary-500' : ''
                   }`}
                 >
@@ -49,7 +49,9 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
           })}
         </nav>
       </header>
-      <main className="flex justify-center flex-grow">{children}</main>
+      <main className="flex flex-grow justify-center overflow-hidden">
+        {children}
+      </main>
     </div>
   );
 };
