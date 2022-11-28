@@ -8,7 +8,7 @@ import {
   addHourRateFormZod,
   AddHourRateInput,
 } from 'common';
-import { Button } from 'components/button';
+import { Button, PillButton } from 'components/button';
 import { ConfirmForm } from 'components/confirm-form';
 import { Input } from 'components/form/input';
 import { ValidationError } from 'components/form/validation-error';
@@ -211,18 +211,18 @@ const AddHourRateForm: FC<{ onFinished: () => void; id: string }> = ({
         />
         <ValidationError errorMessages={errors.description?.message} />
       </section>
-      <section className="flex">
-        <Button type="submit" className="flex-grow" variant="accent">
+      <section className="flex gap-2">
+        <PillButton type="submit" className="flex-grow" variant="accent">
           Agregar
-        </Button>
-        <Button
+        </PillButton>
+        <PillButton
           type="button"
           onClick={onFinished}
           className="flex-grow"
           variant="accent"
         >
           Cancelar
-        </Button>
+        </PillButton>
       </section>
     </form>
   );
@@ -297,16 +297,22 @@ const AddHourPackageForm: FC<{ onFinished: () => void; id: string }> = ({
         <ValidationError errorMessages={errors.description?.message} />
       </section>
       <section className="flex gap-3">
-        <Button
+        <PillButton
+          variant="accent"
           type="submit"
           className="flex-grow"
           isLoading={isCreating || isEditing}
         >
           {id ? 'Editar' : 'Agregar'}
-        </Button>
-        <Button type="button" onClick={onFinished} className="flex-grow">
+        </PillButton>
+        <PillButton
+          variant="accent"
+          type="button"
+          onClick={onFinished}
+          className="flex-grow"
+        >
           Cancelar
-        </Button>
+        </PillButton>
       </section>
     </form>
   );
@@ -358,7 +364,10 @@ const StudentHourRatePrices = () => {
       <button onClick={handleOpenCreateEdit}>Agregar</button>
       <StudentHourRateList onEdit={handleEdit} onDelete={handleDelete} />
       {showCreateEditModal ? (
-        <Modal onBackdropClick={handleCloseCreateEditModal}>
+        <Modal
+          onBackdropClick={handleCloseCreateEditModal}
+          className="w-full bg-white drop-shadow-2xl md:w-auto md:min-w-[400px]"
+        >
           <AddHourRateForm
             onFinished={handleCloseCreateEditModal}
             id={currentId}
@@ -366,7 +375,10 @@ const StudentHourRatePrices = () => {
         </Modal>
       ) : null}
       {showConfirmDeleteModal ? (
-        <Modal onBackdropClick={handleCloseConfirmDeleteModal}>
+        <Modal
+          onBackdropClick={handleCloseConfirmDeleteModal}
+          className="w-full bg-white drop-shadow-2xl md:w-auto md:min-w-[400px]"
+        >
           <ConfirmForm
             title="Estás seguro/a?"
             body="Confirmar la eliminación del precio de hora"
@@ -427,7 +439,10 @@ const StudentPackagePrices = () => {
       <button onClick={handleOpenCreateEdit}>Agregar</button>
       <PackagePriceList onEdit={handlePackageEdit} onDelete={handleDelete} />
       {showCreateEditModal ? (
-        <Modal onBackdropClick={handleCloseCreateEditModal}>
+        <Modal
+          onBackdropClick={handleCloseCreateEditModal}
+          className="w-full bg-white drop-shadow-2xl md:w-auto md:min-w-[400px]"
+        >
           <AddHourPackageForm
             onFinished={handleCloseCreateEditModal}
             id={currentId}
@@ -435,7 +450,10 @@ const StudentPackagePrices = () => {
         </Modal>
       ) : null}
       {showConfirmDeleteModal ? (
-        <Modal onBackdropClick={handleCloseConfirmDeleteModal}>
+        <Modal
+          onBackdropClick={handleCloseConfirmDeleteModal}
+          className="w-full bg-white drop-shadow-2xl md:w-auto md:min-w-[400px]"
+        >
           <ConfirmForm
             title="Estás seguro/a?"
             body="Confirmar la eliminación del paquete de horas"

@@ -161,7 +161,7 @@ const TeacherDetail = () => {
       {showPaymentmodal ? (
         <Modal
           onBackdropClick={handleClosePaymentModal}
-          className="w-full bg-white drop-shadow-2xl md:w-auto"
+          className="w-full bg-white drop-shadow-2xl md:w-auto md:min-w-[400px]"
         >
           <TeacherPaymentForm
             teacherId={stableId}
@@ -173,7 +173,7 @@ const TeacherDetail = () => {
       {showClassSessionModal ? (
         <Modal
           onBackdropClick={handleCloseClassSessionModal}
-          className="w-[90%] max-w-[500px] bg-white drop-shadow-2xl md:w-[60%]"
+          className="w-full bg-white drop-shadow-2xl md:w-auto md:min-w-[400px]"
         >
           {data ? (
             <ClassSessionForm

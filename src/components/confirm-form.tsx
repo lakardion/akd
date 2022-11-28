@@ -1,5 +1,5 @@
 import { FC, ReactNode } from 'react';
-import { Button } from './button';
+import { Button, PillButton } from './button';
 
 export const ConfirmForm: FC<{
   body: ReactNode;
@@ -17,27 +17,27 @@ export const ConfirmForm: FC<{
   isConfirming = false,
 }) => {
   return (
-    <section className="p-3 flex flex-col gap-3">
-      <h1 className="text-3xl text-center">{title}</h1>
+    <section className="flex flex-col gap-3 p-3">
+      <h1 className="text-center text-3xl">{title}</h1>
       {typeof body === 'string' ? (
-        <p className="text-sm text-center">{body}</p>
+        <p className="text-center text-sm">{body}</p>
       ) : (
         body
       )}
       <section aria-label="action buttons" className="flex gap-3">
-        <Button
+        <PillButton
           onClick={onConfirm}
           isLoading={isConfirming}
           className="flex-grow"
         >
           Confirmar
-        </Button>
-        <Button onClick={onCancel} className="flex-grow">
+        </PillButton>
+        <PillButton onClick={onCancel} className="flex-grow">
           Cancelar
-        </Button>
+        </PillButton>
       </section>
       {errorMessage ? (
-        <p className="text-red-500 font-medium">{errorMessage}</p>
+        <p className="font-medium text-red-500">{errorMessage}</p>
       ) : null}
     </section>
   );

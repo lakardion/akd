@@ -448,7 +448,6 @@ const DebtPaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
   //   paysTotal || parseInt(partialAmount ?? '') === 0 || isNaN(parseInt(rest));
 
   const utils = trpc.useContext();
-  const queryClient = trpc.useContext();
   const { mutateAsync: payDebt, isLoading: isPaying } =
     trpc.payments.payDebtTotal.useMutation({
       onSuccess() {
