@@ -6,7 +6,7 @@ import { Button } from './button';
 const routes = [
   { href: '/alumnos', label: 'alumnos' },
   { href: '/profesores', label: 'profesores' },
-  { href: '/precios', label: 'precios' },
+  { href: '/precios/alumnos', label: 'precios' },
   { href: '/clases', label: 'Clases' },
 ];
 

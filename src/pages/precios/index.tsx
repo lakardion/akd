@@ -1,27 +1,13 @@
-import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { useEffect } from 'react';
 
-const Prices = () => {
+export default function Precios() {
   const router = useRouter();
-  return (
-    <>
-      <ul>
-        <li>
-          <Link href={`${router.asPath}/alumnos`}>
-            <button type="button" className="hover:text-teal-600">
-              Alumnos
-            </button>
-          </Link>
-        </li>
-        <li>
-          <Link href={`${router.asPath}/profesores`}>
-            <button className="hover:text-teal-600" type="button">
-              Profesores
-            </button>
-          </Link>
-        </li>
-      </ul>
-    </>
-  );
-};
-export default Prices;
+
+  useEffect(() => {
+    // we don't have a main page for this so we're redirecting to the corresponding slug
+    if (router.asPath !== 'precios/alumnos') router.push('precios/alumnos');
+  }, [router]);
+
+  return <></>;
+}

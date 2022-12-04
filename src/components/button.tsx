@@ -63,7 +63,7 @@ export const PillButton: FC<
     <button
       {...props}
       type={type ?? 'button'}
-      className={`${buttonClassByVariant[variant]} btn-disabled w-full rounded-lg p-3 ${className}`}
+      className={`${buttonClassByVariant[variant]} ${disabledBtnClasses} w-full rounded-lg p-3 ${className}`}
     >
       {isLoading ? (
         <div className="flex w-full justify-center">
