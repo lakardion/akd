@@ -85,8 +85,12 @@ const StudentHourRateList: FC<{
     type: 'STUDENT',
   });
   const [parent] = useAutoAnimate<HTMLUListElement>();
-  if (!data) {
-    return <Spinner size="sm" />;
+  if (isLoading) {
+    return (
+      <div className="flex w-full justify-center">
+        <Spinner size="sm" />
+      </div>
+    );
   }
   const createEditHandler = (id: string) => () => {
     onEdit(id);
@@ -129,8 +133,12 @@ const PackagePriceList: FC<{
 }> = ({ onEdit, onDelete }) => {
   const { data, isLoading } = trpc.rates.hourPackages.useQuery();
   const [parent] = useAutoAnimate<HTMLUListElement>();
-  if (!data) {
-    return <Spinner size="sm" />;
+  if (isLoading) {
+    return (
+      <div className="flex w-full justify-center">
+        <Spinner size="sm" />;
+      </div>
+    );
   }
   const createEditHandler = (id: string) => () => {
     onEdit(id);
@@ -140,7 +148,7 @@ const PackagePriceList: FC<{
   };
   return (
     <ul ref={parent}>
-      {data.map((d) => (
+      {data?.map((d) => (
         <li key={d.id} className="flex justify-between gap-3">
           <div>{d.description}</div>
           {/* todo: add flex basis to keep consistency */}
@@ -372,7 +380,7 @@ const StudentHourRatePrices = () => {
   };
 
   return (
-    <section className="sm:basis-1/2 p-3">
+    <section className="p-3 sm:basis-1/2">
       <div className="rounded-lg bg-accent-100 p-3 shadow-lg">
         <h1 className="text-center text-2xl">Precios de horas</h1>
         <div className="py-2">

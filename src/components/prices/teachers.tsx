@@ -54,8 +54,12 @@ const TeacherHourRateList: FC<{
 
   const [parent] = useAutoAnimate<HTMLUListElement>();
 
-  if (!data) {
-    return <Spinner size="sm" />;
+  if (isLoading) {
+    return (
+      <div className="flex w-full justify-center">
+        <Spinner size="sm" />
+      </div>
+    );
   }
   const createEditHandler = (id: string) => () => {
     onEdit(id);
