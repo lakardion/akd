@@ -137,13 +137,11 @@ export const teacherRouter = router({
             {
               name: {
                 contains: query.toLowerCase(),
-                mode: 'insensitive',
               },
             },
             {
               lastName: {
                 contains: query.toLowerCase(),
-                mode: 'insensitive',
               },
             },
           ],
@@ -209,13 +207,11 @@ export const teacherRouter = router({
                 {
                   name: {
                     contains: query,
-                    mode: 'insensitive',
                   },
                 },
                 {
                   lastName: {
                     contains: query,
-                    mode: 'insensitive',
                   },
                 },
               ],

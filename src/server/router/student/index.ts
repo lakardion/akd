@@ -178,13 +178,11 @@ export const studentRouter = router({
                 {
                   name: {
                     contains: query,
-                    mode: 'insensitive',
                   },
                 },
                 {
                   lastName: {
                     contains: query,
-                    mode: 'insensitive',
                   },
                 },
               ],
