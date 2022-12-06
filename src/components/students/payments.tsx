@@ -24,11 +24,11 @@ const paymentFormZod = z.object({
   hours: z
     .string()
     .min(1, 'Requerido')
-    .refine((value) => value !== '0', 'Debe ser mayor que cero'),
+    .refine((value) => value > '0', 'Debe ser mayor que cero'),
   value: z
     .string()
     .min(1, 'Requerido')
-    .refine((value) => isNaN(parseInt(value)), 'Debe ser un número'),
+    .refine((value) => !isNaN(parseInt(value)), 'Debe ser un número'),
   date: datePickerZod,
   paymentMethod: z.enum([PaymentMethodType.CASH, PaymentMethodType.TRANSFER]),
 });
@@ -58,7 +58,6 @@ export const PaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
     type: 'STUDENT',
   });
   const utils = trpc.useContext();
-  const queryClient = trpc.useContext();
   const { data: hourPackages } = trpc.rates.hourPackages.useQuery();
   const { mutateAsync: create, isLoading: isCreating } =
     trpc.payments.create.useMutation({
@@ -419,8 +418,8 @@ const DebtPaymentForm: FC<{ studentId: string; onFinished: () => void }> = ({
     }
   );
   const memoedResolver = useMemo(
-    () => zodResolver(createDebtPaymentZod(data?.debts.amount ?? 0)),
-    [data?.debts.amount]
+    () => zodResolver(createDebtPaymentZod(data?.debts?.amount ?? 0)),
+    [data?.debts?.amount]
   );
   const {
     register,
