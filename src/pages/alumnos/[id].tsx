@@ -5,7 +5,7 @@ import {
   StudentAttachToClassSessionForm,
   StudentPayments,
 } from 'components/students';
-import { format, isDate } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useRouter } from 'next/router';
 import { FC, useMemo, useState } from 'react';
@@ -153,13 +153,15 @@ const StudentDetail = () => {
       </section>
     );
 
+  console.log('has debts??', data?.debts);
+
   return (
     <section className="flex w-full flex-col items-center gap-3  p-3 sm:max-w-[550px]">
       <h1 className="text-3xl">
         {data?.name} {data?.lastName}
       </h1>
       <h2 className={`text-xl ${status.color}`}>{status.statusMessage}</h2>
-      {data?.debts.amount ? (
+      {data?.debts?.amount ? (
         <h2 className={`text-xl text-red-500`}>
           {' '}
           Debe ( ${data.debts.amount} )

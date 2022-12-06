@@ -150,10 +150,13 @@ export const studentRouter = router({
 
       return {
         ...student,
-        debts: {
-          amount: result?.[0].toNumber(),
-          hours: result?.[1].toNumber(),
-        },
+        debts:
+          result && result?.[0]?.toNumber()
+            ? {
+                amount: result[0].toNumber(),
+                hours: result[1].toNumber(),
+              }
+            : undefined,
         hourBalance: student?.hourBalance.toNumber(),
       };
     }),
