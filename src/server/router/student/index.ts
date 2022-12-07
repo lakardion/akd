@@ -7,7 +7,11 @@ import { DEFAULT_PAGE_SIZE } from 'utils/pagination';
 import { infiniteCursorZod } from 'utils/server-zods';
 import { z } from 'zod';
 import { publicProcedure, router } from '../trpc';
-import { calculateDebt, calculateDebtNewClass } from './helpers';
+import {
+  calculateDebt,
+  calculateDebtNewClass,
+  getDebtSummary,
+} from './helpers';
 
 export const studentRouter = router({
   calculateDebts: publicProcedure
@@ -137,26 +141,10 @@ export const studentRouter = router({
           },
         },
       });
-      const result = student?.debts.reduce<[Decimal, Decimal]>(
-        (res, curr) => {
-          const [debtAmount, debtHours] = res;
-          return [
-            debtAmount.plus(curr.hours.times(curr.rate)),
-            debtHours.plus(curr.hours),
-          ];
-        },
-        [new Decimal(0), new Decimal(0)]
-      );
 
       return {
         ...student,
-        debts:
-          result && result?.[0]?.toNumber()
-            ? {
-                amount: result[0].toNumber(),
-                hours: result[1].toNumber(),
-              }
-            : undefined,
+        debts: getDebtSummary(student?.debts),
         hourBalance: student?.hourBalance.toNumber(),
       };
     }),

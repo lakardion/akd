@@ -1,3 +1,4 @@
+import { analyticsRouter } from './analytics';
 import { authRouter } from './auth';
 import { classsessionRouter } from './class-session';
 import { paymentRouter } from './payment-router';
@@ -15,6 +16,7 @@ export const appRouter = router({
   students: studentRouter,
   classSessions: classsessionRouter,
   auth: authRouter,
+  analytics: analyticsRouter,
 });
 
 // export type definition of API
