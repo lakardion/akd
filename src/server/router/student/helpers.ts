@@ -393,3 +393,24 @@ export const calculateDebt =
 
     return [...createdStudents, ...removedStudents, ...untouchedStudents];
   };
+
+export const getDebtSummary = (debts?: StudentDebt[]) => {
+  const [amount, hours] = debts?.reduce<[Decimal, Decimal]>(
+    (res, curr) => {
+      const [debtAmount, debtHours] = res;
+      return [
+        debtAmount.plus(curr.hours.times(curr.rate)),
+        debtHours.plus(curr.hours),
+      ];
+    },
+    [new Decimal(0), new Decimal(0)]
+  ) ?? [new Decimal(0), new Decimal(0)];
+  const nonZeroResult =
+    amount.toNumber() > 0
+      ? {
+          amount: amount.toNumber(),
+          hours: hours.toNumber(),
+        }
+      : undefined;
+  return nonZeroResult;
+};
