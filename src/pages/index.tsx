@@ -1,4 +1,5 @@
 import { DebtorsCard } from 'components/dashboard/debtors-card';
+import { RevenueCard } from 'components/dashboard/revenue-card';
 import { UpcomingClassesCard } from 'components/dashboard/upcoming-classes.card';
 import type { NextPage } from 'next';
 import Head from 'next/head';
@@ -33,8 +34,11 @@ const Home: NextPage = () => {
         <DashboardCard title="Deudores">
           <DebtorsCard />
         </DashboardCard>
-        <DashboardCard title="Upcoming classes">
+        <DashboardCard title="Próximas clases">
           <UpcomingClassesCard />
+        </DashboardCard>
+        <DashboardCard title="Recaudación en el mes">
+          <RevenueCard />
         </DashboardCard>
       </section>
     </>
