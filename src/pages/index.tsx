@@ -1,4 +1,6 @@
 import { DebtorsCard } from 'components/dashboard/debtors-card';
+import { NewStudentsCard } from 'components/dashboard/new-students-card';
+import { RecurrentStudentsCard } from 'components/dashboard/recurrent-students-card';
 import { RevenueCard } from 'components/dashboard/revenue-card';
 import { UpcomingClassesCard } from 'components/dashboard/upcoming-classes.card';
 import type { NextPage } from 'next';
@@ -11,7 +13,7 @@ const DashboardCard: FC<{ title: string; children: ReactNode }> = ({
   title,
 }) => {
   return (
-    <section className="max-w-xs rounded-md border border-gray-300 p-3 shadow-sm">
+    <section className="flex w-full flex-col items-center gap-2 rounded-md border border-gray-300 p-3 shadow-sm">
       <h1 className="text text-slate-500">{title}</h1>
       {children}
     </section>
@@ -20,7 +22,7 @@ const DashboardCard: FC<{ title: string; children: ReactNode }> = ({
 
 const Home: NextPage = () => {
   return (
-    <>
+    <section className="w-full overflow-auto p-3">
       <Head>
         <title>La Academia R&S</title>
         <meta
@@ -30,18 +32,30 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <section className="container mx-auto flex items-start gap-4 p-4 md:h-[calc(100vh-94px)]">
-        <DashboardCard title="Deudores">
-          <DebtorsCard />
-        </DashboardCard>
-        <DashboardCard title="Próximas clases">
-          <UpcomingClassesCard />
-        </DashboardCard>
-        <DashboardCard title="Recaudación en el mes">
-          <RevenueCard />
-        </DashboardCard>
+      <section className="flex flex-col items-center justify-center gap-4 overflow-auto md:flex-row md:items-start">
+        <section className="flex-grow">
+          <DashboardCard title="Deudores">
+            <DebtorsCard />
+          </DashboardCard>
+        </section>
+        <section className="flex flex-grow flex-col gap-4">
+          <DashboardCard title="Próximas clases">
+            <UpcomingClassesCard />
+          </DashboardCard>
+          <DashboardCard title="Nuevos alumnos este mes">
+            <NewStudentsCard />
+          </DashboardCard>
+        </section>
+        <section className="flex flex-grow flex-col justify-center gap-4">
+          <DashboardCard title="Recaudación en el mes">
+            <RevenueCard />
+          </DashboardCard>
+          <DashboardCard title="Alumnos recurrentes este mes">
+            <RecurrentStudentsCard />
+          </DashboardCard>
+        </section>
       </section>
-    </>
+    </section>
   );
 };
 
