@@ -7,7 +7,7 @@ export const NewStudentsCard = () => {
   if (isLoading) {
     return (
       <section className="flex h-full w-full items-center justify-center">
-        <Spinner size="md" />
+        <Spinner size="sm" />
       </section>
     );
   }

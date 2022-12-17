@@ -3,6 +3,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
+import { Spinner } from 'components/spinner';
 import { Table } from 'components/table';
 import Link from 'next/link';
 import { useMemo } from 'react';
@@ -36,7 +37,7 @@ const columnDefs: ColumnDef<{
 ];
 
 export const DebtorsCard = () => {
-  const { data: debtors } = trpc.analytics.debtors.useQuery();
+  const { data: debtors, isLoading } = trpc.analytics.debtors.useQuery();
 
   const debtorRows = useMemo(() => {
     return (
@@ -48,12 +49,24 @@ export const DebtorsCard = () => {
     );
   }, [debtors]);
 
-  console.log(JSON.stringify({ debtorRows }, undefined, 2));
-
   const table = useReactTable({
     columns: columnDefs,
     data: debtorRows,
     getCoreRowModel: getCoreRowModel(),
   });
+  if (isLoading) {
+    return (
+      <section className="flex h-full w-full items-center justify-center">
+        <Spinner size="sm" />
+      </section>
+    );
+  }
+  if (!debtors?.length) {
+    return (
+      <section className="flex w-full justify-center">
+        <p className="italic">Enhorabuena! No tenés deudores!!</p>
+      </section>
+    );
+  }
   return <Table table={table} />;
 };

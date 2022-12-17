@@ -10,7 +10,7 @@ export const UpcomingClassesCard = () => {
   if (isLoading || !upcomingClasses)
     return (
       <section className="flex items-center justify-center">
-        <Spinner size="md" />
+        <Spinner size="sm" />
       </section>
     );
 

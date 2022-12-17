@@ -6,7 +6,7 @@ export const RevenueCard = () => {
   if (isLoading) {
     return (
       <section className="items=center flex justify-center">
-        <Spinner size="md" />
+        <Spinner size="sm" />
       </section>
     );
   }
