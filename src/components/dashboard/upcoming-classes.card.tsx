@@ -1,6 +1,6 @@
 import { Spinner } from 'components/spinner';
 import { format } from 'date-fns';
-import { MdOutlineSchool } from 'react-icons/md';
+import { MdHourglassTop, MdOutlineSchool } from 'react-icons/md';
 import { trpc } from 'utils/trpc';
 
 export const UpcomingClassesCard = () => {
@@ -28,7 +28,7 @@ export const UpcomingClassesCard = () => {
           key={uc.id}
           className="flex gap-3 rounded-lg border-primary-300 p-3"
         >
-          <section>{format(uc.date, 'dd/MM/yyyy')}</section>
+          <section>{format(uc.date, 'dd/MM hh:mm')}</section>
           <section>
             {uc.teacher?.name} {uc.teacher?.lastName}
           </section>
@@ -36,9 +36,15 @@ export const UpcomingClassesCard = () => {
             <div className="relative">
               <MdOutlineSchool size={25} />
               <div className="absolute -bottom-1.5 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent-500">
-                <p className="text-sm text-accent-900">
+                <p className="text-xs text-accent-900">
                   {uc._count.classSessionStudent}
                 </p>
+              </div>
+            </div>
+            <div className="relative">
+              <MdHourglassTop size={25} />
+              <div className="absolute -bottom-1.5 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent-500">
+                <p className="text-xs text-accent-900">{uc.hours}</p>
               </div>
             </div>
           </section>

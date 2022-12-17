@@ -15,7 +15,7 @@ export const analyticsRouter = router({
   upcomingClasses: publicProcedure.query(async ({ ctx }) => {
     // get list of classes (probably paginate?) that are incoming
     //lets get next classes regardless of pagination right now
-    const classes = ctx.prisma.classSession.findMany({
+    const classes = await ctx.prisma.classSession.findMany({
       where: {
         date: {
           gte: new Date(),
@@ -35,7 +35,7 @@ export const analyticsRouter = router({
         },
       },
     });
-    return classes;
+    return classes.map((c) => ({ ...c, hours: c.hours.toNumber() }));
   }),
   /**
    * Gets all debtors from oldest to newest

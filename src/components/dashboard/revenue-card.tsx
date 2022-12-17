@@ -15,7 +15,7 @@ export const RevenueCard = () => {
       <section>
         <h1 className="text-center text-slate-400">Total recaudado</h1>
         <p className="text-center text-xl font-bold">
-          {revenue?.monthTotalRevenue}
+          $ {revenue?.monthTotalRevenue}
         </p>
       </section>
       <section>
