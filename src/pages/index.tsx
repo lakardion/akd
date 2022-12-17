@@ -1,4 +1,5 @@
 import { DebtorsCard } from 'components/dashboard/debtors-card';
+import { UpcomingClassesCard } from 'components/dashboard/upcoming-classes.card';
 import type { NextPage } from 'next';
 import Head from 'next/head';
 import { FC, ReactNode } from 'react';
@@ -28,9 +29,12 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <section className="container mx-auto flex flex-col   p-4 md:h-[calc(100vh-94px)]">
+      <section className="container mx-auto flex items-start gap-4 p-4 md:h-[calc(100vh-94px)]">
         <DashboardCard title="Deudores">
           <DebtorsCard />
+        </DashboardCard>
+        <DashboardCard title="Upcoming classes">
+          <UpcomingClassesCard />
         </DashboardCard>
       </section>
     </>

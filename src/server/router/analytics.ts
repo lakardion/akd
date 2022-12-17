@@ -28,6 +28,11 @@ export const analyticsRouter = router({
             lastName: true,
           },
         },
+        _count: {
+          select: {
+            classSessionStudent: true,
+          },
+        },
       },
     });
     return classes;
