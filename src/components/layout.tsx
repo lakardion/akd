@@ -1,7 +1,10 @@
+import { signIn, useSession } from 'next-auth/react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { FC, ReactNode } from 'react';
-import { Button } from './button';
+import { Button, PillButton } from './button';
+import { Spinner } from './spinner';
 
 const routes = [
   { href: '/alumnos', label: 'alumnos' },
@@ -15,6 +18,32 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
     //TODO:
   };
   const router = useRouter();
+  const session = useSession();
+  console.log(
+    'what exactly is session?',
+    JSON.stringify({ session }, undefined, 2)
+  );
+  if (session.status === 'loading') {
+    return (
+      <section className="flex h-full w-full flex-col items-center justify-center gap-4">
+        <h1>Checking your credentials...</h1>
+        <Spinner size="md" />
+      </section>
+    );
+  }
+  if (session.status === 'unauthenticated') {
+    return (
+      <section className="flex h-full w-full flex-col items-center justify-center gap-4">
+        <Image src={'/la-akd-sm.png'} height={300} width={210} />
+        <div className="flex flex-col gap-2">
+          <p className="text-slate-500">
+            Debes ingresar con google para poder utilizar la aplicación
+          </p>
+          <PillButton onClick={() => signIn('google')}>Login</PillButton>
+        </div>
+      </section>
+    );
+  }
   return (
     <div className="flex h-screen flex-col">
       <header className="w-full pb-1 text-accent-900">
