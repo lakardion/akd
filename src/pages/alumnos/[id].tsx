@@ -199,7 +199,7 @@ const StudentDetail = () => {
       {showPaymentmodal ? (
         <Modal
           onBackdropClick={handleClosePaymentModal}
-          className="w-full bg-white drop-shadow-2xl md:w-auto md:min-w-[400px]"
+          className="w-10/12 bg-white drop-shadow-2xl md:w-auto md:min-w-[400px]"
         >
           {data?.debts ? (
             <StudentPayments

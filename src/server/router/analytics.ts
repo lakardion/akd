@@ -32,8 +32,10 @@ export const analyticsRouter = router({
     });
     return classes;
   }),
+  /**
+   * Gets all debtors from oldest to newest
+   */
   debtors: publicProcedure.query(async ({ ctx }) => {
-    //get debtors from oldest to newest
     //im wondering how we would like to display this. I should not care about same student multiple times, the debt should be unified by student rather than
     const debtors = await ctx.prisma.student.findMany({
       where: {

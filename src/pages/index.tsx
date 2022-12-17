@@ -1,14 +1,20 @@
+import { DebtorsCard } from 'components/dashboard/debtors-card';
 import type { NextPage } from 'next';
 import Head from 'next/head';
-import Link from 'next/link';
+import { FC, ReactNode } from 'react';
+import { trpc } from 'utils/trpc';
 
-const routes = [
-  { href: '/alumnos', label: 'Alumnos' },
-  { href: '/profesores', label: 'Profesores' },
-  { href: '/precios', label: 'Precios' },
-  { href: '#', label: 'Gastos [Coming soon!]' },
-  { href: '#', label: 'Reportes [Coming soon!]' },
-];
+const DashboardCard: FC<{ title: string; children: ReactNode }> = ({
+  children,
+  title,
+}) => {
+  return (
+    <section className="max-w-xs rounded-md border border-gray-300 p-3 shadow-sm">
+      <h1 className="text text-slate-500">{title}</h1>
+      {children}
+    </section>
+  );
+};
 
 const Home: NextPage = () => {
   return (
@@ -22,16 +28,10 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <section className="container mx-auto flex flex-col items-center justify-center p-4 md:h-[calc(100vh-94px)]">
-        <ul>
-          {routes.map((r) => (
-            <li key={r.href}>
-              <Link href={r.href}>
-                <button className="hover:text-teal-600">{r.label}</button>
-              </Link>
-            </li>
-          ))}
-        </ul>
+      <section className="container mx-auto flex flex-col   p-4 md:h-[calc(100vh-94px)]">
+        <DashboardCard title="Deudores">
+          <DebtorsCard />
+        </DashboardCard>
       </section>
     </>
   );
