@@ -9,6 +9,14 @@ import { env } from '../../../server/env.mjs';
 export const authOptions: NextAuthOptions = {
   // Include user.id on session
   callbacks: {
+    signIn({ user }) {
+      const allowedEmails = JSON.parse(env.ALLOWED_EMAILS) as string[];
+      if (user.email && !allowedEmails.includes(user.email)) {
+        console.log("you're not in the list");
+        return false;
+      }
+      return true;
+    },
     session({ session, user }) {
       if (session.user) {
         session.user.id = user.id;
