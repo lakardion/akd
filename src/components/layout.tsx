@@ -1,4 +1,4 @@
-import { signIn, useSession } from 'next-auth/react';
+import { signIn, signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -14,15 +14,10 @@ const routes = [
 ];
 
 export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
-  const handleLogin = () => {
-    //TODO:
-  };
   const router = useRouter();
+  //TODO: not sure this is the right way to do things..
+  // It may be just fine as it is right now.. we're restricting users within the google project anyway.
   const session = useSession();
-  console.log(
-    'what exactly is session?',
-    JSON.stringify({ session }, undefined, 2)
-  );
   if (session.status === 'loading') {
     return (
       <section className="flex h-full w-full flex-col items-center justify-center gap-4">
@@ -57,7 +52,7 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
             </section>
           </Link>
           <section>
-            <Button onClick={handleLogin}>Login</Button>
+            <Button onClick={() => signOut()}>Logout</Button>
           </section>
         </section>
         <nav className="flex w-full gap-3 border border-solid border-b-blackish-900/50 p-2">
