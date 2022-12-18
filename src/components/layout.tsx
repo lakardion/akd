@@ -1,7 +1,10 @@
+import { signIn, signOut, useSession } from 'next-auth/react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { FC, ReactNode } from 'react';
-import { Button } from './button';
+import { Button, PillButton } from './button';
+import { Spinner } from './spinner';
 
 const routes = [
   { href: '/alumnos', label: 'alumnos' },
@@ -11,10 +14,31 @@ const routes = [
 ];
 
 export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
-  const handleLogin = () => {
-    //TODO:
-  };
   const router = useRouter();
+  //TODO: not sure this is the right way to do things..
+  // It may be just fine as it is right now.. we're restricting users within the google project anyway.
+  const session = useSession();
+  if (session.status === 'loading') {
+    return (
+      <section className="flex h-full w-full flex-col items-center justify-center gap-4">
+        <h1>Checking your credentials...</h1>
+        <Spinner size="md" />
+      </section>
+    );
+  }
+  if (session.status === 'unauthenticated') {
+    return (
+      <section className="flex h-full w-full flex-col items-center justify-center gap-4">
+        <Image src={'/la-akd-sm.png'} height={300} width={210} />
+        <div className="flex flex-col gap-2">
+          <p className="text-slate-500">
+            Debes ingresar con google para poder utilizar la aplicación
+          </p>
+          <PillButton onClick={() => signIn('google')}>Login</PillButton>
+        </div>
+      </section>
+    );
+  }
   return (
     <div className="flex h-screen flex-col">
       <header className="w-full pb-1 text-accent-900">
@@ -28,7 +52,7 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
             </section>
           </Link>
           <section>
-            <Button onClick={handleLogin}>Login</Button>
+            <Button onClick={() => signOut()}>Logout</Button>
           </section>
         </section>
         <nav className="flex w-full gap-3 border border-solid border-b-blackish-900/50 p-2">
