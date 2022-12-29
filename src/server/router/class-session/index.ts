@@ -4,15 +4,15 @@ import { diffStrArraysImproved } from 'utils';
 import { DEFAULT_PAGE_SIZE } from 'utils/pagination';
 import { identifiableZod, infiniteCursorZod } from 'utils/server-zods';
 import { z } from 'zod';
-import { publicProcedure, router } from '../trpc';
+import { privateProcedure, router } from '../trpc';
 import {
   addressDebt,
   calculatedDebtZod,
   updateDebtorsHourBalance,
 } from './helpers';
 
-export const classsessionRouter = router({
-  paginated: publicProcedure
+export const classSessionRouter = router({
+  paginated: privateProcedure
     .input(
       z.object({
         studentId: z.string().optional(),
@@ -83,7 +83,7 @@ export const classsessionRouter = router({
         };
       }
     ),
-  byDate: publicProcedure
+  byDate: privateProcedure
     .input(z.object({ from: z.date(), to: z.date() }))
     .query(async ({ ctx, input: { from, to } }) => {
       return ctx.prisma.classSession.findMany({
@@ -106,7 +106,7 @@ export const classsessionRouter = router({
         },
       });
     }),
-  all: publicProcedure
+  all: privateProcedure
     .input(
       z.object({
         cursor: infiniteCursorZod,
@@ -140,7 +140,7 @@ export const classsessionRouter = router({
         };
       }
     ),
-  single: publicProcedure
+  single: privateProcedure
     .input(identifiableZod)
     .query(async ({ ctx, input: { id } }) => {
       const classSession = await ctx.prisma.classSession.findUnique({
@@ -178,7 +178,7 @@ export const classsessionRouter = router({
         })),
       };
     }),
-  unpaid: publicProcedure
+  unpaid: privateProcedure
     .input(z.object({ teacherId: z.string() }))
     .query(async ({ ctx, input: { teacherId } }) => {
       const unpaidClasssSession = await ctx.prisma.classSession.findMany({
@@ -220,7 +220,7 @@ export const classsessionRouter = router({
         ];
       });
     }),
-  byStudent: publicProcedure
+  byStudent: privateProcedure
     .input(identifiableZod)
     .query(async ({ ctx, input: { id } }) => {
       const classSessions = await ctx.prisma.classSession.findMany({
@@ -237,7 +237,7 @@ export const classsessionRouter = router({
       });
       return classSessions;
     }),
-  update: publicProcedure
+  update: privateProcedure
     .input(
       identifiableZod.merge(
         z.object({
@@ -337,7 +337,7 @@ export const classsessionRouter = router({
         });
       }
     ),
-  create: publicProcedure
+  create: privateProcedure
     .input(
       z.object({
         studentIds: z.array(z.string()),
@@ -409,7 +409,7 @@ export const classsessionRouter = router({
         });
       }
     ),
-  delete: publicProcedure
+  delete: privateProcedure
     .input(identifiableZod)
     .mutation(async ({ ctx, input: { id } }) => {
       // this must restore hours and remove unpaid debts
@@ -504,7 +504,7 @@ export const classsessionRouter = router({
         }
       });
     }),
-  addStudent: publicProcedure
+  addStudent: privateProcedure
     .input(z.object({ studentId: z.string(), classSessionId: z.string() }))
     .mutation(async ({ ctx, input: { studentId, classSessionId } }) => {
       const classSession = await ctx.prisma.classSession.findUnique({

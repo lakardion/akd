@@ -6,10 +6,10 @@ import { getMonthEdges } from 'utils/date';
 import { DEFAULT_PAGE_SIZE } from 'utils/pagination';
 import { identifiableZod, infiniteCursorZod } from 'utils/server-zods';
 import { z } from 'zod';
-import { publicProcedure, router } from './trpc';
+import { privateProcedure, router } from './trpc';
 
 export const teacherRouter = router({
-  history: publicProcedure
+  history: privateProcedure
     .input(
       //lets actually allow only to query by month. It is always going to be a limited amount and we can definitely get that going on the frontend
       z.object({
@@ -114,7 +114,7 @@ export const teacherRouter = router({
       merged.sort((a, b) => (a.date > b.date ? -1 : 1));
       return merged;
     }),
-  count: publicProcedure
+  count: privateProcedure
     .input(includeInactiveFlagZod.default({}))
     .query(async ({ ctx, input: { includeInactive } }) => {
       return ctx.prisma.teacher.count({
@@ -123,7 +123,7 @@ export const teacherRouter = router({
         },
       });
     }),
-  search: publicProcedure
+  search: privateProcedure
     .input(z.object({ query: z.string() }))
     .query(async ({ ctx, input: { query } }) => {
       if (!query)
@@ -149,7 +149,7 @@ export const teacherRouter = router({
       });
       return foundTeachers;
     }),
-  single: publicProcedure
+  single: privateProcedure
     .input(identifiableZod)
     .query(async ({ ctx, input: { id } }) => {
       const teacher = await ctx.prisma.teacher.findUnique({
@@ -183,7 +183,7 @@ export const teacherRouter = router({
       );
       return { ...teacher, balance: currentTotal?.toNumber() };
     }),
-  allSearch: publicProcedure
+  allSearch: privateProcedure
     .input(
       z.object({
         query: z.string().optional(),
@@ -232,13 +232,13 @@ export const teacherRouter = router({
         };
       }
     ),
-  teacher: publicProcedure
+  teacher: privateProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input: { id } }) => {
       const teacher = await ctx.prisma.teacher.findUnique({ where: { id } });
       return teacher;
     }),
-  edit: publicProcedure
+  edit: privateProcedure
     .input(z.object({ id: z.string() }).extend(teacherFormZod.shape))
     .mutation(async ({ ctx, input: { id, name, lastName } }) => {
       const updatedTeacher = await ctx.prisma.teacher.update({
@@ -252,7 +252,7 @@ export const teacherRouter = router({
       });
       return updatedTeacher;
     }),
-  active: publicProcedure
+  active: privateProcedure
     .input(z.object({ isActive: z.boolean() }).merge(identifiableZod))
     .mutation(async ({ ctx, input: { isActive, id } }) => {
       return ctx.prisma.teacher.update({
@@ -264,7 +264,7 @@ export const teacherRouter = router({
         },
       });
     }),
-  delete: publicProcedure
+  delete: privateProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input: { id } }) => {
       //! dont delete if they have relations, set them inactive instead
@@ -287,7 +287,7 @@ export const teacherRouter = router({
       }
       return ctx.prisma.teacher.delete({ where: { id } });
     }),
-  create: publicProcedure
+  create: privateProcedure
     .input(teacherFormZod)
     .mutation(async ({ ctx, input: { name, lastName } }) => {
       const created = await ctx.prisma.teacher.create({

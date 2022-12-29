@@ -1,10 +1,10 @@
 import { PaymentMethodType } from '@prisma/client';
 import { DEFAULT_PAGE_SIZE } from 'utils/pagination';
 import { z } from 'zod';
-import { publicProcedure, router } from './trpc';
+import { privateProcedure, router } from './trpc';
 
 export const teacherPaymentRouter = router({
-  all: publicProcedure
+  all: privateProcedure
     .input(
       z.object({
         page: z.number(),
@@ -55,7 +55,7 @@ export const teacherPaymentRouter = router({
         };
       }
     ),
-  create: publicProcedure
+  create: privateProcedure
     .input(
       z.object({
         teacherId: z.string(),

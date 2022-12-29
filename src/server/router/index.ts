@@ -1,6 +1,6 @@
 import { analyticsRouter } from './analytics';
 import { authRouter } from './auth';
-import { classsessionRouter } from './class-session';
+import { classSessionRouter } from './class-session';
 import { paymentRouter } from './payment-router';
 import { ratesRouter } from './rates-router';
 import { studentRouter } from './student';
@@ -14,7 +14,7 @@ export const appRouter = router({
   teacherPayments: teacherPaymentRouter,
   teachers: teacherRouter,
   students: studentRouter,
-  classSessions: classsessionRouter,
+  classSessions: classSessionRouter,
   auth: authRouter,
   analytics: analyticsRouter,
 });
