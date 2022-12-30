@@ -33,7 +33,7 @@ const isAuthenticatedMiddleware = t.middleware(async ({ ctx, next }) => {
 export const privateProcedure = t.procedure.use(isAuthenticatedMiddleware);
 
 const isAdminMiddleware = t.middleware(async ({ ctx, next }) => {
-  const adminEmails = JSON.parse(env.ALLOWED_EMAILS) as string[];
+  const adminEmails = JSON.parse(env.ADMIN_EMAILS) as string[];
   if (!adminEmails.includes(ctx.session?.user?.email ?? '')) {
     throw new TRPCError({
       code: 'UNAUTHORIZED',

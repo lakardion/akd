@@ -16,12 +16,11 @@ const routes = [
 ];
 
 export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
-  const { data: isAdmin } = trpc.auth.getPowers.useQuery();
+  const { data: powers } = trpc.auth.getPowers.useQuery();
   const router = useRouter();
   //TODO: not sure this is the right way to do things..
   // It may be just fine as it is right now.. we're restricting users within the google project anyway.
   const session = useSession();
-  console.log('hello are you admin?', isAdmin);
   if (session.status === 'loading') {
     return (
       <section className="flex h-full w-full flex-col items-center justify-center gap-4">
@@ -62,7 +61,7 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
         <nav className="flex w-full gap-3 border border-solid border-b-blackish-900/50 p-2">
           {routes.map((r) => {
             const isCurrentRoute = router.pathname.includes(r.href);
-            if (r.href === '/admin' && !isAdmin) return undefined;
+            if (r.href === '/admin' && !powers?.isAdmin) return undefined;
             return (
               <Link href={r.href} key={r.href}>
                 <button

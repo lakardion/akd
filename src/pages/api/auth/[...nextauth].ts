@@ -12,7 +12,9 @@ export const authOptions: NextAuthOptions = {
     signIn({ user }) {
       const allowedEmails = JSON.parse(env.ALLOWED_EMAILS) as string[];
       if (user.email && !allowedEmails.includes(user.email)) {
-        console.log("you're not in the list");
+        console.error(
+          "You're not authorized to use this app. Please talk to the administrator"
+        );
         return false;
       }
       return true;

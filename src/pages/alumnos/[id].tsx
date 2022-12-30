@@ -153,8 +153,6 @@ const StudentDetail = () => {
       </section>
     );
 
-  console.log('has debts??', data?.debts);
-
   return (
     <section className="flex w-full flex-col items-center gap-3  p-3 sm:max-w-[550px]">
       <h1 className="text-3xl">
