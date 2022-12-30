@@ -55,7 +55,7 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
           <Link href="/">
             <section className="flex items-baseline gap-2 hover:cursor-pointer">
               <span>
-                <AkdPhrase size={150} />
+                <AkdPhrase size={150} className="fill-primary-600" />
               </span>
               <span className="bg-gradient-to-r from-primary to-blackish bg-clip-text text-transparent">
                 Reg&amp;Stats
