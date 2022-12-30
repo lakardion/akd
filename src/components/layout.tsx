@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { FC, ReactNode } from 'react';
+import { trpc } from 'utils/trpc';
 import { Button, PillButton } from './button';
 import { Spinner } from './spinner';
 
@@ -11,13 +12,16 @@ const routes = [
   { href: '/profesores', label: 'profesores' },
   { href: '/precios/alumnos', label: 'precios' },
   { href: '/clases', label: 'Clases' },
+  { href: '/admin', label: 'Admin' },
 ];
 
 export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
+  const { data: isAdmin } = trpc.auth.getPowers.useQuery();
   const router = useRouter();
   //TODO: not sure this is the right way to do things..
   // It may be just fine as it is right now.. we're restricting users within the google project anyway.
   const session = useSession();
+  console.log('hello are you admin?', isAdmin);
   if (session.status === 'loading') {
     return (
       <section className="flex h-full w-full flex-col items-center justify-center gap-4">
@@ -58,6 +62,7 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
         <nav className="flex w-full gap-3 border border-solid border-b-blackish-900/50 p-2">
           {routes.map((r) => {
             const isCurrentRoute = router.pathname.includes(r.href);
+            if (r.href === '/admin' && !isAdmin) return undefined;
             return (
               <Link href={r.href} key={r.href}>
                 <button

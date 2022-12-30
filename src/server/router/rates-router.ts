@@ -5,10 +5,10 @@ import {
   includeInactiveFlagZod,
 } from 'common';
 import { z } from 'zod';
-import { publicProcedure, router } from './trpc';
+import { privateProcedure, router } from './trpc';
 
 export const ratesRouter = router({
-  hourRate: publicProcedure
+  hourRate: privateProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input: { id } }) => {
       const hourRate = await ctx.prisma.hourRate.findUnique({ where: { id } });
@@ -17,7 +17,7 @@ export const ratesRouter = router({
       }
       return { ...hourRate, rate: hourRate.rate.toNumber() };
     }),
-  hourRates: publicProcedure
+  hourRates: privateProcedure
     .input(hourRateTypeZod.merge(includeInactiveFlagZod))
     .query(async ({ ctx, input: { type, includeInactive = false } }) => {
       const prices = await ctx.prisma.hourRate.findMany({
@@ -29,7 +29,7 @@ export const ratesRouter = router({
 
       return prices.map((p) => ({ ...p, rate: p.rate.toNumber() }));
     }),
-  hourPackage: publicProcedure
+  hourPackage: privateProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input: { id } }) => {
       const hourPackage = await ctx.prisma.hourPackage.findUnique({
@@ -40,7 +40,7 @@ export const ratesRouter = router({
       }
       return { ...hourPackage, totalValue: hourPackage.totalValue.toNumber() };
     }),
-  hourPackages: publicProcedure
+  hourPackages: privateProcedure
     .input(includeInactiveFlagZod.default({}))
     .query(async ({ ctx, input: { includeInactive = false } }) => {
       const packages = await ctx.prisma.hourPackage.findMany({
@@ -52,7 +52,7 @@ export const ratesRouter = router({
         packHours: p.packHours.toNumber(),
       }));
     }),
-  createHourRate: publicProcedure
+  createHourRate: privateProcedure
     .input(hourRateTypeZod.extend(addHourRateZod.shape))
     .mutation(async ({ ctx, input: { type, description, rate } }) => {
       const createdHourRate = await ctx.prisma.hourRate.create({
@@ -65,7 +65,7 @@ export const ratesRouter = router({
 
       return createdHourRate;
     }),
-  deleteHourRate: publicProcedure
+  deleteHourRate: privateProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input: { id } }) => {
       const currentHourRate = await ctx.prisma.hourRate.findUnique({
@@ -96,7 +96,7 @@ export const ratesRouter = router({
         },
       });
     }),
-  editHourRate: publicProcedure
+  editHourRate: privateProcedure
     .input(
       z.object({ id: z.string() }).merge(addHourRateZod).merge(hourRateTypeZod)
     )
@@ -110,7 +110,7 @@ export const ratesRouter = router({
         },
       });
     }),
-  createHourPackage: publicProcedure
+  createHourPackage: privateProcedure
     .input(addHourPackageZod)
     .mutation(
       async ({ ctx, input: { description, packHours, totalValue } }) => {
@@ -125,7 +125,7 @@ export const ratesRouter = router({
         return newHourPackage;
       }
     ),
-  editHourPackage: publicProcedure
+  editHourPackage: privateProcedure
     .input(z.object({ id: z.string() }).merge(addHourPackageZod))
     .mutation(
       async ({ ctx, input: { id, description, packHours, totalValue } }) => {
@@ -136,7 +136,7 @@ export const ratesRouter = router({
         return updated;
       }
     ),
-  deleteHourPackage: publicProcedure
+  deleteHourPackage: privateProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input: { id } }) => {
       //! no relations mean we can safely delete this field.

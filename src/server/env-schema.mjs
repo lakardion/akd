@@ -8,4 +8,5 @@ export const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string(),
   GOOGLE_SECRET: z.string(),
   ALLOWED_EMAILS: z.string(),
+  ADMIN_EMAILS: z.string(),
 });

@@ -3,10 +3,10 @@ import { TRPCError } from '@trpc/server';
 import { paginationZod } from 'utils/pagination';
 import { identifiableZod } from 'utils/server-zods';
 import { z } from 'zod';
-import { publicProcedure, router } from './trpc';
+import { privateProcedure, router } from './trpc';
 
 export const paymentRouter = router({
-  byStudent: publicProcedure
+  byStudent: privateProcedure
     .input(paginationZod.merge(identifiableZod))
     .query(async ({ ctx, input: { page, size, id } }) => {
       const paymentsByStudent = await ctx.prisma.payment.findMany({
@@ -24,7 +24,7 @@ export const paymentRouter = router({
         hourValue: pmbs.hours.toNumber(),
       }));
     }),
-  payDebtTotal: publicProcedure
+  payDebtTotal: privateProcedure
     .input(
       z.object({
         date: z.date(),
@@ -71,7 +71,7 @@ export const paymentRouter = router({
         })
       );
     }),
-  create: publicProcedure
+  create: privateProcedure
     .input(
       z.object({
         date: z.date(),

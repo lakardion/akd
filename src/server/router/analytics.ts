@@ -2,17 +2,16 @@ import { Decimal } from '@prisma/client/runtime';
 import {
   lastDayOfMonth,
   setDate,
-  setDay,
   setHours,
   setMilliseconds,
   setMinutes,
   setSeconds,
 } from 'date-fns';
 import { getDebtSummary } from './student/helpers';
-import { publicProcedure, router } from './trpc';
+import { privateProcedure, router } from './trpc';
 
 export const analyticsRouter = router({
-  upcomingClasses: publicProcedure.query(async ({ ctx }) => {
+  upcomingClasses: privateProcedure.query(async ({ ctx }) => {
     // get list of classes (probably paginate?) that are incoming
     //lets get next classes regardless of pagination right now
     const classes = await ctx.prisma.classSession.findMany({
@@ -40,7 +39,7 @@ export const analyticsRouter = router({
   /**
    * Gets all debtors from oldest to newest
    */
-  debtors: publicProcedure.query(async ({ ctx }) => {
+  debtors: privateProcedure.query(async ({ ctx }) => {
     //im wondering how we would like to display this. I should not care about same student multiple times, the debt should be unified by student rather than
     const debtors = await ctx.prisma.student.findMany({
       where: {
@@ -66,7 +65,7 @@ export const analyticsRouter = router({
       };
     });
   }),
-  revenue: publicProcedure.query(async ({ ctx }) => {
+  revenue: privateProcedure.query(async ({ ctx }) => {
     //how do we even get started to get the month revenue?. I think the best way would be to get all payments and get the reduced total.
     const currentMonthInitial = setMilliseconds(
       setSeconds(setMinutes(setHours(setDate(new Date(), 1), 0), 0), 0),
@@ -106,7 +105,7 @@ export const analyticsRouter = router({
       monthTotalRevenue: paymentsReduced.totalRevenue.toNumber(),
     };
   }),
-  newStudents: publicProcedure.query(async ({ ctx }) => {
+  newStudents: privateProcedure.query(async ({ ctx }) => {
     const currentMonthInitial = setMilliseconds(
       setSeconds(setMinutes(setHours(setDate(new Date(), 1), 0), 0), 0),
       0
@@ -133,7 +132,7 @@ export const analyticsRouter = router({
     });
     return newStudents;
   }),
-  recurrentStudents: publicProcedure.query(async ({ ctx }) => {
+  recurrentStudents: privateProcedure.query(async ({ ctx }) => {
     const currentMonthInitial = setMilliseconds(
       setSeconds(setMinutes(setHours(setDate(new Date(), 1), 0), 0), 0),
       0

@@ -6,7 +6,7 @@ import { getMonthEdges } from 'utils/date';
 import { DEFAULT_PAGE_SIZE } from 'utils/pagination';
 import { infiniteCursorZod } from 'utils/server-zods';
 import { z } from 'zod';
-import { publicProcedure, router } from '../trpc';
+import { privateProcedure, router } from '../trpc';
 import {
   calculateDebt,
   calculateDebtNewClass,
@@ -14,7 +14,7 @@ import {
 } from './helpers';
 
 export const studentRouter = router({
-  calculateDebts: publicProcedure
+  calculateDebts: privateProcedure
     .input(
       z.object({
         studentIds: z.array(z.string()),
@@ -27,7 +27,7 @@ export const studentRouter = router({
         ? calculateDebt(ctx)({ hours, studentIds, classSessionId })
         : calculateDebtNewClass(ctx)({ hours, studentIds });
     }),
-  history: publicProcedure
+  history: privateProcedure
     .input(
       z.object({
         studentId: z.string(),
@@ -122,7 +122,7 @@ export const studentRouter = router({
       merged.sort((a, b) => (a > b ? -1 : 1));
       return merged;
     }),
-  single: publicProcedure
+  single: privateProcedure
     .input(
       z.object({
         id: z.string(),
@@ -148,7 +148,7 @@ export const studentRouter = router({
         hourBalance: student?.hourBalance.toNumber(),
       };
     }),
-  allSearch: publicProcedure
+  allSearch: privateProcedure
     .input(
       z.object({
         query: z.string().optional(),
@@ -214,7 +214,7 @@ export const studentRouter = router({
         };
       }
     ),
-  create: publicProcedure
+  create: privateProcedure
     .input(studentFormZod)
     .mutation(
       async ({
@@ -233,7 +233,7 @@ export const studentRouter = router({
         return newStudent;
       }
     ),
-  delete: publicProcedure
+  delete: privateProcedure
     .input(
       z.object({
         id: z.string(),
@@ -266,7 +266,7 @@ export const studentRouter = router({
 
       return deleteOperation;
     }),
-  edit: publicProcedure
+  edit: privateProcedure
     .input(
       z
         .object({
