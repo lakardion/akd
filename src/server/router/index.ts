@@ -1,3 +1,4 @@
+import { adminRouter } from './admin';
 import { analyticsRouter } from './analytics';
 import { authRouter } from './auth';
 import { classSessionRouter } from './class-session';
@@ -17,6 +18,7 @@ export const appRouter = router({
   classSessions: classSessionRouter,
   auth: authRouter,
   analytics: analyticsRouter,
+  admin: adminRouter,
 });
 
 // export type definition of API
