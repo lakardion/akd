@@ -6,6 +6,8 @@ import { FC, ReactNode } from 'react';
 import { trpc } from 'utils/trpc';
 import { Button, PillButton } from './button';
 import { Spinner } from './spinner';
+import { FcGoogle } from 'react-icons/fc';
+import { AkdPhrase } from './akd-phrase';
 
 const routes = [
   { href: '/alumnos', label: 'alumnos' },
@@ -32,12 +34,16 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
   if (session.status === 'unauthenticated') {
     return (
       <section className="flex h-full w-full flex-col items-center justify-center gap-4">
-        <Image src={'/la-akd-sm.png'} height={300} width={210} />
-        <div className="flex flex-col gap-2">
+        <Image src={'/la-akd-sm.png'} height={350} width={300} />
+        <div className="flex flex-col gap-4">
           <p className="text-slate-500">
             Debes ingresar con google para poder utilizar la aplicación
           </p>
-          <PillButton onClick={() => signIn('google')}>Login</PillButton>
+          <PillButton onClick={() => signIn('google')} variant="secondary">
+            <section className="flex items-center justify-center gap-2">
+              <FcGoogle size={50} />
+            </section>
+          </PillButton>
         </div>
       </section>
     );
@@ -47,8 +53,10 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
       <header className="w-full pb-1 text-accent-900">
         <section className="flex w-full justify-between p-2">
           <Link href="/">
-            <section className="hover:cursor-pointer">
-              <span className="text-2xl">La Academia </span>
+            <section className="flex items-baseline gap-2 hover:cursor-pointer">
+              <span>
+                <AkdPhrase size={150} />
+              </span>
               <span className="bg-gradient-to-r from-primary to-blackish bg-clip-text text-transparent">
                 Reg&amp;Stats
               </span>
