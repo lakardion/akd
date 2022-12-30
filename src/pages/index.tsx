@@ -6,7 +6,6 @@ import { UpcomingClassesCard } from 'components/dashboard/upcoming-classes.card'
 import type { NextPage } from 'next';
 import Head from 'next/head';
 import { FC, ReactNode } from 'react';
-import { trpc } from 'utils/trpc';
 
 const DashboardCard: FC<{ title: string; children: ReactNode }> = ({
   children,
@@ -33,12 +32,12 @@ const Home: NextPage = () => {
       </Head>
 
       <section className="flex flex-col items-center justify-center gap-4 overflow-auto md:flex-row md:items-start">
-        <section className="flex-grow">
+        <section className="w-full flex-grow">
           <DashboardCard title="Deudores">
             <DebtorsCard />
           </DashboardCard>
         </section>
-        <section className="flex flex-grow flex-col gap-4">
+        <section className="flex w-full flex-grow flex-col gap-4">
           <DashboardCard title="Próximas clases">
             <UpcomingClassesCard />
           </DashboardCard>
@@ -46,7 +45,7 @@ const Home: NextPage = () => {
             <NewStudentsCard />
           </DashboardCard>
         </section>
-        <section className="flex flex-grow flex-col justify-center gap-4">
+        <section className="flex w-full flex-grow flex-col justify-center gap-4">
           <DashboardCard title="Recaudación en el mes">
             <RevenueCard />
           </DashboardCard>
